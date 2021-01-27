@@ -1,3 +1,5 @@
+# Analysis runner
+
 This tool helps to [make analysis results reproducible](https://github.com/populationgenomics/team-docs/blob/main/reproducible_analyses.md),
 by automating the following aspects:
 
@@ -17,14 +19,25 @@ used to run the batch on your behalf. There's a dedicated Batch service
 account for each project (e.g. "tob-wgs"), which helps with bucket permission
 management and billing budgets.
 
-# Usage
+## Usage
 
 **TODO(@lgruen):** Add instructions
 
-# Deployment
+## Deployment
 
 You can ignore this section if you just want to run the tool.
 
+To set up a development environment using conda, run the following:
+
+```bash
+conda create --name analysis-runner -c cpg -c bioconda -c conda-forge hail pylint
+
+conda activate analysis-runner
+
+pip install kubernetes==12.0.1 google-cloud-secret-manager==2.2.0
+```
+
 1. Add a Hail Batch service account for all supported projects.
-1. [Copy the Hail tokens](tokens) to the Secret Manager. This needs to be
+1. [Copy the Hail tokens](tokens) to the Secret Manager. This step needs to be
    repeated whenever a new project is added.
+1. Build the [driver image](driver).
