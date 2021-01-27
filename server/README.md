@@ -3,6 +3,9 @@
 This directory contains the server component of the analysis runner, which is
 deployed as a Cloud Run container.
 
+It uses `aiohttp` instead of `flask` because Hail Batch's async event queue
+doesn't mix well with `flask`'s threads.
+
 To deploy, run:
 
 ```bash
