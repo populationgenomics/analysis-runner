@@ -1,7 +1,5 @@
 from aiohttp import web
-import google.oauth2.id_token
-import google.auth.transport.requests
-import pprint
+from google.auth import jwt
 #import hailtop.batch as hb 
 #from hailtop.config import get_deploy_config
 
@@ -17,21 +15,17 @@ routes = web.RouteTableDef()
 
 @routes.post('/')
 async def index(request):
-    return web.Response(text=f'{pprint.pformat(dict(request.headers))}\n')
-
     # Decode the ID token (JWT) to get the email address of the caller.
     # https://developers.google.com/identity/sign-in/web/backend-auth?authuser=0#verify-the-integrity-of-the-id-token
     auth_header = request.headers.get('Authorization')
     if auth_header is None:
         raise web.HTTPUnauthorized()
 
-    def remove_prefix(s: str, prefix: str) -> str:
-        return s[len(prefix):] if s.startswith(prefix) else s
-
-    id_token = remove_prefix(auth_header, 'Bearer ')
+    # Strip the 'bearer' / 'Bearer' prefix.
+    id_token = auth_header[7:]
     try:
-        id_info = google.oauth2.id_token.verify_oauth2_token(
-            id_token, google.auth.transport.requests.Request())
+        # The token has already been verified before this endpoint.
+        id_info = jwt.decode(id_token, verify=False)
     except:
         raise web.HTTPUnauthorized()
     
