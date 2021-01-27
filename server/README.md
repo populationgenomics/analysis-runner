@@ -1,4 +1,4 @@
-# Cloud Run server deployment
+# Server deployment using Cloud Run
 
 This directory contains the server component of the analysis runner, which is
 deployed as a Cloud Run container.

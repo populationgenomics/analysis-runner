@@ -38,5 +38,6 @@ pip install kubernetes==12.0.1 google-cloud-secret-manager==2.2.0
 ```
 
 1. Add a Hail Batch service account for all supported projects.
-1. [Copy the Hail tokens](tokens) to the Secret Manager. This needs to be
+1. [Copy the Hail tokens](tokens) to the Secret Manager. This step needs to be
    repeated whenever a new project is added.
+1. Build the [driver image](driver).

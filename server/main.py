@@ -1,7 +1,7 @@
 from aiohttp import web
 from google.auth import jwt
-#import hailtop.batch as hb 
-#from hailtop.config import get_deploy_config
+import hailtop.batch as hb 
+from hailtop.config import get_deploy_config
 
 GITHUB_ORG = 'populationgenomics'
 
@@ -13,32 +13,43 @@ BATCH_DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images
 
 routes = web.RouteTableDef()
 
+def _email_from_id_token(auth_header: str) -> str:
+    '''Decodes the ID token (JWT) to get the email address of the caller.
+
+    See https://developers.google.com/identity/sign-in/web/backend-auth?authuser=0#verify-the-integrity-of-the-id-token
+    for details.
+
+    This function assumes that the token has been verified beforehand.'''
+
+    id_token = auth_header[7:]  # Strip the 'bearer' / 'Bearer' prefix.
+    id_info = jwt.decode(id_token, verify=False)
+    return id_info['email']
+
+def _check_auth(email: str, project: str) -> None:
+    '''If the given user doesn't have access to the project as defined by the
+    corresponding permissions group, this function raises an HTTPUnauthorized
+    exception.'''
+
+    raise web.HTTPUnauthorized()
+
 @routes.post('/')
 async def index(request):
-    # Decode the ID token (JWT) to get the email address of the caller.
-    # https://developers.google.com/identity/sign-in/web/backend-auth?authuser=0#verify-the-integrity-of-the-id-token
     auth_header = request.headers.get('Authorization')
     if auth_header is None:
         raise web.HTTPUnauthorized()
 
-    # Strip the 'bearer' / 'Bearer' prefix.
-    id_token = auth_header[7:]
+    # When accessing a missing entry in the params dict, the resulting KeyError
+    # exception gets translated to a Bad Request error in the try block below.
+    params = await request.json()
     try:
-        # The token has already been verified before this endpoint.
-        id_info = jwt.decode(id_token, verify=False)
-    except:
-        raise web.HTTPUnauthorized()
-    
-    return web.Response(text=f'{id_info}\n')
+        project = params['project']
+
+        email = _email_from_id_token(auth_header)
+        _check_auth(email, project)
 
     # prevent command injection
     # ' '.join(["'{}'".format(x.replace("'", "'\\''")) for x in a.split(' ') if len(x)])
 
-    # When accessing a missing entry in the params dict, the resulting KeyError
-    # exception gets translated to a 400 error in the try block below.
-    params = await request.json()
-
-    try:
         repo = params['repo']
         if repo not in ALLOWED_REPOS:
             raise web.HTTPForbidden()
@@ -67,7 +78,8 @@ async def index(request):
         commit = params['commit']
         job.command(f'git merge-base --is-ancestor {commit} HEAD')
         job.command(f'git checkout {commit}')
-        # TODO: escape parameters
+        # TODO: check that script file exists: test -f $FILE
+        # TODO: escape parameters (also for commit)
         job.command(f'python3 {params["scriptPath"]}')
 
         bc_batch = batch.run(wait=False)
