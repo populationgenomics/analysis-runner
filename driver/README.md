@@ -14,7 +14,10 @@ Then run:
 ```bash
 gcloud config set project analysis-runner
 
-gcloud builds submit --timeout 1h --tag australia-southeast1-docker.pkg.dev/analysis-runner/images/batch-driver:(git rev-parse --short=12 HEAD)
+IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/driver
+COMMIT_HASH=$(git rev-parse --short=12 HEAD)
+gcloud builds submit --timeout 1h --tag $IMAGE:$COMMIT_HASH
+docker tag $IMAGE:$COMMIT_HASH $IMAGE:latest
 ```
 
 Update the corresponding version reference in the [server](../server) and

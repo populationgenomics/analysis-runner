@@ -1,5 +1,8 @@
 from aiohttp import web
+import logging
+
 from google.auth import jwt
+
 import hailtop.batch as hb 
 from hailtop.config import get_deploy_config
 
@@ -9,7 +12,7 @@ ALLOWED_REPOS = {
     'tob-wgs',
 }
 
-BATCH_DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/batch-driver:cff2885ebab7'
+DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:cff2885ebab7'
 
 routes = web.RouteTableDef()
 
@@ -30,13 +33,33 @@ def _check_auth(email: str, project: str) -> None:
     corresponding permissions group, this function raises an HTTPUnauthorized
     exception.'''
 
-    raise web.HTTPUnauthorized()
+    service_name = 'cloudidentity.googleapis.com'
+    api_version = 'v1'
+    discovery_url = f'https://{service_name}/$discovery/rest?version={api_version}'
+    id_service = googleapiclient.discovery.build(
+        service_name, api_version, discoveryServiceUrl=discovery_url)
+
+    # https://github.com/populationgenomics/team-docs/tree/main/storage_policies#access-permissions
+    group_email = f'{project}-restricted-access@populationgenomics.org.au'
+
+    logging.info(f'Checking membership of {email} in {group_email}')
+
+    # https://cloud.google.com/identity/docs/reference/rest/v1/groups/lookup
+    group_id = id_service.groups().lookup(groupKey_id=group_email).execute()['name']
+
+    query_params = urlencode({'query': f'member_key_id == "{email}"'})
+    request = id_service.groups().memberships().checkTransitiveMembership(parent=group_id)
+    request.uri += "&" + query_params
+    response = request.execute()
+    print(response)
+    if not response['hasMembership']:
+        raise web.HTTPUnauthorized(reason=f'User {email} is not a member of {group_email}')
 
 @routes.post('/')
 async def index(request):
     auth_header = request.headers.get('Authorization')
     if auth_header is None:
-        raise web.HTTPUnauthorized()
+        raise web.HTTPUnauthorized(reason='Missing authorization header')
 
     # When accessing a missing entry in the params dict, the resulting KeyError
     # exception gets translated to a Bad Request error in the try block below.
@@ -46,6 +69,8 @@ async def index(request):
 
         email = _email_from_id_token(auth_header)
         _check_auth(email, project)
+
+        return web.Response(text=f'OK\n')
 
     # prevent command injection
     # ' '.join(["'{}'".format(x.replace("'", "'\\''")) for x in a.split(' ') if len(x)])
@@ -87,8 +112,9 @@ async def index(request):
         url = deploy_config.url('batch', f'/batches/{bc_batch.id}')
 
         return web.Response(text=f'{url}\n')
-    except:
-        raise web.HTTPBadRequest()
+    except KeyError as e:
+        logging.error(e)
+        raise web.HTTPBadRequest(reason='Missing request parameter')
 
 
 async def init_func():

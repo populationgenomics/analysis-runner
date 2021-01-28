@@ -1,7 +1,9 @@
 # Since the server relies on Hail as well, we're reusing the driver image.
-FROM 'australia-southeast1-docker.pkg.dev/analysis-runner/images/batch-driver:cff2885ebab7'
+FROM 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:latest'
 
-RUN conda install -y gunicorn
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+RUN rm requirements.txt
 
 # Allow statements and log messages to immediately appear in the Knative logs.
 ENV PYTHONUNBUFFERED 1
