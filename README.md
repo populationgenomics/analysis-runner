@@ -30,15 +30,15 @@ You can ignore this section if you just want to run the tool.
 To set up a development environment using conda, run the following:
 
 ```bash
-conda create --name analysis-runner -c cpg -c bioconda -c conda-forge hail google-auth google-cloud-secret-manager
+conda create --name analysis-runner -c cpg -c bioconda -c conda-forge hail pre-commit kubernetes=12.0.1 google-cloud-secret-manager=2.2.0
 
 conda activate analysis-runner
+
+pre-commit install
 ```
 
 1. Add a Hail Batch service account for all supported projects.
-1. [Copy the Hail tokens](tokens) to the Secret Manager. This step needs to be
-   repeated whenever a new project is added.
+1. [Copy the Hail tokens](tokens) to the Secret Manager.
 1. Build the [driver image](driver).
-1. Deploy the [server](server). This step needs to be repeated whenever a new
-   repository is added to the allowlist.
+1. Deploy the [server](server).
 1. Publish the [CLI tool](cli) to conda.
