@@ -16,7 +16,7 @@ jobs:
         run: pylint **/*.py
 
       - name: flake8
-        run: flake8 . --max-line-length 88 --extend-ignore F541
+        run: flake8 .
 
       - name: black
-        run: black . --check --line-length=88 --skip-string-normalization
+        run: black . --check
