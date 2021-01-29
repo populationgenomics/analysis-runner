@@ -1,9 +1,7 @@
 # Since the server relies on Hail as well, we're reusing the driver image.
-FROM 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:latest'
+FROM 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:06dd37129625'
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-RUN rm requirements.txt
+RUN conda install -c conda-forge google-auth google-cloud-secret-manager gunicorn
 
 # Allow statements and log messages to immediately appear in the Knative logs.
 ENV PYTHONUNBUFFERED 1

@@ -6,10 +6,9 @@ FROM marketplace.gcr.io/google/ubuntu1804
 RUN apt-get update && apt-get install -y git
 
 # Install Miniconda.
-RUN curl -o miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py37_4.9.2-Linux-x86_64.sh
-RUN bash miniconda.sh -b
-RUN rm miniconda.sh
+RUN curl -o miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py37_4.9.2-Linux-x86_64.sh && bash miniconda.sh -b && rm miniconda.sh
 ENV PATH /root/miniconda3/bin:$PATH
+
 # Install Hail from the conda CPG channel.
 RUN conda install -y -c cpg -c bioconda -c conda-forge hail=0.2.61.devd9fcfb5
 
