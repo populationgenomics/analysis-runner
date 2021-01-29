@@ -1,0 +1,27 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+  - id: check-yaml
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+
+- repo: https://github.com/ambv/black
+  rev: 20.8b1
+  hooks:
+  - id: black
+    args: ['--line-length=88', '--skip-string-normalization']
+
+- repo: https://github.com/pycqa/pylint
+  rev: '2.6'
+  hooks:
+  - id: pylint
+    additional_dependencies: [pylint-quotes]
+
+- repo: https://gitlab.com/pycqa/flake8
+  rev: '3.8.4'
+  hooks:
+  - id: flake8
+    additional_dependencies: [flake8-bugbear]
+    # F541: f-string is missing placeholders
+    args: ['--max-line-length', '88', '--extend-ignore', 'F541']
