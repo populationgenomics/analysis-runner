@@ -30,9 +30,11 @@ You can ignore this section if you just want to run the tool.
 To set up a development environment using conda, run the following:
 
 ```bash
-conda create --name analysis-runner -c cpg -c bioconda -c conda-forge hail kubernetes=12.0.1 google-cloud-secret-manager=2.2.0
+conda create --name analysis-runner -c cpg -c bioconda -c conda-forge hail pre-commit kubernetes=12.0.1 google-cloud-secret-manager=2.2.0
 
 conda activate analysis-runner
+
+pre-commit install
 ```
 
 1. Add a Hail Batch service account for all supported projects.
