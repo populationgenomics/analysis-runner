@@ -16,11 +16,12 @@ repos:
   hooks:
   - id: black
 
-- repo: https://github.com/pycqa/pylint
-  rev: '2.6'
-  hooks:
-  - id: pylint
-    additional_dependencies: [pylint-quotes]
+# Currently disabled, as dependencies are managed through conda.
+#- repo: https://github.com/pycqa/pylint
+#  rev: '2.6'
+#  hooks:
+#  - id: pylint
+#    additional_dependencies: [pylint-quotes]
 
 - repo: https://gitlab.com/pycqa/flake8
   rev: '3.8.4'
