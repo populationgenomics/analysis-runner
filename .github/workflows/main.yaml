@@ -7,10 +7,10 @@ jobs:
     steps:
       - uses: actions/checkout@main
 
-      - uses: actions/setup-python@v2
+      - uses: conda-incubator/setup-miniconda@v2
 
-      - name: Install linting tools
-        run: pip install pylint pylint-quotes flake8 flake8-bugbear black
+      - name: Install dependencies and linting tools
+        run: conda install -c cpg -c bioconda -c conda-forge hail=0.2.61.devd9fcfb5 python-kubernetes=12.0.1 google-cloud-secret-manager=2.2.0 pylint flake8 flake8-bugbear black
 
       - name: pylint
         run: pylint **/*.py
