@@ -8,15 +8,18 @@ jobs:
       - uses: actions/checkout@main
 
       - uses: conda-incubator/setup-miniconda@v2
-
-      - name: Install dependencies and linting tools
-        run: conda install -c cpg -c bioconda -c conda-forge python=3.7 hail=0.2.61.devd9fcfb5 python-kubernetes=12.0.1 google-cloud-secret-manager=2.2.0 pylint flake8 flake8-bugbear black
+        with:
+          environment-file: environment.yml
+          activate-environment: analysis-runner
 
       - name: pylint
+        shell: bash -l {0}
         run: pylint **/*.py
 
       - name: flake8
+        shell: bash -l {0}
         run: flake8 .
 
       - name: black
+        shell: bash -l {0}
         run: black . --check

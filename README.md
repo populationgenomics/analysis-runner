@@ -30,7 +30,7 @@ You can ignore this section if you just want to run the tool.
 To set up a development environment using conda, run the following:
 
 ```bash
-conda create --name analysis-runner -c cpg -c bioconda -c conda-forge python=3.7 hail=0.2.61.devd9fcfb5 python-kubernetes=12.0.1 google-cloud-secret-manager=2.2.0 pylint flake8 flake8-bugbear black pre-commit
+conda env create --file environment.yml
 
 conda activate analysis-runner
 
