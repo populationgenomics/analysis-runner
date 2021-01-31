@@ -8,11 +8,9 @@ jobs:
       - uses: actions/checkout@main
 
       - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: 3.7
 
       - name: Install dependencies and linting tools
-        run: conda install -c cpg -c bioconda -c conda-forge hail=0.2.61.devd9fcfb5 python-kubernetes=12.0.1 google-cloud-secret-manager=2.2.0 pylint flake8 flake8-bugbear black
+        run: conda install -c cpg -c bioconda -c conda-forge python=3.7 hail=0.2.61.devd9fcfb5 python-kubernetes=12.0.1 google-cloud-secret-manager=2.2.0 pylint flake8 flake8-bugbear black
 
       - name: pylint
         run: pylint **/*.py
