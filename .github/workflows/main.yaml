@@ -19,7 +19,9 @@ jobs:
           activate-environment: analysis-runner
 
       - name: pylint
-        run: pylint **/*.py
+        run: |
+            pip install pylint-quotes  # TODO: remove this once available in conda
+            pylint **/*.py
 
       - name: flake8
         run: flake8 .
