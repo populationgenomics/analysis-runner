@@ -10,7 +10,7 @@ Each project / [storage
 stack](https://github.com/populationgenomics/team-docs/tree/main/storage_policies)
 has its own Cloud Run deployment. This way, memberships in the respective
 permission groups (`$STACK-restricted-access@populationgenomics.org.au`)
-can be checked by assigning the *Cloud Run Invoker* IAM role to the group.
+can be checked by assigning the _Cloud Run Invoker_ IAM role to the group.
 While there's also a Cloud Identity API to check group memberships, this
 feature unfortunately is [only available in Google Workspace Enterprise
 editions](https://googlecloudproject.com/identity/docs/reference/rest/v1/groups.memberships/checkTransitiveMembership).
@@ -34,11 +34,12 @@ As the Cloud Run HTTPS deployment endpoint addresses seem to be unpredictable,
 they currently need to be added manually to the [CLI tool](../cli).
 
 # TODO: move this to pulumi
+
 gcloud beta run deploy server --source . --service-acount server@analysis-runner.iam.gserviceaccount.com --region australia-southeast1 --no-allow-unauthenticated --platform managed
 
 The deployment runs under the `server@analysis-runner.iam.gserviceaccount.com`
-service account, which needs *Identity Platform Viewer* and *Secret Manager
-Secret Accessor* roles.
+service account, which needs _Identity Platform Viewer_ and _Secret Manager
+Secret Accessor_ roles.
 
 ## Testing locally
 
@@ -52,7 +53,7 @@ variable. Then run:
 ```bash
 docker build -t analysis-runner-server .
 
-docker run -it -p 8080:8080 -v $GSA_KEY_FILE:/gsa-key/key.json -e GOOGLE_APPLICATION_CREDENTIALS=/gsa-key/key.json analysis-runner-server
+docker run -it -p 8080:8080 -v $GSA_KEY_FILE:/gsa-key/key.json -e GCP_PROJECT=tob-wgs -e GOOGLE_APPLICATION_CREDENTIALS=/gsa-key/key.json analysis-runner-server
 ```
 
 This will start a server that listens locally on port 8080.

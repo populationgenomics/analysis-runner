@@ -1,5 +1,5 @@
 # Since the server relies on Hail as well, we're reusing the driver image.
-FROM 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:06dd37129625'
+FROM 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:f2fc08ff8c5e'
 
 RUN conda install -c conda-forge google-auth google-cloud-secret-manager gunicorn
 
