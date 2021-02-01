@@ -4,16 +4,24 @@ on: [push, pull_request]
 jobs:
   lint:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        # https://github.com/marketplace/actions/setup-miniconda#use-a-default-shell
+        shell: bash -l {0}
+
     steps:
       - uses: actions/checkout@main
 
-      - uses: actions/setup-python@v2
-
-      - name: Install linting tools
-        run: pip install pylint pylint-quotes flake8 flake8-bugbear black
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: environment.yml
+          activate-environment: analysis-runner
 
       - name: pylint
-        run: pylint **/*.py
+        run: |
+            pip install pylint-quotes  # TODO: remove this once available in conda
+            pylint **/*.py
 
       - name: flake8
         run: flake8 .
