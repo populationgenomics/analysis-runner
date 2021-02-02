@@ -132,6 +132,7 @@ async def index(request):
         # This metadata dictionary gets stored at the output_path location.
         # TODO: also send this to Airtable.
         metadata = {
+            'dataset': DATASET,
             'user': email,
             'repo': repo,
             'commit': commit,
