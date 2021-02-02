@@ -104,9 +104,6 @@ async def index(request):
 
         batch = hb.Batch(backend=backend, name=batch_name)
 
-        # TODO: add Airtable metadata submission, supporting descriptions and
-        # output directory. Set up environment variable for script to
-        # write output to.
         job = batch.new_job(name='driver')
         job.image(DRIVER_IMAGE)
         job.env('OUTPUT', output_path)
@@ -125,6 +122,7 @@ async def index(request):
         job.command(f'test $(find . -name {_shell_escape(script_file)})')
 
         # This metadata dictionary gets stored at the output_path location.
+        # TODO: also send this to Airtable.
         metadata = {
             'user': email,
             'repo': repo,
