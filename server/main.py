@@ -28,6 +28,7 @@ assert GCP_PROJECT
 DATASET = os.getenv('DATASET')
 assert DATASET
 
+HAIL_BUCKET = f'cpg-{DATASET}-hail'
 METADATA_FILE = '/tmp/metadata.json'
 
 routes = web.RouteTableDef()
@@ -92,7 +93,7 @@ async def index(request):
 
         backend = hb.ServiceBackend(
             billing_project=DATASET,
-            bucket=f'cpg-{DATASET}-hail',
+            bucket=HAIL_BUCKET,
             token=hail_token,
         )
 
@@ -106,6 +107,9 @@ async def index(request):
 
         job = batch.new_job(name='driver')
         job.image(DRIVER_IMAGE)
+
+        job.env('HAIL_BILLING_PROJECT', DATASET)
+        job.env('HAIL_BUCKET', HAIL_BUCKET)
         job.env('OUTPUT', output_path)
 
         # Note: for private GitHub repos we'd need to use a token to clone.
