@@ -98,7 +98,12 @@ async def index(request):
         )
 
         commit = params['commit']
+        if not commit or commit == 'HEAD':
+            raise web.HTTPBadRequest(reason='Invalid commit parameter')
+
         script = params['script']
+        if not script:
+            raise web.HTTPBadRequest(reason='Invalid script parameter')
 
         user_name = email.split('@')[0]
         batch_name = f'{user_name} {repo}:{commit}/{script}'
