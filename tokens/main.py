@@ -9,16 +9,17 @@ from google.cloud import secretmanager
 class DatasetConfig(NamedTuple):
     """The configuration for a particular dataset:
     gcp_project_id: The GCP project ID associated with the dataset.
-    allowed_repositories: The repositories allowed for running analyses.
+    allowed_repos: The repositories allowed for running analyses.
     """
 
     gcp_project_id: str
-    allowed_repositories: List[str]
+    allowed_repos: List[str]
 
 
 # Per-dataset configuration.
 CONFIG = {
-    'tob-wgs': DatasetConfig('tob-wgs', ['tob-wgs']),
+    'tob-wgs': DatasetConfig('tob-wgs', ['hail-batch-test']),
+    'fewgenomes': DatasetConfig('fewgenomes', ['hail-batch-test']),
 }
 
 kubernetes.config.load_kube_config()
@@ -46,6 +47,6 @@ for dataset_name, dataset_config in CONFIG.items():
 
     add_secret(
         dataset_config.gcp_project_id,
-        'allowed-repositories',
-        ','.join(dataset_config.allowed_repositories),
+        'allowed-repos',
+        ','.join(dataset_config.allowed_repos),
     )
