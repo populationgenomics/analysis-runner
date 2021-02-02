@@ -115,7 +115,9 @@ async def index(request):
         # Note: for private GitHub repos we'd need to use a token to clone.
         # Any job commands here are evaluated in a bash shell, so user arguments should
         # be escaped to avoid command injection.
-        job.command(f'git clone https://github.com/{GITHUB_ORG}/{_shell_escape(repo)}')
+        job.command(
+            f'git clone https://github.com/{GITHUB_ORG}/{_shell_escape(repo)}.git'
+        )
         job.command(f'cd {_shell_escape(repo)}')
         job.command('git checkout main')
         # Check whether the given commit is in the main branch.
