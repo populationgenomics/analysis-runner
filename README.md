@@ -9,7 +9,7 @@ by automating the following aspects:
 
 One of our main workflow pipeline systems at the CPG is Hail Batch. By
 default, its pipelines are defined by running a Python program
-*locally*. This tool instead lets you run the "driver" on Hail Batch itself.
+_locally_. This tool instead lets you run the "driver" on Hail Batch itself.
 
 Furthermore, all invocations are logged together with the output data.
 
@@ -30,7 +30,7 @@ You can ignore this section if you just want to run the tool.
 To set up a development environment using conda, run the following:
 
 ```bash
-conda create --name analysis-runner -c cpg -c bioconda -c conda-forge hail pre-commit kubernetes=12.0.1 google-cloud-secret-manager=2.2.0
+conda env create --file environment.yml
 
 conda activate analysis-runner
 
