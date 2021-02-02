@@ -112,6 +112,9 @@ async def index(request):
         # Make sure the file is in the repository.
         script_file = script.partition(' ')[0]
         job.command(f'test $(find . -name {_shell_escape(script_file)})')
+
+        # TODO: Copy metadata to output path.
+
         # Finally, run the script.
         escaped = ' '.join(_shell_escape(s) for s in script.split(' ') if s)
         job.command(f'python3 {escaped}')
