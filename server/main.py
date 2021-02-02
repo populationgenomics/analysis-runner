@@ -155,7 +155,7 @@ async def index(request):
         )
 
         # Finally, run the script.
-        escaped_args = ' '.join(_shell_escape(s) for s in script[1:].split(' ') if s)
+        escaped_args = ' '.join(_shell_escape(s) for s in script.split(' ')[1:] if s)
         job.command(f'python3 $(basename {_shell_escape(script_file)}) {escaped_args}')
 
         bc_batch = batch.run(wait=False)
