@@ -1,5 +1,6 @@
 """Copies Hail tokens from Kubernetes to the Google Secret Manager."""
 
+import base64
 from typing import List, NamedTuple
 import kubernetes.client
 import kubernetes.config
@@ -41,7 +42,7 @@ def add_secret(gcp_project_id: str, name: str, value: str) -> None:
 for dataset_name, dataset_config in CONFIG.items():
     kube_secret_name = f'{dataset_name}-tokens'
     kube_secret = kube_client.read_namespaced_secret(kube_secret_name, 'default')
-    hail_token = kube_secret.data['tokens.json']
+    hail_token = base64.b64decode(kube_secret.data['tokens.json'])
 
     add_secret(dataset_config.gcp_project_id, 'hail-token', hail_token)
 
