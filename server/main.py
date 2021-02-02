@@ -139,6 +139,9 @@ async def index(request):
         }
 
         job.command(f'echo {_shell_escape(json.dumps(metadata))} > {METADATA_FILE}')
+        job.command(
+            f'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
+        )
         job.command(f'gsutil cp {METADATA_FILE} {_shell_escape(output_path)}')
 
         # Finally, run the script.
