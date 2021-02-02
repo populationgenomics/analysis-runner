@@ -58,7 +58,7 @@ def _read_secret(name: str) -> str:
     """Reads the latest version of the given secret from Google's Secret Manager."""
     secret_name = f'projects/{GCP_PROJECT}/secrets/{name}/versions/latest'
     response = secret_manager.access_secret_version(request={'name': secret_name})
-    return response.data.decode('UTF-8')
+    return response.payload.data.decode('UTF-8')
 
 
 @routes.post('/')
