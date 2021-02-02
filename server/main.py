@@ -1,6 +1,9 @@
-from aiohttp import web
-import logging
+"""The analysis-runner server, running Hail Batch pipelines on users' behalf."""
+
 import os
+import json
+import logging
+from aiohttp import web
 
 from google.auth import jwt
 from google.cloud import secretmanager
@@ -18,8 +21,14 @@ DRIVER_IMAGE = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:f2fc08ff8c5e'
 )
 
+# The GCP_PROJECT is the project ID, not the project name, and is therefore sometimes
+# not identical to the dataset name.
 GCP_PROJECT = os.getenv('GCP_PROJECT')
 assert GCP_PROJECT
+DATASET = os.getenv('DATASET')
+assert DATASET
+
+METADATA_FILE = '/tmp/metadata.json'
 
 routes = web.RouteTableDef()
 
@@ -40,8 +49,8 @@ def _email_from_id_token(auth_header: str) -> str:
 
 def _shell_escape(arg: str) -> str:
     """Quote-escapes a single shell argument, to avoid command injection."""
-    s = arg.replace("'", r"'\''")  # pylint: disable=invalid-string-quote
-    return f"'{s}'"  # pylint: disable=invalid-string-quote
+    s = arg.replace("'", r"'\''")
+    return f"'{s}'"
 
 
 def _read_secret(name: str) -> str:
@@ -82,7 +91,9 @@ async def index(request):
         hail_token = _read_secret('hail-token')
 
         backend = hb.ServiceBackend(
-            billing_project=GCP_PROJECT, bucket=f'{GCP_PROJECT}-hail', token=hail_token
+            billing_project=DATASET,
+            bucket=f'cpg-{DATASET}-hail',
+            token=hail_token,
         )
 
         commit = params['commit']
@@ -113,7 +124,18 @@ async def index(request):
         script_file = script.partition(' ')[0]
         job.command(f'test $(find . -name {_shell_escape(script_file)})')
 
-        # TODO: Copy metadata to output path.
+        # This metadata dictionary gets stored at the output_path location.
+        metadata = {
+            'user': email,
+            'repo': repo,
+            'commit': commit,
+            'script': script,
+            'description': params['description'],
+            'output': output_path,
+        }
+
+        job.command(f'echo {_shell_escape(json.dumps(metadata))} > {METADATA_FILE}')
+        job.command(f'gsutil cp {METADATA_FILE} {_shell_escape(output_path)}')
 
         # Finally, run the script.
         escaped = ' '.join(_shell_escape(s) for s in script.split(' ') if s)

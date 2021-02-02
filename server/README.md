@@ -33,7 +33,7 @@ Hail Batch service account.
 As the Cloud Run HTTPS deployment endpoint addresses seem to be unpredictable,
 they currently need to be added manually to the [CLI tool](../cli).
 
-# TODO: move this to pulumi
+**TODO:** move this to pulumi
 
 gcloud beta run deploy server --source . --service-acount server@analysis-runner.iam.gserviceaccount.com --region australia-southeast1 --no-allow-unauthenticated --platform managed
 
@@ -53,7 +53,7 @@ variable. Then run:
 ```bash
 docker build -t analysis-runner-server .
 
-docker run -it -p 8080:8080 -v $GSA_KEY_FILE:/gsa-key/key.json -e GCP_PROJECT=tob-wgs -e GOOGLE_APPLICATION_CREDENTIALS=/gsa-key/key.json analysis-runner-server
+docker run -it -p 8080:8080 -v $GSA_KEY_FILE:/gsa-key/key.json -e GCP_PROJECT=tob-wgs -e DATASET=tob-wgs -e GOOGLE_APPLICATION_CREDENTIALS=/gsa-key/key.json analysis-runner-server
 ```
 
 This will start a server that listens locally on port 8080.
