@@ -28,7 +28,7 @@ gcloud builds submit --timeout 1h --tag $IMAGE:$COMMIT_HASH
 
 Deployment is handled as part of the [Pulumi
 configuration](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#automation),
-with references the `$COMMIT_HASH` in the Docker image reference.
+which references the `$COMMIT_HASH` in the Docker image reference.
 
 Hail service account [tokens](../tokens) need to be copied to Secret Manager secrets
 separately, after the stack has been set up.
