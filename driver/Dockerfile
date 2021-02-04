@@ -11,8 +11,3 @@ ENV PATH /root/miniconda3/bin:$PATH
 
 # Install Hail from the conda CPG channel.
 RUN conda install -y -c cpg -c bioconda -c conda-forge hail=0.2.61.devd9fcfb5
-
-# Prepare the Hail deploy config to point to the CPG domain.
-# TODO(@lgruen): Remove this once the config is mounted by default.
-RUN mkdir /deploy-config
-COPY deploy-config.json /deploy-config/deploy-config.json
