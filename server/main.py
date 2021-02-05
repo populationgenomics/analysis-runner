@@ -18,7 +18,7 @@ ALLOWED_REPOS = {
 }
 
 DRIVER_IMAGE = (
-    'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:f2fc08ff8c5e'
+    'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:ffc8144b0e1e'
 )
 
 # The GCP_PROJECT is the project ID, not the project name, and is therefore sometimes
