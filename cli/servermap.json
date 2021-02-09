@@ -1,1 +1,4 @@
-{"default": "http://localhost:3000"}
+{
+  "tob-wgs": "https://analysis-runner-server-9eddd6b-aceka37pgq-ts.a.run.app",
+  "local": "http://localhost:3000"
+}
