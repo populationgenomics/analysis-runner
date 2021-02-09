@@ -1,31 +1,7 @@
 """
-CLI for interacting with the REMOTE analysis-runner
-    Motivation: https://github.com/populationgenomics/analysis-runner/issues/8
-
-Mostly for interacting with the server/main.py
-
-Called with:
-
-    analysis-runner run \
-        --output-dir gs://some-path/ \
-        --commit-hash <current-hash> \
-        --repo <current-repo>  \
-        --script <default: main.py>
-Process:
-
-    1. Fill in the mising info (repo, commit hash, etc)
-    2. Get the gcloud auth token $(gcloud auth print-identity-token)
-    3. Get the submit URL from the batch parameter
-    4. Form a POST request with params:
-        * output
-        * repo
-        * commit
-        * script
-        * description
-    5. Collect and print response
+CLI for interfacing with deployed analysis runner.
+See README.md for more information.
 """
-from getpass import getuser
-
 import subprocess
 import click
 import requests
@@ -33,17 +9,18 @@ import google.auth
 import google.auth.transport.requests
 
 BRANCH = 'add-cli'  # 'master'
-DEFAULT_STACK_LOOKUP = (
+DEFAULT_SERVER_LOOKUP = (
     f'https://raw.githubusercontent.com/'
-    f'populationgenomics/analysis-runner/{BRANCH}/cli/stacklookup.json'
+    f'populationgenomics/analysis-runner/{BRANCH}/cli/servermap.json'
 )
 
 
 @click.command()
 @click.option(
-    '--stack',
+    '--dataset',
     required=True,
-    help='The stack name, which determines which analysis-runner server to send to',
+    help='The dataset name, which determines which '
+    'analysis-runner server to send the request to',
 )
 @click.option(
     '--output-dir',
@@ -52,6 +29,7 @@ DEFAULT_STACK_LOOKUP = (
 )
 @click.option(
     '--repository',
+    '--repo',
     help='The URI of the repository to run, must be approved by the appropriate server.'
     ' Default behaviour is to find the repository of the current working'
     ' directory with `git remote get-url origin`',
@@ -59,27 +37,27 @@ DEFAULT_STACK_LOOKUP = (
 @click.option(
     '--commit-ref',
     '--hash',
-    help='The hash of commit to run, default behaviour is to '
-    'use the current commit',
+    help='The hash of commit to run, default behaviour is to ' 'use the current commit',
 )
 @click.option(
     '--description',
+    required=True,
     help='Description of job, otherwise defaults to: "$USER FROM LOCAL: $REPO@$COMMIT"',
 )
-@click.option('--script', multiple=True, default=['main.py'])
-def main(stack, output_dir, script, commit_ref=None, repository=None, description=None):
+@click.option('script', nargs=-1, default=['main.py'])
+def main(dataset, output_dir, script, description, commit_ref=None, repository=None):
     """
-    Main function drives the CLI
+    Main function that drives the CLI.
+    The parameters are provided automatically by @click.
     """
     _repository = repository or _get_default_remote()
     _commit_ref = commit_ref or _get_default_commit_ref(
         used_custom_repository=repository is not None
     )
-    _description = description or f'{getuser()} FROM LOCAL: {_repository}@{_commit_ref}'
+    _url = _get_url_from_dataset(dataset)
     _token = _get_google_auth_token()
-    _url = _get_url_from_stack(stack)
 
-    print(stack, output_dir, script, _repository, _commit_ref, _token)
+    print(dataset, output_dir, script, _repository, _commit_ref, _token)
 
     requests.post(
         _url,
@@ -88,8 +66,9 @@ def main(stack, output_dir, script, commit_ref=None, repository=None, descriptio
             'repo': _repository,
             'commit': _commit_ref,
             'script': list(script),
-            'description': _description,
+            'description': description,
         },
+        headers={'Authorization': f'Bearer {_token}'},
     )
 
 
@@ -137,16 +116,16 @@ def _get_default_commit_ref(used_custom_repository) -> str:
     return _get_output_of_command(command, 'get latest GIT commit')
 
 
-def _get_url_from_stack(stack: str) -> str:
+def _get_url_from_dataset(dataset: str) -> str:
 
-    resource = requests.get(DEFAULT_STACK_LOOKUP)
+    resource = requests.get(DEFAULT_SERVER_LOOKUP)
     d = resource.json()
 
-    url = d.get(stack)
+    url = d.get(dataset)
     if url:
         return url
 
-    raise Exception(f"Couldn't get URL for '{stack}', expected one of {d.keys()}")
+    raise Exception(f"Couldn't get URL for '{dataset}', expected one of {d.keys()}")
 
 
 if __name__ == '__main__':
