@@ -1,7 +1,10 @@
+#!/bin/env python
+
 """
 CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
+
 import subprocess
 import click
 import requests
