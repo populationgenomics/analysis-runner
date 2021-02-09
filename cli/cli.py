@@ -59,8 +59,8 @@ DEFAULT_STACK_LOOKUP = (
 @click.option(
     '--commit-ref',
     '--hash',
-    help='The hash of repository to run, default behaviour is to '
-    'find the latest hash of the current repository',
+    help='The hash of commit to run, default behaviour is to '
+    'use the current commit',
 )
 @click.option(
     '--description',
