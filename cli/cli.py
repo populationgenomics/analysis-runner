@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 """
 CLI for interfacing with deployed analysis runner.
@@ -47,7 +47,7 @@ DEFAULT_SERVER_LOOKUP = (
     required=True,
     help='Description of job, otherwise defaults to: "$USER FROM LOCAL: $REPO@$COMMIT"',
 )
-@click.option('script', nargs=-1, default=['main.py'])
+@click.argument('script', nargs=-1)
 def main(dataset, output_dir, script, description, commit_ref=None, repository=None):
     """
     Main function that drives the CLI.
