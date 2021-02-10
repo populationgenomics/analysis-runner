@@ -16,7 +16,7 @@ import google.auth.transport.requests
 
 logging.basicConfig(level='INFO')
 
-BRANCH = 'add-cli'
+BRANCH = 'main'
 DEFAULT_SERVER_LOOKUP = (
     f'https://raw.githubusercontent.com/'
     f'populationgenomics/analysis-runner/{BRANCH}/cli/servermap.json'
