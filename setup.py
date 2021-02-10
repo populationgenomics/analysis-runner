@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+"""
+Setup for cpg package (installing analysis-runner CLI)
+"""
 
-from os.path import join
 import setuptools
 
 PKG = 'analysis-runner'
@@ -16,9 +18,7 @@ setuptools.setup(
     packages=['cli'],
     include_package_data=True,
     zip_safe=False,
-    scripts=[
-        join('cli', 'cli.py'),
-    ],
+    entry_points={'console_scripts': ['cpg-analysisrunner=cli.cli:main']},
     keywords='bioinformatics',
     classifiers=[
         'Environment :: Console',
