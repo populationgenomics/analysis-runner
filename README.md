@@ -33,7 +33,7 @@ and commit HEAD.
 For example:
 
 ```bash
-cpg-analysisrunner \
+analysis-runner \
     --dataset <dataset> \
     --description <description> \
     --output-dir gs://<bucket-path> \
@@ -43,7 +43,7 @@ cpg-analysisrunner \
 If you provide a `--repository`, you MUST supply a `--commit <SHA>`, eg:
 
 ```bash
-cpg-analysisrunner \
+analysis-runner \
     --repository my-approved-repo \
     --commit <commit-sha> \
     --dataset <data-set> \

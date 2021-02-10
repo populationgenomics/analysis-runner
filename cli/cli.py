@@ -197,9 +197,3 @@ if __name__ == '__main__':
     # Disable pylint because click decorates the function in a specific way
     # pylint: disable=no-value-for-parameter
     main()
-
-# if __name__ == '__main__':
-#     # Run tests
-#     import doctest
-#
-#     doctest.testmod()
