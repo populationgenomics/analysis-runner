@@ -21,7 +21,7 @@ a `--commit <SHA / or tag>`, eg:
 analysis-runner \
     --repository my-approved-repo \
     --commit <commit-sha> \
-    --dataset <data-set> \
+    --dataset <dataset> \
     --description <description> \
     --output-dir gs://<bucket-path> \
     script_to_run.py with arguments
