@@ -19,6 +19,37 @@ used to run the batch on your behalf. There's a dedicated Batch service
 account for each project (e.g. "tob-wgs"), which helps with bucket permission
 management and billing budgets.
 
+## Access through CLI
+
+If you have the `analysis-runner` CLI installed, you can request the analysis-runner
+starts jobs from a GitHub repository + commit.
+
+If you're in the directory of the project you want to run, you can omit
+the `--commit` and `--repository` parameters, which will use your current REMOTE
+and commit HEAD.
+
+For example:
+
+```bash
+cpg-analysisrunner \
+    --dataset <data-set> \
+    --description <description> \
+    --output-dir gs://<bucket-path> \
+    script_to_run.py with arguments
+```
+
+If you provide a `--repository`, you MUST supply a `--commit <SHA>`, eg:
+
+```bash
+cpg-analysisrunner \
+    --repository my-approved-repo \
+    --commit <commit-sha> \
+    --dataset <data-set> \
+    --description <description> \
+    --output-dir gs://<bucket-path> \
+    script_to_run.py with arguments
+```
+
 ## Usage
 
 **TODO(@lgruen):** Add instructions
