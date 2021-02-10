@@ -44,3 +44,10 @@ Process:
     * script
     * description
 5. Collect and print response
+
+## Requirements
+
+These packages are pinned to specific versions in the `conda/analysis-runner/meta.yaml` config.
+
+* `click` for the command line
+* `google-auth` to request the identity token

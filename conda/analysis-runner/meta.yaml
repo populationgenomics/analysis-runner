@@ -12,14 +12,9 @@ build:
   noarch: python
 
 requirements:
-  host:
-    - python ==3.7.*
-    - hail ==0.2.61.devd9fcfb5
   run:
-    - python ==3.7.*
-    - hail ==0.2.61.devd9fcfb5
-    - google-cloud-secret-manager ==2.2.0
-    - python-kubernetes ==12.0.1
+    - google-auth ==1.25.0
+    - click ==7.1.2
 
 test:
   commands:

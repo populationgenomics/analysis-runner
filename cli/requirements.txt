@@ -1,2 +1,2 @@
-click
-google-auth
+click==7.1.2
+google-auth==1.25.0
