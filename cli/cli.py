@@ -64,8 +64,15 @@ def main(dataset, output_dir, script, description, commit=None, repository=None)
     Main function that drives the CLI.
     The parameters are provided automatically by @click.
     """
+
+    if repository is not None and commit is None:
+        raise Exception(
+            "You must supply the '--commit <SHA>' parameter "
+            "when specifying the '--repository'"
+        )
+
     _repository = repository or _get_default_remote()
-    _commit_ref = commit or _get_default_commit_ref(
+    _commit_ref = commit or _get_commit_ref_of_current_repository(
         used_custom_repository=repository is not None
     )
     _url = _get_url_from_dataset(dataset)
@@ -165,7 +172,7 @@ def _get_repo_name_from_remote(remote_name: str) -> str:
     return repo
 
 
-def _get_default_commit_ref(used_custom_repository) -> str:
+def _get_commit_ref_of_current_repository(used_custom_repository) -> str:
     if used_custom_repository:
         raise Exception(
             "The analysis-runner CLI can't get the commit ref"
