@@ -80,7 +80,7 @@ def main(dataset, output_dir, script, description, commit=None, repository=None)
     _token = _get_google_auth_token()
     _script = script or ['main.py']
 
-    logging.info('Submitting %s@%s for dataset "%s"', _repository, _commit_ref, dataset)
+    logging.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 
     response = requests.post(
         _url,
@@ -95,13 +95,11 @@ def main(dataset, output_dir, script, description, commit=None, repository=None)
     )
     try:
         response.raise_for_status()
-        logging.info('Request submitted successfully: %s', response.text)
+        logging.info(f'Request submitted successfully: {response.text}')
     except requests.HTTPError as e:
         logging.critical(
-            'Request failed with status %s: %s\nFull response: %s',
-            response.status_code,
-            str(e),
-            response.text,
+            f'Request failed with status {response.status_code}: {str(e)}\n'
+            f'Full response: {response.text}',
         )
 
 
