@@ -61,6 +61,8 @@ def _read_secret(name: str) -> str:
     return response.payload.data.decode('UTF-8')
 
 
+# The extra number of params is from @routes.post, so we'll ignore the error
+# pylint: disable=too-many-statements
 @routes.post('/')
 async def index(request):
     """Main entry point, responds to the web root."""
@@ -169,9 +171,8 @@ async def index(request):
     except KeyError as e:
         logging.error(e)
         raise web.HTTPBadRequest(reason='Missing request parameter')
-    except KeyboardInterrupt:
-        # Handle and rethrow KeyboardInterrupt error to stop global exception catch
-        # pylint: disable=try-except-raise
+    # Handle and rethrow KeyboardInterrupt error to stop global exception catch
+    except KeyboardInterrupt:  # pylint: disable=try-except-raise
         raise
     except Exception as e:
         logging.error(e)
