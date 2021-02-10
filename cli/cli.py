@@ -50,7 +50,9 @@ SUPPORTED_ORGANISATIONS = {'populationgenomics'}
 )
 @click.option(
     '--commit',
-    help='The hash of commit to run, default behaviour is to ' 'use the current commit',
+    help='The commit HASH or TAG of a commit to run, the default behaviour is to '
+    'use the current commit of the local repository, however the literal value '
+    '"HEAD" is not allowed.',
 )
 @click.option(
     '--description',

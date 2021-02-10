@@ -19,7 +19,7 @@ used to run the batch on your behalf. There's a dedicated Batch service
 account for each project (e.g. "tob-wgs"), which helps with bucket permission
 management and billing budgets.
 
-## Access through CLI
+## CLI Usage
 
 If you have the `analysis-runner` CLI installed, you can request the analysis-runner
 to start pipelines based on a GitHub repository, commit, and command to run.
@@ -49,10 +49,6 @@ cpg-analysisrunner \
     --output-dir gs://<bucket-path> \
     script_to_run.py with arguments
 ```
-
-## Usage
-
-**TODO(@lgruen):** Add instructions
 
 ## Deployment
 
