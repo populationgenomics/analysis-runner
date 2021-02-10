@@ -16,7 +16,7 @@ Furthermore, all invocations are logged together with the output data.
 When using the analysis-runner, the batches are not run under your standard
 Hail Batch service account user. Instead, a separate Hail Batch account is
 used to run the batch on your behalf. There's a dedicated Batch service
-account for each project (e.g. "tob-wgs"), which helps with bucket permission
+account for each dataset (e.g. "tob-wgs"), which helps with bucket permission
 management and billing budgets.
 
 ## CLI Usage
@@ -56,7 +56,12 @@ analysis-runner \
 
 You can ignore this section if you just want to run the tool.
 
-To set up a development environment using conda, run the following:
+To bring up a stack corresponding to a dataset as described in the
+[storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies),
+see the [stack](stack) directory.
+
+To set up a development environment for the analysis runner using conda, run
+the following:
 
 ```bash
 conda env create --file environment.yml
