@@ -4,19 +4,27 @@ CLI for interacting with the REMOTE analysis-runner (externally hosted `server/m
 
 Motivation: [Source](https://github.com/populationgenomics/analysis-runner/issues/8)
 
-> A simple CLI tool that gathers some of the parameters for the request that's sent to the
-> server automatically: e.g. GitHub repository, commit hash. It should also map a
-> human-readable project name to the correct HTTPS endpoint.
-
-Called with:
+Usage:
 
 ```bash
-analysis-runner run \
-    --dataset <ds-id> \
-    --output-dir gs://some-path/ \
-    [--commit-hash <current-hash>] \
-    [--repo <current-repo>]  \
-    script.py to run with args
+analysis-runner \
+    --dataset <dataset> \
+    --description <description> \
+    --output-dir gs://<bucket-path> \
+    script_to_run.py with arguments
+```
+
+If you provide a `--repository`, you MUST supply
+a `--commit <SHA / or tag>`, eg:
+
+```bash
+analysis-runner \
+    --repository my-approved-repo \
+    --commit <commit-sha> \
+    --dataset <data-set> \
+    --description <description> \
+    --output-dir gs://<bucket-path> \
+    script_to_run.py with arguments
 ```
 
 ## CLI Overview
