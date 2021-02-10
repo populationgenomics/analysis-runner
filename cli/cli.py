@@ -4,6 +4,7 @@
 CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
+import os
 import re
 import logging
 import subprocess
@@ -15,7 +16,7 @@ import google.auth.transport.requests
 
 logging.basicConfig(level='INFO')
 
-BRANCH = 'main'
+BRANCH = 'add-cli'
 DEFAULT_SERVER_LOOKUP = (
     f'https://raw.githubusercontent.com/'
     f'populationgenomics/analysis-runner/{BRANCH}/cli/servermap.json'
@@ -72,13 +73,25 @@ def main(dataset, output_dir, script, description, commit=None, repository=None)
             "when specifying the '--repository'"
         )
 
-    _repository = repository or _get_default_remote()
-    _commit_ref = commit or _get_commit_ref_of_current_repository(
-        used_custom_repository=repository is not None
-    )
+    _repository = repository
+    _commit_ref = commit
+    _script = list(script)
+
+    if repository is None:
+        _repository = _get_git_default_remote()
+        if _commit_ref is None:
+            _get_git_commit_ref_of_current_repository()
+    # false-y value catches empty list / tuple as well
+    if not _script:
+        _script = ['main.py']
+
+    if _script[0]:
+        # Make the first argument (the script name) relative
+        # to the git root and current directory
+        _script[0] = _get_relative_script_path_from_git_root(_script[0])
+
     _url = _get_url_from_dataset(dataset)
     _token = _get_google_auth_token()
-    _script = script or ['main.py']
 
     logging.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 
@@ -131,10 +144,34 @@ def _get_output_of_command(command, description: str) -> str:
         ) from e
 
 
-def _get_default_remote() -> str:
+def _get_relative_script_path_from_git_root(script_name: str) -> str:
+    """
+    If we're in a subdirectory, get the relative path from the git root
+    to the current directory. For example, the relative path to this
+    script directly is:
+
+        cli/cli.py
+    """
+    root = _get_git_repo_root()
+    base = os.path.relpath(os.getcwd(), root)
+    return os.path.join(base, script_name)
+
+
+def _get_git_default_remote() -> str:
     command = ['git', 'remote', 'get-url', 'origin']
     full_remote = _get_output_of_command(command, 'get GIT repository')
     return _get_repo_name_from_remote(full_remote)
+
+
+def _get_git_repo_root() -> str:
+    command = ['git', 'rev-parse', '--show-toplevel']
+    repo_root = _get_output_of_command(command, 'get GIT repo directory')
+    return repo_root
+
+
+def _get_git_commit_ref_of_current_repository() -> str:
+    command = ['git', 'rev-parse', 'HEAD']
+    return _get_output_of_command(command, 'get latest GIT commit')
 
 
 def _get_repo_name_from_remote(remote_name: str) -> str:
@@ -171,19 +208,11 @@ def _get_repo_name_from_remote(remote_name: str) -> str:
     return repo
 
 
-def _get_commit_ref_of_current_repository(used_custom_repository) -> str:
-    if used_custom_repository:
-        raise Exception(
-            "The analysis-runner CLI can't get the commit ref"
-            ' when using a custom repository'
-        )
-
-    command = ['git', 'rev-parse', 'HEAD']
-    return _get_output_of_command(command, 'get latest GIT commit')
-
-
 def _get_url_from_dataset(dataset: str) -> str:
     resource = requests.get(DEFAULT_SERVER_LOOKUP)
+    if not resource.ok:
+        resource.raise_for_status()
+
     d = resource.json()
 
     url = d.get(dataset)
