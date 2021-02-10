@@ -4,10 +4,7 @@ jobs:
   build-publish:
     # Run for tags only
     if: "startsWith(github.ref, 'refs/tags/')"
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -l {0}
