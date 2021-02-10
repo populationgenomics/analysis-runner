@@ -32,7 +32,7 @@ For example:
 
 ```bash
 cpg-analysisrunner \
-    --dataset <data-set> \
+    --dataset <dataset> \
     --description <description> \
     --output-dir gs://<bucket-path> \
     script_to_run.py with arguments
