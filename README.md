@@ -22,7 +22,7 @@ management and billing budgets.
 ## Access through CLI
 
 If you have the `analysis-runner` CLI installed, you can request the analysis-runner
-starts jobs from a GitHub repository + commit.
+to start pipelines based on a GitHub repository, commit, and command to run.
 
 If you're in the directory of the project you want to run, you can omit
 the `--commit` and `--repository` parameters, which will use your current REMOTE
