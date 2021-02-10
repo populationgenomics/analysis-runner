@@ -33,7 +33,7 @@ Process:
 
 1. Fill in the mising info (repository, commit hash)
 2. Get the gcloud auth token
-    * `BASH: $(gcloud auth print-identity-token)`
+    * `gcloud auth print-identity-token`
     * `google.auth.default()[0].id_token` (after credentials refresh)
 3. Get the submit URL from the `dataset` parameter
     * Do this by looking up a JSON map from `servermap.json` (in this repo)
