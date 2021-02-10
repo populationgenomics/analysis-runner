@@ -20,8 +20,8 @@ DEFAULT_SERVER_LOOKUP = (
     f'https://raw.githubusercontent.com/'
     f'populationgenomics/analysis-runner/{BRANCH}/cli/servermap.json'
 )
-# Make this None if you want to support all organisations
-SUPPORTED_ORGANISATIONS = {'populationgenomics'}
+# Make this None if you want to support all organizations
+SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
 
 
 @click.command(
@@ -45,12 +45,12 @@ SUPPORTED_ORGANISATIONS = {'populationgenomics'}
     '--repository',
     '--repo',
     help='The URI of the repository to run, must be approved by the appropriate server.'
-    ' Default behaviour is to find the repository of the current working'
+    ' Default behavior is to find the repository of the current working'
     ' directory with `git remote get-url origin`',
 )
 @click.option(
     '--commit',
-    help='The commit HASH or TAG of a commit to run, the default behaviour is to '
+    help='The commit HASH or TAG of a commit to run, the default behavior is to '
     'use the current commit of the local repository, however the literal value '
     '"HEAD" is not allowed.',
 )
@@ -153,17 +153,17 @@ def _get_repo_name_from_remote(remote_name: str) -> str:
     'analysis-runner'
     """
 
-    organisation = None
+    organization = None
     repo = None
     if remote_name.startswith('http'):
         match = re.match(r'https:\/\/[A-z0-9\.]+?\/(.+?)\/(.+)$', remote_name)
-        organisation, repo = match.groups()
+        organization, repo = match.groups()
     elif remote_name.startswith('git@'):
         match = re.match(r'git@[A-z0-9\.]+?:(.+?)\/(.+)$', remote_name)
-        organisation, repo = match.groups()
+        organization, repo = match.groups()
 
-    if SUPPORTED_ORGANISATIONS and organisation not in SUPPORTED_ORGANISATIONS:
-        raise Exception(f'Unsupported GitHub organisation "{organisation}"')
+    if SUPPORTED_ORGANIZATIONS and organization not in SUPPORTED_ORGANIZATIONS:
+        raise Exception(f'Unsupported GitHub organization "{organization}"')
 
     if not repo:
         raise Exception(f'Unsupported remote format: "{remote_name}"')
