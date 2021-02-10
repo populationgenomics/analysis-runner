@@ -18,7 +18,7 @@ setuptools.setup(
     packages=['cli'],
     include_package_data=True,
     zip_safe=False,
-    entry_points={'console_scripts': ['cpg-analysisrunner=cli.cli:main']},
+    entry_points={'console_scripts': ['analysis-runner=cli.cli:main']},
     keywords='bioinformatics',
     classifiers=[
         'Environment :: Console',
