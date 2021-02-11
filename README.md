@@ -21,7 +21,7 @@ management and billing budgets.
 
 ## CLI
 
-CLI helps request the analysis-runner to start pipelines based on a GitHub 
+CLI helps request the analysis-runner to start pipelines based on a GitHub
 repository, commit, and command to run. To install it, use conda:
 
 ```bash
@@ -111,22 +111,22 @@ pip install --editable .
 1. Deploy the [server](server) for each dataset.
 1. Publish the [CLI tool](cli) to conda.
 
-CLI tool is shipped as a conda package. To build a new version, 
-we use [bump2version](https://pypi.org/project/bump2version/). 
-For example, to increment the patch section of the version tag 1.0.0 and make 
+CLI tool is shipped as a conda package. To build a new version,
+we use [bump2version](https://pypi.org/project/bump2version/).
+For example, to increment the patch section of the version tag 1.0.0 and make
 it 1.0.1, run:
 
 ```bash
 bump2version patch
 ```
 
-It will update the version tag specified in `setup.py` and `*/_version.py`, 
+It will update the version tag specified in `setup.py` and `*/_version.py`,
 and create a new git tag. You can push the tag with:
 
 ```bash
 git push --tags
 ```
 
-This will trigger the GitHub Actions workflow to build a new conda package, that 
-will be uploaded to the Anaconda [CPG channel](https://anaconda.org/cpg/), 
+This will trigger the GitHub Actions workflow to build a new conda package, that
+will be uploaded to the Anaconda [CPG channel](https://anaconda.org/cpg/),
 and become available to install with `conda install -c cpg -c conda-forge ...`
