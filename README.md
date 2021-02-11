@@ -112,22 +112,21 @@ pip install --editable .
 1. Publish the [CLI tool](cli) to conda.
 
 CLI tool is shipped as a conda package. To build a new version, 
-use [bump2version](https://pypi.org/project/bump2version/). 
-For example, to increment the patch version tag section from 1.0.0 to 1.0.1 
-and build a conda package with the new tag, run:
+we use [bump2version](https://pypi.org/project/bump2version/). 
+For example, to increment the patch section of the version tag 1.0.0 and make 
+it 1.0.1, run:
 
-```
+```bash
 bump2version patch
 ```
 
-It will increment the version tag specified in `setup.py`, and create a new git tag.
-You can push the tag with:
+It will increment the version tag specified in `setup.py` and `*/_version.py`, 
+and create a new git tag. You can push the tag with:
 
-```
+```bash
 git push --tags
 ```
 
-This will trigger the GitHub Actions workflow to build a new conda package, which will
-be uploaded to the Anaconda [CPG channel](https://anaconda.org/cpg/), and become available
-to install with `conda install -c cpg -c conda-forge ...`
-
+This will trigger the GitHub Actions workflow to build a new conda package, that 
+will be uploaded to the Anaconda [CPG channel](https://anaconda.org/cpg/), 
+and become available to install with `conda install -c cpg -c conda-forge ...`
