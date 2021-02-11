@@ -12,13 +12,16 @@ build:
   noarch: python
 
 requirements:
+  host:
+    - python
   run:
-    - google-auth ==1.25.0
+    - google-auth ==1.24.0
     - click ==7.1.2
+    - requests
 
 test:
   commands:
-    - cli.py --help
+    - analysis-runner --version
 
 about:
   home: {{ data['url'] }}
