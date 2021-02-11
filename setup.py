@@ -1,6 +1,9 @@
 #!/usr/bin/env python
+
 """
-Setup for cpg package (installing analysis-runner CLI)
+Setup script for the Python package
+- Used for development setup with `pip install --editable .`
+- Parsed by conda-build to extact version and metainfo
 """
 
 import setuptools
@@ -9,7 +12,8 @@ PKG = 'analysis-runner'
 
 setuptools.setup(
     name=PKG,
-    version='0.1.2',
+    # This tag is automatically updated by bump2version
+    version='1.0.0',
     description='Analysis runner to help make analysis results reproducible',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
