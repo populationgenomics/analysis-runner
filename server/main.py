@@ -61,7 +61,6 @@ def _read_secret(name: str) -> str:
     return response.payload.data.decode('UTF-8')
 
 
-# The extra number of params is from @routes.post, so we'll ignore the error
 # pylint: disable=too-many-statements
 @routes.post('/')
 async def index(request):
