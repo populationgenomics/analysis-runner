@@ -19,9 +19,38 @@ used to run the batch on your behalf. There's a dedicated Batch service
 account for each dataset (e.g. "tob-wgs"), which helps with bucket permission
 management and billing budgets.
 
-## Usage
+## CLI Usage
 
-**TODO(@lgruen):** Add instructions
+If you have the `analysis-runner` CLI installed, you can request the analysis-runner
+to start pipelines based on a GitHub repository, commit, and command to run.
+Please see the [Team Docs](https://github.com/populationgenomics/team-docs/) for
+installation instructions.
+
+If you're in the directory of the project you want to run, you can omit
+the `--commit` and `--repository` parameters, which will use your current REMOTE
+and commit HEAD.
+
+For example:
+
+```bash
+analysis-runner \
+    --dataset <dataset> \
+    --description <description> \
+    --output-dir gs://<bucket-path> \
+    script_to_run.py with arguments
+```
+
+If you provide a `--repository`, you MUST supply a `--commit <SHA>`, eg:
+
+```bash
+analysis-runner \
+    --repository my-approved-repo \
+    --commit <commit-sha> \
+    --dataset <dataset> \
+    --description <description> \
+    --output-dir gs://<bucket-path> \
+    script_to_run.py with arguments
+```
 
 ## Deployment
 

@@ -1,0 +1,26 @@
+{% set data=load_setup_py_data() %}
+
+package:
+  name: analysis-runner
+  version: {{ data['version'] }}
+
+source:
+  path: ../../
+
+build:
+  number: 0
+  noarch: python
+
+requirements:
+  run:
+    - google-auth ==1.25.0
+    - click ==7.1.2
+
+test:
+  commands:
+    - cli.py --help
+
+about:
+  home: {{ data['url'] }}
+  license: {{ data['license'] }}
+  summary: {{ data['description'] }}

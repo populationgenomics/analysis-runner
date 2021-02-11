@@ -57,5 +57,5 @@ From another terminal, send a request like this, replacing the JSON parameters
 accordingly.
 
 ```bash
-TOKEN=$(gcloud auth print-identity-token) curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type:application/json" -d '{"output": "gs://test-bucket/test", "repo": "hail-batch-test", "commit": "0fa3abfe59692618578c4e1551b2a9357566d2ad", "script": "main.py", "description": "test"}' localhost:8080
+TOKEN=$(gcloud auth print-identity-token) curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type:application/json" -d '{"output": "gs://test-bucket/test", "repo": "hail-batch-test", "commit": "0fa3abfe59692618578c4e1551b2a9357566d2ad", "script": ["main.py"], "description": "test"}' localhost:8080
 ```
