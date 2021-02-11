@@ -8,11 +8,11 @@ import os
 import re
 import logging
 import subprocess
-
 import click
 import requests
 import google.auth
 import google.auth.transport.requests
+from cli import _version
 
 logging.basicConfig(level='INFO')
 
@@ -25,6 +25,7 @@ DEFAULT_SERVER_LOOKUP = (
 SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
 
 
+@click.version_option(_version.__version__)
 @click.command(
     help='CLI for the analysis runner - a CPG service for running analysis from '
     'some GitHub repository (at a specific commit). The parameters are used to form a '
