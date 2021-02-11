@@ -120,7 +120,7 @@ it 1.0.1, run:
 bump2version patch
 ```
 
-It will increment the version tag specified in `setup.py` and `*/_version.py`, 
+It will update the version tag specified in `setup.py` and `*/_version.py`, 
 and create a new git tag. You can push the tag with:
 
 ```bash
