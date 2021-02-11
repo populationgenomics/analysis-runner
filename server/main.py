@@ -106,8 +106,13 @@ async def index(request):
         if not script:
             raise web.HTTPBadRequest(reason='Invalid script parameter')
 
+        if not isinstance(script, list):
+            raise web.HTTPBadRequest(reason='Script parameter expects an array')
+
+        script_file, *script_args = script
+
         user_name = email.split('@')[0]
-        batch_name = f'{user_name} {repo}:{commit}/{script}'
+        batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
 
         batch = hb.Batch(backend=backend, name=batch_name)
 
@@ -130,9 +135,6 @@ async def index(request):
         job.command(f'git merge-base --is-ancestor {_shell_escape(commit)} HEAD')
         job.command(f'git checkout {_shell_escape(commit)}')
         # Make sure the file is in the repository.
-        if not isinstance(script, list):
-            script = str(script).split(' ')
-        script_file = script[0]
         job.command(f'test $(find . -name {_shell_escape(script_file)})')
         # Change the working directory (to make relative file look-ups more intuitive).
         job.command(f'cd $(dirname {_shell_escape(script_file)})')
@@ -158,7 +160,7 @@ async def index(request):
         )
 
         # Finally, run the script.
-        escaped_args = ' '.join(_shell_escape(s) for s in script[1:] if s)
+        escaped_args = ' '.join(_shell_escape(s) for s in script_args if s)
         job.command(f'python3 $(basename {_shell_escape(script_file)}) {escaped_args}')
 
         bc_batch = batch.run(wait=False)
