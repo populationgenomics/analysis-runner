@@ -81,7 +81,7 @@ def main(dataset, output_dir, script, description, commit=None, repository=None)
     if repository is None:
         _repository = _get_git_default_remote()
         if _commit_ref is None:
-            _get_git_commit_ref_of_current_repository()
+            _commit_ref = _get_git_commit_ref_of_current_repository()
     # false-y value catches empty list / tuple as well
     if not _script:
         _script = ['main.py']
