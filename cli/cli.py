@@ -160,19 +160,19 @@ def _get_relative_script_path_from_git_root(script_name: str) -> str:
 
 def _get_git_default_remote() -> str:
     command = ['git', 'remote', 'get-url', 'origin']
-    full_remote = _get_output_of_command(command, 'get default GIT repository')
+    full_remote = _get_output_of_command(command, 'get default Git repository')
     return _get_repo_name_from_remote(full_remote)
 
 
 def _get_git_repo_root() -> str:
     command = ['git', 'rev-parse', '--show-toplevel']
-    repo_root = _get_output_of_command(command, 'get GIT repo directory')
+    repo_root = _get_output_of_command(command, 'get Git repo directory')
     return repo_root
 
 
 def _get_git_commit_ref_of_current_repository() -> str:
     command = ['git', 'rev-parse', 'HEAD']
-    return _get_output_of_command(command, 'get latest GIT commit')
+    return _get_output_of_command(command, 'get latest Git commit')
 
 
 def _get_repo_name_from_remote(remote_name: str) -> str:
