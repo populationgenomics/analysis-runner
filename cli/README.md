@@ -15,10 +15,10 @@ There are two ways to run the analysis-runner CLI: with the `--repository` param
       --dataset <dataset> \
       --description "Description of the run" \
       --output-dir gs://<bucket> \
-      main.py and some arguments # becomes path/to/script/main.py and some arugments
+      main.py and some arguments # becomes path/to/script/main.py and some arguments
   ```
 
-1. Providing the `--repository REPO` parameter, making the script path relative to the git repository is disabled, and you must provide a commit hash too. For example:
+1. Providing the `--repository` parameter, making the script path relative to the git repository is disabled, and you must provide a commit hash too. For example:
 
   ```bash
   # You must specify relative path from git root to script
@@ -26,7 +26,7 @@ There are two ways to run the analysis-runner CLI: with the `--repository` param
       --dataset <dataset> \
       --description "Description of the run" \
       --output-dir gs://<bucket> \
-      --repository hail-batch-test \
+      --repository <repository> \
       --commit <hash> \
       path/to/script/main.py and some arguments
   ```
