@@ -7,6 +7,7 @@ from aiohttp import web
 
 from google.auth import jwt
 from google.cloud import secretmanager
+from google.cloud import pubsub_v1
 
 import hailtop.batch as hb
 from hailtop.config import get_deploy_config
@@ -30,10 +31,12 @@ assert DATASET
 
 HAIL_BUCKET = f'cpg-{DATASET}-hail'
 METADATA_FILE = '/tmp/metadata.json'
+PUBSUB_TOPIC = 'projects/analysis-runner/topics/submissions'
 
 routes = web.RouteTableDef()
 
 secret_manager = secretmanager.SecretManagerServiceClient()
+publisher = pubsub_v1.PublisherClient()
 
 
 def _email_from_id_token(auth_header: str) -> str:
@@ -76,9 +79,11 @@ async def index(request):
     # exception gets translated to a Bad Request error in the try block below.
     params = await request.json()
     try:
-        output_path = params['output']
-        if not output_path.startswith('gs://'):
-            raise web.HTTPBadRequest(reason='Output path needs to start with "gs://"')
+        output_dir = params['output']
+        if not output_dir.startswith('gs://'):
+            raise web.HTTPBadRequest(
+                reason='Output directory needs to start with "gs://"'
+            )
 
         repo = params['repo']
         allowed_repos = _read_secret('allowed-repos').split(',')
@@ -121,7 +126,7 @@ async def index(request):
 
         job.env('HAIL_BILLING_PROJECT', DATASET)
         job.env('HAIL_BUCKET', HAIL_BUCKET)
-        job.env('OUTPUT', output_path)
+        job.env('OUTPUT', output_dir)
 
         # Note: for private GitHub repos we'd need to use a token to clone.
         # Any job commands here are evaluated in a bash shell, so user arguments should
@@ -139,24 +144,28 @@ async def index(request):
         # Change the working directory (to make relative file look-ups more intuitive).
         job.command(f'cd $(dirname {_shell_escape(script_file)})')
 
-        # This metadata dictionary gets stored at the output_path location.
-        # TODO: also send this to Airtable.
-        metadata = {
-            'dataset': DATASET,
-            'user': email,
-            'repo': repo,
-            'commit': commit,
-            'script': ' '.join(script),
-            'description': params['description'],
-            'output': output_path,
-        }
+        # This metadata dictionary gets stored at the output_dir location.
+        metadata = json.dumps(
+            {
+                'dataset': DATASET,
+                'user': email,
+                'repo': repo,
+                'commit': commit,
+                'script': ' '.join(script),
+                'description': params['description'],
+                'output': output_dir,
+            }
+        )
 
-        job.command(f'echo {_shell_escape(json.dumps(metadata))} > {METADATA_FILE}')
+        # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
+        publisher.publish(PUBSUB_TOPIC, metadata.encode('utf-8')).result()
+
+        job.command(f'echo {_shell_escape(metadata)} > {METADATA_FILE}')
         job.command(
             f'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
         )
         job.command(
-            f'gsutil cp {METADATA_FILE} {_shell_escape(output_path)}/metadata.json'
+            f'gsutil cp {METADATA_FILE} {_shell_escape(output_dir)}/metadata.json'
         )
 
         # Finally, run the script.
