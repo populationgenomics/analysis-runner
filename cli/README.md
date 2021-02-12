@@ -4,28 +4,32 @@ CLI for interacting with the REMOTE analysis-runner (externally hosted `server/m
 
 Motivation: [Source](https://github.com/populationgenomics/analysis-runner/issues/8)
 
-Usage:
+There are two ways to run the analysis-runner CLI: with the `--repository` parameter, and without:
 
-```bash
-analysis-runner \
-    --dataset <dataset> \
-    --description <description> \
-    --output-dir gs://<bucket-path> \
-    script_to_run.py with arguments
-```
+1. Omitting the `--repository` parameter: use the repository of the local directory that you're in: (a) get the repository name from the git remote; (b) use the commit of HEAD (if the `--commit` parameter is omitted); (c) Make the script path relative to the root of the git repository.
 
-If you provide a `--repository`, you MUST supply
-a `--commit <SHA / or tag>`, eg:
+  ```bash
+  # cwd is the git directory root
+  cd path/to/script
+  analysis-runner \
+      --dataset <dataset> \
+      --description "Description of the run" \
+      --output-dir gs://<bucket> \
+      main.py and some arguments # becomes path/to/script/main.py and some arguments
+  ```
 
-```bash
-analysis-runner \
-    --repository my-approved-repo \
-    --commit <commit-sha> \
-    --dataset <dataset> \
-    --description <description> \
-    --output-dir gs://<bucket-path> \
-    script_to_run.py with arguments
-```
+1. Providing the `--repository` parameter, making the script path relative to the git repository is disabled, and you must provide a commit hash too. For example:
+
+  ```bash
+  # You must specify relative path from git root to script
+  analysis-runner \
+      --dataset <dataset> \
+      --description "Description of the run" \
+      --output-dir gs://<bucket> \
+      --repository <repository> \
+      --commit <hash> \
+      path/to/script/main.py and some arguments
+  ```
 
 ## CLI Overview
 
