@@ -4,7 +4,7 @@ CLI for interacting with the REMOTE analysis-runner (externally hosted `server/m
 
 Motivation: [Source](https://github.com/populationgenomics/analysis-runner/issues/8)
 
-There are two ways to run the analysis-runner CLI: with --repository flag, and without:
+There are two ways to run the analysis-runner CLI: with the `--repository` parameter, and without:
 
 1. Omitting the `--repository` parameter: use the repository of the local directory that you're in: (a) get the repository name from the git remote; (b) use the commit of HEAD (if the `--commit` parameter is omitted); (c) Make the script path relative to the root of the git repository.
 
