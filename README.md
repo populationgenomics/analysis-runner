@@ -11,7 +11,7 @@ One of our main workflow pipeline systems at the CPG is Hail Batch. By
 default, its pipelines are defined by running a Python program
 _locally_. This tool instead lets you run the "driver" on Hail Batch itself.
 
-Furthermore, all invocations are logged together with the output data.
+Furthermore, all invocations are logged together with the output data, as well as [Airtable](https://airtable.com/tblx9NarwtJwGqTPA/viwIomAHV49Stq5zr).
 
 When using the analysis-runner, the batches are not run under your standard
 Hail Batch service account user. Instead, a separate Hail Batch account is
@@ -109,6 +109,7 @@ pip install --editable .
 1. [Copy the Hail tokens](tokens) to the Secret Manager.
 1. Build the [driver image](driver).
 1. Deploy the [server](server) for each dataset.
+1. Deploy the [Airtable](airtable) publisher.
 1. Publish the [CLI tool](cli) to conda.
 
 CLI tool is shipped as a conda package. To build a new version,

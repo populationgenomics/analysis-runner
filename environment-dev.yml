@@ -7,6 +7,7 @@ dependencies:
   - black
   - flake8
   - flake8-bugbear
+  - flask=1.1.2
   - google-auth=1.24.0
   - google-cloud-secret-manager=2.2.0
   - google-cloud-pubsub=2.3.0
@@ -18,4 +19,5 @@ dependencies:
   - bump2version
   - requests
   - pip:
+    - airtable-python-wrapper=0.15.1
     - pulumi-gcp
