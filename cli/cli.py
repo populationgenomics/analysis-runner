@@ -78,15 +78,15 @@ def main(dataset, output_dir, script, description, commit=None, repository=None)
     _commit_ref = commit
     _script = list(script)
 
-    if repository is None:
-        _repository = _get_git_default_remote()
-        if _commit_ref is None:
-            _get_git_commit_ref_of_current_repository()
     # false-y value catches empty list / tuple as well
     if not _script:
         _script = ['main.py']
 
-    if _script[0]:
+    if repository is None:
+        _repository = _get_git_default_remote()
+        if _commit_ref is None:
+            _commit_ref = _get_git_commit_ref_of_current_repository()
+
         # Make the first argument (the script name) relative
         # to the git root and current directory
         _script[0] = _get_relative_script_path_from_git_root(_script[0])
@@ -160,19 +160,19 @@ def _get_relative_script_path_from_git_root(script_name: str) -> str:
 
 def _get_git_default_remote() -> str:
     command = ['git', 'remote', 'get-url', 'origin']
-    full_remote = _get_output_of_command(command, 'get GIT repository')
+    full_remote = _get_output_of_command(command, 'get default Git repository')
     return _get_repo_name_from_remote(full_remote)
 
 
 def _get_git_repo_root() -> str:
     command = ['git', 'rev-parse', '--show-toplevel']
-    repo_root = _get_output_of_command(command, 'get GIT repo directory')
+    repo_root = _get_output_of_command(command, 'get Git repo directory')
     return repo_root
 
 
 def _get_git_commit_ref_of_current_repository() -> str:
     command = ['git', 'rev-parse', 'HEAD']
-    return _get_output_of_command(command, 'get latest GIT commit')
+    return _get_output_of_command(command, 'get latest Git commit')
 
 
 def _get_repo_name_from_remote(remote_name: str) -> str:
