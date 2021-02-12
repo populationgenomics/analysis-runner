@@ -19,5 +19,5 @@ dependencies:
   - bump2version
   - requests
   - pip:
-    - airtable-python-wrapper=0.15.1
+    - airtable-python-wrapper==0.15.1
     - pulumi-gcp
