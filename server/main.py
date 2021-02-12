@@ -181,12 +181,6 @@ async def index(request):
     except KeyError as e:
         logging.error(e)
         raise web.HTTPBadRequest(reason='Missing request parameter')
-    # Handle and rethrow KeyboardInterrupt error to stop global exception catch
-    except KeyboardInterrupt:  # pylint: disable=try-except-raise
-        raise
-    except Exception as e:
-        logging.error(e)
-        raise web.HTTPServerError(reason=str(e))
 
 
 async def init_func():
