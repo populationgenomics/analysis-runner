@@ -10,4 +10,4 @@ RUN curl -o miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py37_4.9
 ENV PATH /root/miniconda3/bin:$PATH
 
 # Install Hail from the conda CPG channel.
-RUN conda install -y -c cpg -c bioconda -c conda-forge hail=0.2.61.devd9fcfb5
+RUN conda install -y -c cpg -c bioconda -c conda-forge hail=0.2.62.devcdb8c94
