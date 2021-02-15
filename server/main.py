@@ -9,11 +9,12 @@ from google.auth import jwt
 from google.cloud import secretmanager
 from google.cloud import pubsub_v1
 
+from hail import version as get_hail_version
 import hailtop.batch as hb
 from hailtop.config import get_deploy_config
 
 GITHUB_ORG = 'populationgenomics'
-
+HAIL_VERSION = get_hail_version()
 ALLOWED_REPOS = {
     'tob-wgs',
 }
@@ -154,6 +155,8 @@ async def index(request):
                 'script': ' '.join(script),
                 'description': params['description'],
                 'output': output_dir,
+                'hail': HAIL_VERSION,
+                'driver_image': DRIVER_IMAGE,
             }
         )
 
