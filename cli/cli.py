@@ -61,7 +61,8 @@ SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
     help='Description of job, otherwise defaults to: "$USER FROM LOCAL: $REPO@$COMMIT"',
 )
 @click.option(
-    '--extended-access', help='Whether to use the extended-access permissions group.'
+    '--extended-access/--no-extended-access',
+    help='Whether to use the extended-access permissions group.',
 )
 @click.argument('script', nargs=-1)
 def main(
