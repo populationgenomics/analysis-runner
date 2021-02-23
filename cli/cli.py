@@ -17,10 +17,9 @@ from cli import _version
 logging.basicConfig(level='INFO')
 
 BRANCH = 'main'
-DEFAULT_SERVER_LOOKUP = (
-    f'https://raw.githubusercontent.com/'
-    f'populationgenomics/analysis-runner/{BRANCH}/cli/servermap.json'
-)
+
+SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
+
 # Make this None if you want to support all organizations
 SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
 
@@ -61,8 +60,20 @@ SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
     required=True,
     help='Description of job, otherwise defaults to: "$USER FROM LOCAL: $REPO@$COMMIT"',
 )
+@click.option(
+    '--extended-access/--no-extended-access',
+    help='Whether to use the extended-access permissions group.',
+)
 @click.argument('script', nargs=-1)
-def main(dataset, output_dir, script, description, commit=None, repository=None):
+def main(
+    dataset,
+    output_dir,
+    script,
+    description,
+    commit=None,
+    repository=None,
+    extended_access=False,
+):
     """
     Main function that drives the CLI.
     The parameters are provided automatically by @click.
@@ -91,16 +102,17 @@ def main(dataset, output_dir, script, description, commit=None, repository=None)
         # to the git root and current directory
         _script[0] = _get_relative_script_path_from_git_root(_script[0])
 
-    _url = _get_url_from_dataset(dataset)
     _token = _get_google_auth_token()
 
     logging.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 
     response = requests.post(
-        _url,
+        SERVER_ENDPOINT,
         json={
+            'dataset': dataset,
             'output': output_dir,
             'repo': _repository,
+            'extendedAccess': extended_access,
             'commit': _commit_ref,
             'script': _script,
             'description': description,
@@ -207,20 +219,6 @@ def _get_repo_name_from_remote(remote_name: str) -> str:
         repo = repo[:-4]
 
     return repo
-
-
-def _get_url_from_dataset(dataset: str) -> str:
-    resource = requests.get(DEFAULT_SERVER_LOOKUP)
-    if not resource.ok:
-        resource.raise_for_status()
-
-    d = resource.json()
-
-    url = d.get(dataset)
-    if url:
-        return url
-
-    raise Exception(f"Couldn't get URL for '{dataset}', expected one of {d.keys()}")
 
 
 if __name__ == '__main__':

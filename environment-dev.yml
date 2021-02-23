@@ -7,6 +7,7 @@ dependencies:
   - black
   - flake8
   - flake8-bugbear
+  - google-api-python-client=1.12.8
   - google-auth=1.24.0
   - google-cloud-secret-manager=2.2.0
   - google-cloud-pubsub=2.3.0
