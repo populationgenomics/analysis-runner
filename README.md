@@ -84,7 +84,7 @@ analysis-runner \
     script_to_run.py with arguments
 ```
 
-## Deployment
+## Development
 
 You can ignore this section if you just want to run the tool.
 
@@ -112,22 +112,22 @@ pip install --editable .
 1. Deploy the [Airtable](airtable) publisher.
 1. Publish the [CLI tool](cli) to conda.
 
+### Deploying CLI tool
+
 CLI tool is shipped as a conda package. To build a new version,
 we use [bump2version](https://pypi.org/project/bump2version/).
 For example, to increment the patch section of the version tag 1.0.0 and make
 it 1.0.1, run:
 
 ```bash
+git checkout -b bump-version-for-release
 bump2version patch
+git push --set-upstream origin add-new-version
+# Open pull request
+open "https://github.com/populationgenomics/analysis-runner/pull/new/add-new-version"
 ```
 
-It will update the version tag specified in `setup.py` and `*/_version.py`,
-and create a new git tag. You can push the tag with:
-
-```bash
-git push --tags
-```
-
-This will trigger the GitHub Actions workflow to build a new conda package, that
+It's important the pull request name start with "Bump version:" (which should happen by default).
+Once this is merged into `main`, a GitHub action workflow will build a new conda package, that
 will be uploaded to the Anaconda [CPG channel](https://anaconda.org/cpg/),
 and become available to install with `conda install -c cpg -c conda-forge ...`
