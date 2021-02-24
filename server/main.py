@@ -16,7 +16,7 @@ import cloud_identity
 GITHUB_ORG = 'populationgenomics'
 
 DRIVER_IMAGE = (
-    'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:ffc8144b0e1e'
+    'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:50ac35f838ae'
 )
 
 METADATA_FILE = '/tmp/metadata.json'
