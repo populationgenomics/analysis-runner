@@ -1,9 +1,12 @@
 name: Condarise
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
 jobs:
   build-publish:
-    # Run for tags only
-    if: "startsWith(github.ref, 'refs/tags/')"
+    # Run on merge to master, where the commit name starts with "Bump version:" (for bump2version)
+    if: "startsWith(github.event.head_commit.message, 'Bump version:')"
     runs-on: ubuntu-latest
     defaults:
       run:
