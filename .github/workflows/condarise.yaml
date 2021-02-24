@@ -2,7 +2,7 @@ name: Condarise
 on: [push, pull_request]
 jobs:
   build-publish:
-    # Run for tags only
+    # Run on merge to master, where the commit name starts with "Bump version:" (for bump2version)
     if: "startsWith(github.ref, 'refs/heads/main') && startsWith(github.event.head_commit.message, 'Bump version:')"
     runs-on: ubuntu-latest
     defaults:
