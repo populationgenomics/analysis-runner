@@ -2,7 +2,7 @@
 
 import json
 import logging
-from aiohttp import web
+from aiohttp import web, ClientSession
 
 from google.auth import jwt
 from google.cloud import secretmanager
@@ -51,6 +51,15 @@ def _read_secret(name: str) -> str:
     secret_name = f'projects/analysis-runner/secrets/{name}/versions/latest'
     response = secret_manager.access_secret_version(request={'name': secret_name})
     return response.payload.data.decode('UTF-8')
+
+
+async def _get_hail_version() -> str:
+    deploy_config = get_deploy_config()
+    url = deploy_config.url('query', f'/api/v1alpha/version')
+    async with ClientSession() as session:
+        async with session.get(url) as resp:
+            resp.raise_for_status()
+            return await resp.text()
 
 
 # pylint: disable=too-many-statements
@@ -155,6 +164,7 @@ async def index(request):
         job.command(f'cd $(dirname {_shell_escape(script_file)})')
 
         # This metadata dictionary gets stored at the output_dir location.
+        hail_version = await _get_hail_version()
         metadata = json.dumps(
             {
                 'dataset': dataset,
@@ -165,6 +175,8 @@ async def index(request):
                 'script': ' '.join(script),
                 'description': params['description'],
                 'output': output_dir,
+                'hailVersion': hail_version,
+                'driverImage': DRIVER_IMAGE,
             }
         )
 
