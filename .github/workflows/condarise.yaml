@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   build-publish:
     # Run for tags only
-    if: "startsWith(github.ref, 'refs/tags/')"
+    if: "startsWith(github.ref, 'refs/heads/main') && startsWith(github.event.head_commit.message, 'Bump version:')"
     runs-on: ubuntu-latest
     defaults:
       run:
