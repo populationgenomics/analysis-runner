@@ -1,6 +1,5 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
 
-import os
 import json
 import logging
 from aiohttp import web, ClientSession
@@ -12,23 +11,14 @@ from google.cloud import pubsub_v1
 import hailtop.batch as hb
 from hailtop.config import get_deploy_config
 
+import cloud_identity
+
 GITHUB_ORG = 'populationgenomics'
-ALLOWED_REPOS = {
-    'tob-wgs',
-}
 
 DRIVER_IMAGE = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:ffc8144b0e1e'
 )
 
-# The GCP_PROJECT is the project ID, not the project name, and is therefore sometimes
-# not identical to the dataset name.
-GCP_PROJECT = os.getenv('GCP_PROJECT')
-assert GCP_PROJECT
-DATASET = os.getenv('DATASET')
-assert DATASET
-
-HAIL_BUCKET = f'cpg-{DATASET}-hail'
 METADATA_FILE = '/tmp/metadata.json'
 PUBSUB_TOPIC = 'projects/analysis-runner/topics/submissions'
 
@@ -58,7 +48,7 @@ def _shell_escape(arg: str) -> str:
 
 def _read_secret(name: str) -> str:
     """Reads the latest version of the given secret from Google's Secret Manager."""
-    secret_name = f'projects/{GCP_PROJECT}/secrets/{name}/versions/latest'
+    secret_name = f'projects/analysis-runner/secrets/{name}/versions/latest'
     response = secret_manager.access_secret_version(request={'name': secret_name})
     return response.payload.data.decode('UTF-8')
 
@@ -93,21 +83,42 @@ async def index(request):
                 reason='Output directory needs to start with "gs://"'
             )
 
+        dataset = params['dataset']
+        config = json.loads(_read_secret('server-config'))
+        if dataset not in config:
+            raise web.HTTPForbidden(
+                reason=(
+                    f'Dataset "{dataset}" is not part of: '
+                    f'{", ".join(config.keys())}'
+                )
+            )
+
+        extended_access = params['extendedAccess']
+        group_type = 'extended' if extended_access else 'restricted'
+        group_name = f'{dataset}-{group_type}-access@populationgenomics.org.au'
+        if not cloud_identity.check_group_membership(email, group_name):
+            raise web.HTTPForbidden(reason=f'{email} is not a member of {group_name}')
+
         repo = params['repo']
-        allowed_repos = _read_secret('allowed-repos').split(',')
+        allowed_repos = config[dataset]['allowedRepos']
         if repo not in allowed_repos:
             raise web.HTTPForbidden(
                 reason=(
-                    f'Repository "{repo}" is not in list of allowed repositories: '
+                    f'Repository "{repo}" is not one of the allowed repositories: '
                     f'{", ".join(allowed_repos)}'
                 )
             )
 
-        hail_token = _read_secret('hail-token')
+        hail_bucket = f'cpg-{dataset}-hail'
+        hail_token = (
+            config[dataset]['extendedToken']
+            if extended_access
+            else config[dataset]['token']
+        )
 
         backend = hb.ServiceBackend(
-            billing_project=DATASET,
-            bucket=HAIL_BUCKET,
+            billing_project=dataset,
+            bucket=hail_bucket,
             token=hail_token,
         )
 
@@ -132,8 +143,8 @@ async def index(request):
         job = batch.new_job(name='driver')
         job.image(DRIVER_IMAGE)
 
-        job.env('HAIL_BILLING_PROJECT', DATASET)
-        job.env('HAIL_BUCKET', HAIL_BUCKET)
+        job.env('HAIL_BILLING_PROJECT', dataset)
+        job.env('HAIL_BUCKET', hail_bucket)
         job.env('OUTPUT', output_dir)
 
         # Note: for private GitHub repos we'd need to use a token to clone.
@@ -156,8 +167,9 @@ async def index(request):
         hail_version = await _get_hail_version()
         metadata = json.dumps(
             {
-                'dataset': DATASET,
+                'dataset': dataset,
                 'user': email,
+                'extendedAccess': extended_access,
                 'repo': repo,
                 'commit': commit,
                 'script': ' '.join(script),
