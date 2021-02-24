@@ -12,3 +12,6 @@ EXPOSE $PORT
 COPY main.py cloud_identity.py ./
 
 CMD gunicorn --bind :$PORT --worker-class aiohttp.GunicornWebWorker main:init_func
+
+# Clean up
+RUN rm -rf /root/miniconda3/pkgs
