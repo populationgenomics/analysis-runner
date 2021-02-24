@@ -11,3 +11,6 @@ ENV PATH /root/miniconda3/bin:$PATH
 
 # Install Hail from the conda CPG channel.
 RUN conda install -y -c cpg -c bioconda -c conda-forge hail=0.2.62.devcdb8c94
+
+# Clean up
+RUN rm -rf /root/miniconda3/pkgs
