@@ -175,8 +175,8 @@ async def index(request):
                 'script': ' '.join(script),
                 'description': params['description'],
                 'output': output_dir,
-                'hail': hail_version,
-                'driver_image': DRIVER_IMAGE,
+                'hailVersion': hail_version,
+                'driverImage': DRIVER_IMAGE,
             }
         )
 
