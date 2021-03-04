@@ -22,6 +22,7 @@ jobs:
 
     - name: "build driver image"
       run: |
+        pwd
         docker build --build-arg HAIL_VERSION=${{ github.event.inputs.hail_version }} --tag $DRIVER_IMAGE analysis-runner/driver
 
     - name: "push driver image"
