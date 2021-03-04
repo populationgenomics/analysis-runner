@@ -28,7 +28,7 @@ jobs:
 
     - name: "gcloud docker auth"
       run: |
-        gcloud auth configure-docker gcr.io
+        gcloud auth configure-docker gcr.io australia-southeast1-docker.pkg.dev
 
     - name: "build driver image"
       run: |
