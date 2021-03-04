@@ -26,6 +26,10 @@ jobs:
         project_id: analysis-runner
         service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
 
+    - name: "gcloud docker auth"
+      run: |
+        gcloud auth configure-docker gcr.io
+
     - name: "build driver image"
       run: |
         docker build --build-arg HAIL_VERSION=${{ github.event.inputs.hail_version }} --tag $DRIVER_IMAGE driver
