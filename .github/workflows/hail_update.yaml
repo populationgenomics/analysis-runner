@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      DOCKER_BUILDKIT: 1
+      BUILDKIT_PROGRESS: plain
       DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
       SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
 
@@ -25,7 +27,6 @@ jobs:
       with:
         project_id: analysis-runner
         service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
-        export_default_credentials: true
 
     - name: "gcloud docker auth"
       run: |
