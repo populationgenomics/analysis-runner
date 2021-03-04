@@ -49,4 +49,4 @@ jobs:
 
     - name: "deploy server"
       run: |
-        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --image $SERVER_IMAGE
+        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $SERVER_IMAGE
