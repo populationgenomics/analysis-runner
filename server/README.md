@@ -21,12 +21,12 @@ echo $COMMIT_HASH
 gcloud builds submit --timeout 1h --tag $IMAGE:$COMMIT_HASH
 ```
 
-To deploy, run:
+Deployment happens continuously using the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml). However, if you ever need to deploy manually, run:
 
 ```bash
 gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated \
     --service-account analysis-runner-server@analysis-runner.iam.gserviceaccount.com \
-    --platform managed --image $IMAGE:$COMMIT_HASH
+    --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $IMAGE:$COMMIT_HASH
 ```
 
 Hail service account [tokens](../tokens) need to be copied to a Secret Manager secret
@@ -44,7 +44,7 @@ Download a JSON key for the `analysis-runner-server` service account. Store the 
 ```bash
 docker build -t analysis-runner-server .
 
-docker run -it -p 8080:8080 -v $GSA_KEY_FILE:/gsa-key/key.json -e GOOGLE_APPLICATION_CREDENTIALS=/gsa-key/key.json analysis-runner-server
+docker run -it -p 8080:8080 -v $GSA_KEY_FILE:/gsa-key/key.json -e GOOGLE_APPLICATION_CREDENTIALS=/gsa-key/key.json -e DRIVER_IMAGE=$DRIVER_IMAGE analysis-runner-server
 ```
 
 This will start a server that listens locally on port 8080.
