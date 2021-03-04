@@ -43,7 +43,7 @@ jobs:
 
     - name: "build server image"
       run: |
-        docker build --build_arg DRIVER_IMAGE=$DRIVER_IMAGE --tag $SERVER_IMAGE server
+        docker build --build-arg DRIVER_IMAGE=$DRIVER_IMAGE --tag $SERVER_IMAGE server
 
     - name: "push server image"
       run: |
