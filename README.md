@@ -105,14 +105,23 @@ pre-commit install
 pip install --editable .
 ```
 
+### Deployment
+
 1. Add a Hail Batch service account for all supported datasets.
 1. [Copy the Hail tokens](tokens) to the Secret Manager.
-1. Build the [driver image](driver).
-1. Deploy the [server](server) for each dataset.
+1. Deploy the [server](server) by invoking the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) manually, specifying the Hail package version in conda.
 1. Deploy the [Airtable](airtable) publisher.
 1. Publish the [CLI tool](cli) to conda.
 
-### Deploying CLI tool
+Note that the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) gets invoked whenever a new Hail package is published to conda. You can test this manually as follows:
+
+```bash
+curl \
+  -X POST \
+  -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
+  https://api.github.com/repos/populationgenomics/analysis-runner/actions/workflows/6364059/dispatches \
+  -d '{"ref": "main", "inputs": {"hail_version": "0.2.63.deveb7251e548b1"}}'
+```
 
 CLI tool is shipped as a conda package. To build a new version,
 we use [bump2version](https://pypi.org/project/bump2version/).
@@ -129,5 +138,5 @@ open "https://github.com/populationgenomics/analysis-runner/pull/new/add-new-ver
 
 It's important the pull request name start with "Bump version:" (which should happen by default).
 Once this is merged into `main`, a GitHub action workflow will build a new conda package, that
-will be uploaded to the Anaconda [CPG channel](https://anaconda.org/cpg/),
+will be uploaded to the conda [CPG channel](https://anaconda.org/cpg/),
 and become available to install with `conda install -c cpg -c conda-forge ...`
