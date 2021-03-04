@@ -33,10 +33,12 @@ jobs:
       run: |
         docker push $SERVER_IMAGE
 
-    - name: "deploy server"
+    - name: "gcloud setup"
       uses: google-github-actions/setup-gcloud@master
       with:
         project_id: analysis-runner
         service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+
+    - name: "deploy server"
       run: |
         gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --image $SERVER_IMAGE
