@@ -1,5 +1,6 @@
 # Since the server relies on Hail as well, we're reusing the driver image.
-FROM 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:50ac35f838ae'
+ARG DRIVER_IMAGE
+FROM ${DRIVER_IMAGE}
 
 RUN conda install -c conda-forge\
     google-api-python-client=1.12.8\

@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from aiohttp import web, ClientSession
 
 from google.auth import jwt
@@ -14,13 +15,11 @@ from hailtop.config import get_deploy_config
 import cloud_identity
 
 GITHUB_ORG = 'populationgenomics'
-
-DRIVER_IMAGE = (
-    'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:0280c2d75fae'
-)
-
 METADATA_FILE = '/tmp/metadata.json'
 PUBSUB_TOPIC = 'projects/analysis-runner/topics/submissions'
+
+DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
+assert DRIVER_IMAGE
 
 routes = web.RouteTableDef()
 

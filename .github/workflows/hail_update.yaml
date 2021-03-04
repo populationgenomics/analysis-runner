@@ -1,0 +1,42 @@
+# This workflow is triggered after a new version of Hail has been built, with a
+# corresponding conda package. It leads to new driver and server Docker images being
+# built, followed by the deployment of the server.
+on:
+  workflow_dispatch:
+    inputs:
+      hail_version:
+        description: 'Hail version (as uploaded to Anaconda)'
+        required: true
+
+jobs:
+  deploy_server:
+    runs-on: ubuntu-latest
+
+    env:
+      DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
+      SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
+
+    steps:
+    - name: "build driver image"
+      run: |
+        docker build --build-arg HAIL_VERSION=${{ github.event.inputs.hail_version }} --tag $DRIVER_IMAGE
+
+    - name: "push driver image"
+      run: |
+        docker push $DRIVER_IMAGE
+
+    - name: "build server image"
+      run: |
+        docker build --build_arg DRIVER_IMAGE=$DRIVER_IMAGE --tag $SERVER_IMAGE
+
+    - name: "push server image"
+      run: |
+        docker push $SERVER_IMAGE
+
+    - name: "deploy server"
+      uses: google-github-actions/setup-gcloud@master
+      with:
+        project_id: analysis-runner
+        service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+      run: |
+        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --image $SERVER_IMAGE
