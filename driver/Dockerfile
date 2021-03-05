@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y git &&\
 
 ENV PATH /root/miniconda3/bin:$PATH
 
+ENV HAIL_QUERY_BACKEND service
+
 # Install Miniconda & Hail from the conda CPG channel
 RUN curl -o miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py37_4.9.2-Linux-x86_64.sh &&\
     bash miniconda.sh -b &&\
