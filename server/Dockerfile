@@ -18,4 +18,7 @@ EXPOSE $PORT
 
 COPY main.py cloud_identity.py ./
 
+# Prepare the Hail deploy config to point to the CPG domain.
+COPY deploy-config.json /deploy-config/deploy-config.json
+
 CMD gunicorn --bind :$PORT --worker-class aiohttp.GunicornWebWorker main:init_func
