@@ -61,7 +61,7 @@ jobs:
         curl --fail -X POST \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type:application/json" \
-            -d "{\"output\": \"gs://cpg-analysis-runner-test\", \"dataset\": \"fewgenomes\", \"extendedAccess\": false, \"repo\": \"analysis-runner\", \"commit\": \"$GITHUB_SHA\", \"script\": [\"test/main.py\"], \"description\": \"analysis-runner-test\"}" \
+            -d "{\"output\": \"gs://cpg-analysis-runner-test\", \"dataset\": \"fewgenomes\", \"extendedAccess\": false, \"repo\": \"analysis-runner\", \"commit\": \"$GITHUB_SHA\", \"script\": [\"test/main.py\"], \"description\": \"analysis-runner-test\", \"wait\": true}" \
             $URL
 
     - name: "deploy server"
