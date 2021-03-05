@@ -56,13 +56,7 @@ jobs:
 
     - name: "submit test batch"
       run: |
-        URL=$(gcloud run services describe server-test --region australia-southeast1 --platform managed --format "value(status.url)") \
-        TOKEN=$(gcloud auth print-identity-token) \
-        curl --fail -X POST \
-          -H "Authorization: Bearer $TOKEN" \
-          -H "Content-Type:application/json" \
-          -d "{\"output\": \"gs://cpg-analysis-runner-test\", \"dataset\": \"fewgenomes\", \"extendedAccess\": false, \"repo\": \"analysis-runner\", \"commit\": \"$GITHUB_SHA\", \"script\": [\"test/main.py\"], \"description\": \"analysis-runner-test\"}" \
-          $URL
+        URL=$(gcloud run services describe server-test --region australia-southeast1 --platform managed --format "value(status.url)") TOKEN=$(gcloud auth print-identity-token) curl --fail -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type:application/json" -d "{\"output\": \"gs://cpg-analysis-runner-test\", \"dataset\": \"fewgenomes\", \"extendedAccess\": false, \"repo\": \"analysis-runner\", \"commit\": \"$GITHUB_SHA\", \"script\": [\"test/main.py\"], \"description\": \"analysis-runner-test\"}" $URL
 
     - name: "deploy server"
       run: |
