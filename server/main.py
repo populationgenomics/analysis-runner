@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+from shlex import quote
 from aiohttp import web, ClientSession
 
 from google.auth import jwt
@@ -37,12 +38,6 @@ def _email_from_id_token(auth_header: str) -> str:
     id_token = auth_header[7:]  # Strip the 'bearer' / 'Bearer' prefix.
     id_info = jwt.decode(id_token, verify=False)
     return id_info['email']
-
-
-def _shell_escape(arg: str) -> str:
-    """Quote-escapes a single shell argument, to avoid command injection."""
-    s = arg.replace("'", r"'\''")
-    return f"'{s}'"
 
 
 def _read_secret(name: str) -> str:
@@ -149,18 +144,16 @@ async def index(request):
         # Note: for private GitHub repos we'd need to use a token to clone.
         # Any job commands here are evaluated in a bash shell, so user arguments should
         # be escaped to avoid command injection.
-        job.command(
-            f'git clone https://github.com/{GITHUB_ORG}/{_shell_escape(repo)}.git'
-        )
-        job.command(f'cd {_shell_escape(repo)}')
+        job.command(f'git clone https://github.com/{GITHUB_ORG}/{quote(repo)}.git')
+        job.command(f'cd {quote(repo)}')
         job.command('git checkout main')
         # Check whether the given commit is in the main branch.
-        job.command(f'git merge-base --is-ancestor {_shell_escape(commit)} HEAD')
-        job.command(f'git checkout {_shell_escape(commit)}')
+        job.command(f'git merge-base --is-ancestor {quote(commit)} HEAD')
+        job.command(f'git checkout {quote(commit)}')
         # Make sure the file is in the repository.
-        job.command(f'test $(find . -name {_shell_escape(script_file)})')
+        job.command(f'test $(find . -name {quote(script_file)})')
         # Change the working directory (to make relative file look-ups more intuitive).
-        job.command(f'cd $(dirname {_shell_escape(script_file)})')
+        job.command(f'cd $(dirname {quote(script_file)})')
 
         # This metadata dictionary gets stored at the output_dir location.
         hail_version = await _get_hail_version()
@@ -182,17 +175,15 @@ async def index(request):
         # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
         publisher.publish(PUBSUB_TOPIC, metadata.encode('utf-8')).result()
 
-        job.command(f'echo {_shell_escape(metadata)} > {METADATA_FILE}')
+        job.command(f'echo {quote(metadata)} > {METADATA_FILE}')
         job.command(
             f'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
         )
-        job.command(
-            f'gsutil cp {METADATA_FILE} {_shell_escape(output_dir)}/metadata.json'
-        )
+        job.command(f'gsutil cp {METADATA_FILE} {quote(output_dir)}/metadata.json')
 
         # Finally, run the script.
-        escaped_args = ' '.join(_shell_escape(s) for s in script_args if s)
-        job.command(f'python3 $(basename {_shell_escape(script_file)}) {escaped_args}')
+        escaped_args = ' '.join(quote(s) for s in script_args if s)
+        job.command(f'python3 $(basename {quote(script_file)}) {escaped_args}')
 
         bc_batch = batch.run(wait=False)
 
