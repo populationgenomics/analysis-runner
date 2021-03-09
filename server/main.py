@@ -190,6 +190,11 @@ async def index(request):
         deploy_config = get_deploy_config()
         url = deploy_config.url('batch', f'/batches/{bc_batch.id}')
 
+        if params.get('wait', False):
+            status = bc_batch.wait()
+            if status['state'] != 'success':
+                raise web.HTTPBadRequest(reason=f'{url} failed')
+
         return web.Response(text=f'{url}\n')
     except KeyError as e:
         logging.error(e)
