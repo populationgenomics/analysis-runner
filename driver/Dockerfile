@@ -1,21 +1,22 @@
-# Cloud Run doesn't like Ubuntu 20.04:
-# https://stackoverflow.com/questions/61744540/unable-to-deploy-ubuntu-20-04-docker-container-on-google-cloud-run
-FROM marketplace.gcr.io/google/ubuntu1804
+FROM debian:buster-slim
 
 ARG HAIL_VERSION
 
-# Install git.
-RUN apt-get update && apt-get install -y git &&\
-    rm -r /var/lib/apt/lists/* &&\
-    rm -r /var/cache/apt/*
-
-ENV PATH /root/miniconda3/bin:$PATH
+# Use bash in RUN commands and make sure .bashrc is sourced to enable
+# micromamba environment.
+SHELL ["/bin/bash", "-c"]
+ENV BASH_ENV ~/.bashrc
 
 ENV HAIL_QUERY_BACKEND service
 
-# Install Miniconda & Hail from the conda CPG channel
-RUN curl -o miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py37_4.9.2-Linux-x86_64.sh &&\
-    bash miniconda.sh -b &&\
-    rm miniconda.sh &&\
-    conda install -y -c cpg -c bioconda -c conda-forge hail=$HAIL_VERSION &&\
-    rm -r /root/miniconda3/pkgs /root/miniconda3/src.zip
+RUN apt-get update && apt-get install -y git wget bash bzip2 && \
+    rm -r /var/lib/apt/lists/* && \
+    rm -r /var/cache/apt/* && \
+    wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba --strip-components=1 && \
+    ./micromamba shell init -s bash -p ~/micromamba && \
+    echo "micromamba activate" >> ~/.bashrc && \
+    source ~/.bashrc && \
+    micromamba install -y -c cpg -c bioconda -c conda-forge hail=$HAIL_VERSION bokeh selenium phantomjs && \
+    rm -r /root/micromamba/pkgs && \
+    # hailctl dataproc uses gcloud beta dataproc.
+    gcloud -q components install beta
