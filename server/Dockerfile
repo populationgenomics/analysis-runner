@@ -2,7 +2,7 @@
 ARG DRIVER_IMAGE
 FROM ${DRIVER_IMAGE}
 
-RUN micromamba install -c conda-forge \
+RUN micromamba install --prefix $MAMBA_ROOT_PREFIX -c conda-forge \
     google-api-python-client=1.12.8 \
     google-auth==1.24.0 \
     google-cloud-secret-manager==2.2.0 \
