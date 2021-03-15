@@ -151,7 +151,7 @@ async def index(request):
         job.command(f'git merge-base --is-ancestor {quote(commit)} HEAD')
         job.command(f'git checkout {quote(commit)}')
         # Make sure the file is in the repository.
-        job.command(f'test $(find . -name {quote(script_file)})')
+        job.command(f'test -f {quote(script_file)}')
         # Change the working directory (to make relative file look-ups more intuitive).
         job.command(f'cd $(dirname {quote(script_file)})')
 
