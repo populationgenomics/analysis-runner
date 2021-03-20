@@ -74,12 +74,11 @@ def hail_dataproc_job(
         ['git', 'rev-parse', '--show-toplevel'], encoding='UTF-8'
     ).strip()
     git_subdir = os.getcwd()[len(git_dir) + 1 :]
-    git_clone = (
-        f'git clone {git_repo} repo && cd repo && '
-        f'git checkout {git_sha} && cd ./{git_subdir}'
-    )
 
-    main_job.command(git_clone)
+    main_job.command(f'git clone {git_repo}')
+    main_job.command(f'cd repo')
+    main_job.command(f'git checkout {git_sha}')
+    main_job.command(f'cd ./{git_subdir}')
 
     if pyfiles:
         os.mkdir(PYFILES_DIR)
