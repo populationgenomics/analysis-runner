@@ -87,7 +87,7 @@ def hail_dataproc_job(
 
     main_job.command(
         f'hailctl dataproc submit --region {REGION} '
-        + (f'--pyfiles {PYFILES_DIR}/{PYFILES_ZIP}' if pyfiles else '')
+        + (f'--pyfiles {PYFILES_DIR}/{PYFILES_ZIP} ' if pyfiles else '')
         + f'{cluster_name} {script} '
     )
 
