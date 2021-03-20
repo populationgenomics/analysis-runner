@@ -19,10 +19,10 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url=f'https://github.com/populationgenomics/{PKG}',
     license='MIT',
-    packages=['cli'],
+    packages=['analysis_runner'],
     include_package_data=True,
     zip_safe=False,
-    entry_points={'console_scripts': ['analysis-runner=cli.cli:main']},
+    entry_points={'console_scripts': ['analysis-runner=analysis_runner.cli:main']},
     keywords='bioinformatics',
     classifiers=[
         'Environment :: Console',

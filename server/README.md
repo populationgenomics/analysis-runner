@@ -32,7 +32,7 @@ gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticate
 Hail service account [tokens](../tokens) need to be copied to a Secret Manager secret
 separately, after the stacks have been set up.
 
-The Cloud Run HTTPS deployment endpoint is hardcoded in the [CLI tool](../cli).
+The Cloud Run HTTPS deployment endpoint is hardcoded in the [CLI tool](../analysis_runner).
 
 ## Testing locally
 
