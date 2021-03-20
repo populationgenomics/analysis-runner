@@ -32,7 +32,7 @@ def query(output, rerun):
         call_rate_plot = hl.plot.histogram(
             mt_qc.sample_qc.call_rate, range=(0, 1), legend='call rate'
         )
-        with hl.hadoop_open(plot_filename, 'w') as f:
+        with hl.hadoop_open(plot_filename, 'wb') as f:
             get_screenshot_as_png(call_rate_plot).save(f, format='PNG')
 
 
