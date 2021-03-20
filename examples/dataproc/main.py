@@ -21,7 +21,7 @@ dataproc.hail_dataproc_job(
     f'query.py --output={OUTPUT}',
     max_age='1h',
     packages=['click', 'selenium'],
-    init=['cluster_init.py'],
+    init=['gs://cpg-reference/hail_dataproc/install_phantomjs.sh'],
 )
 
 batch.run()
