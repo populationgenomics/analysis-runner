@@ -1,10 +1,14 @@
 """Helper functions to run Hail Query scripts on Dataproc from Hail Batch."""
 
-import os
 import uuid
-import subprocess
 from typing import Optional, List
 import hailtop.batch as hb
+from .git import (
+    get_git_default_remote,
+    get_git_commit_ref_of_current_repository,
+    get_relative_script_path_from_git_root,
+    get_repo_name_from_remote,
+)
 
 DRIVER_IMAGE = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:'
@@ -64,21 +68,15 @@ def hail_dataproc_job(
     main_job.command(GCLOUD_PROJECT)
 
     # Clone the repository to pass scripts to the cluster.
-    git_repo = subprocess.check_output(
-        ['git', 'config', '--get', 'remote.origin.url'], encoding='UTF-8'
-    ).strip()
-    git_sha = subprocess.check_output(
-        ['git', 'rev-parse', 'HEAD'], encoding='UTF-8'
-    ).strip()
-    git_dir = subprocess.check_output(
-        ['git', 'rev-parse', '--show-toplevel'], encoding='UTF-8'
-    ).strip()
-    git_subdir = os.getcwd()[len(git_dir) + 1 :]
+    git_remote = get_git_default_remote()
+    git_sha = get_git_commit_ref_of_current_repository()
+    git_dir = get_relative_script_path_from_git_root('')
+    repo_name = get_repo_name_from_remote(git_remote)
 
-    main_job.command(f'git clone {git_repo} repo')
-    main_job.command(f'cd repo')
+    main_job.command(f'git clone {git_remote} {repo_name}')
+    main_job.command(f'cd {repo_name}')
     main_job.command(f'git checkout {git_sha}')
-    main_job.command(f'cd ./{git_subdir}')
+    main_job.command(f'cd ./{git_dir}')
 
     if pyfiles:
         main_job.command(f'mkdir {PYFILES_DIR}')
