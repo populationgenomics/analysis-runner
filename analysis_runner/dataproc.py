@@ -29,17 +29,19 @@ def hail_dataproc_job(
     init: Optional[List[str]] = None,
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = False,
-    depends_on: Optional[hb.batch.job.Job] = None,
+    depends_on: Optional[List[hb.batch.job.Job]] = None,
 ) -> hb.batch.job.Job:
-    """Returns a job to start a Dataproc cluster, submit a Hail Query script to it,
-    and stop the cluster. See the `hailctl` tool for information on the keyword
-    parameters. depends_on can be used to encode dependencies for this job."""
+    """Returns a Batch job which starts a Dataproc cluster, submits a Hail
+    Query script to it, and stops the cluster. See the `hailctl` tool for
+    information on the keyword parameters. depends_on can be used to enforce
+    dependencies for the new job."""
 
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
 
     start_job = batch.new_job(name='start Dataproc cluster')
     if depends_on:
-        start_job.depends_on(start_job)
+        for dependency in depends_on:
+            start_job.depends_on(dependency)
     start_job.image(DRIVER_IMAGE)
     start_job.command(GCLOUD_AUTH)
     start_job.command(GCLOUD_PROJECT)
