@@ -11,7 +11,7 @@ dependencies:
   - google-auth=1.24.0
   - google-cloud-secret-manager=2.2.0
   - google-cloud-pubsub=2.3.0
-  - hail=0.2.63.deveb7251e548b1
+  - hail
   - pre-commit
   - pylint
   - python-kubernetes=12.0.1
