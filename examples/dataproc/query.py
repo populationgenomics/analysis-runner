@@ -34,7 +34,7 @@ def query(output, rerun):
         )
         tmp_filename = '/tmp/plot.png'
         export_png(call_rate_plot, tmp_filename)
-        hl.hadoop_copy(tmp_filename, plot_filename)
+        hl.hadoop_copy(f'file://{tmp_filename}', plot_filename)
 
 
 if __name__ == '__main__':

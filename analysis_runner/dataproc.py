@@ -63,8 +63,7 @@ def hail_dataproc_job(
     main_job.command(GCLOUD_AUTH)
     main_job.command(GCLOUD_PROJECT)
 
-    # Jobs clone the same repository, as Job input files can't refer to local files;
-    # they'd need to be on GCS.
+    # Clone the repository to pass scripts to the cluster.
     git_repo = subprocess.check_output(
         ['git', 'config', '--get', 'remote.origin.url'], encoding='UTF-8'
     ).strip()
@@ -83,7 +82,7 @@ def hail_dataproc_job(
     main_job.command(git_clone)
 
     if pyfiles:
-        subprocess.check_call(['mkdir', PYFILES_DIR])
+        os.mkdir(PYFILES_DIR)
         subprocess.check_call(['cp', '-r'] + pyfiles + [PYFILES_DIR])
         subprocess.check_call(['zip', '-r', PYFILES_ZIP, '.'], cwd=PYFILES_DIR)
 
