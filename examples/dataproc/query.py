@@ -2,7 +2,7 @@
 
 import click
 import hail as hl
-from bokeh.io import export_png
+from bokeh.io.export import get_screenshot_as_png
 
 
 GNOMAD_HGDP_1KG_MT = (
@@ -32,9 +32,8 @@ def query(output, rerun):
         call_rate_plot = hl.plot.histogram(
             mt_qc.sample_qc.call_rate, range=(0, 1), legend='Call Rate'
         )
-        tmp_filename = '/tmp/plot.png'
-        export_png(call_rate_plot, tmp_filename)
-        hl.hadoop_copy(f'file://{tmp_filename}', plot_filename)
+        with hl.hadoop_open(plot_filename, 'w') as f:
+            get_screenshot_as_png(call_rate_plot).save(f)
 
 
 if __name__ == '__main__':
