@@ -40,8 +40,7 @@ def get_relative_script_path_from_git_root(script_name: str) -> str:
 
 def get_git_default_remote() -> str:
     command = ['git', 'remote', 'get-url', 'origin']
-    full_remote = get_output_of_command(command, 'get default Git repository')
-    return get_repo_name_from_remote(full_remote)
+    return get_output_of_command(command, 'get default Git repository')
 
 
 def get_git_repo_root() -> str:

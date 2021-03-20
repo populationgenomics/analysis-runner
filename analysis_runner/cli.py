@@ -13,6 +13,7 @@ from cli import _version
 from .git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
+    get_repo_name_from_remote,
     get_relative_script_path_from_git_root,
 )
 
@@ -91,7 +92,7 @@ def main(
         _script = ['main.py']
 
     if repository is None:
-        _repository = get_git_default_remote()
+        _repository = get_repo_name_from_remote(get_git_default_remote())
         if _commit_ref is None:
             _commit_ref = get_git_commit_ref_of_current_repository()
 
