@@ -75,7 +75,7 @@ def hail_dataproc_job(
     ).strip()
     git_subdir = os.getcwd()[len(git_dir) + 1 :]
 
-    main_job.command(f'git clone {git_repo}')
+    main_job.command(f'git clone {git_repo} repo')
     main_job.command(f'cd repo')
     main_job.command(f'git checkout {git_sha}')
     main_job.command(f'cd ./{git_subdir}')
