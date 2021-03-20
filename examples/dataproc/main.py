@@ -16,6 +16,8 @@ service_backend = hb.ServiceBackend(
 
 batch = hb.Batch(backend=service_backend)
 
-dataproc.hail_dataproc_job(batch, f'query.py --output={OUTPUT}', max_age='1h')
+dataproc.hail_dataproc_job(
+    batch, f'query.py --output={OUTPUT}', max_age='1h', packages=['click']
+)
 
 batch.run()
