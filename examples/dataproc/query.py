@@ -22,3 +22,7 @@ def query(output):
 
     mt = mt.sample_qc()
     mt.write(f'{output}/sample_qc.mt')
+
+
+if __name__ == '__main__':
+    query()  # pylint: disable=no-value-for-parameter
