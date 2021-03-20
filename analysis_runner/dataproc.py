@@ -35,23 +35,6 @@ def hail_dataproc_job(
     and stop the cluster. See the `hailctl` tool for information on the keyword
     parameters. depends_on can be used to encode dependencies for this job."""
 
-    # Jobs clone the same repository, as Job input files can't refer to local files;
-    # they'd need to be on GCS.
-    git_repo = subprocess.check_output(
-        ['git', 'config', '--get', 'remote.origin.url'], encoding='UTF-8'
-    ).strip()
-    git_sha = subprocess.check_output(
-        ['git', 'rev-parse', 'HEAD'], encoding='UTF-8'
-    ).strip()
-    git_dir = subprocess.check_output(
-        ['git', 'rev-parse', '--show-toplevel'], encoding='UTF-8'
-    ).strip()
-    git_subdir = os.getcwd()[len(git_dir) + 1 :]
-    git_clone = (
-        f'git clone {git_repo} repo && cd repo && '
-        f'git checkout {git_sha} && cd ./{git_subdir}'
-    )
-
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
 
     start_job = batch.new_job(name='start Dataproc cluster')
@@ -60,7 +43,6 @@ def hail_dataproc_job(
     start_job.image(DRIVER_IMAGE)
     start_job.command(GCLOUD_AUTH)
     start_job.command(GCLOUD_PROJECT)
-    start_job.command(git_clone)
     start_job.command(
         f'hailctl dataproc start --region {REGION} --service-account='
         f'$(gcloud config list account --format "value(core.account)") '
@@ -78,7 +60,26 @@ def hail_dataproc_job(
     main_job.image(DRIVER_IMAGE)
     main_job.command(GCLOUD_AUTH)
     main_job.command(GCLOUD_PROJECT)
+
+    # Jobs clone the same repository, as Job input files can't refer to local files;
+    # they'd need to be on GCS.
+    git_repo = subprocess.check_output(
+        ['git', 'config', '--get', 'remote.origin.url'], encoding='UTF-8'
+    ).strip()
+    git_sha = subprocess.check_output(
+        ['git', 'rev-parse', 'HEAD'], encoding='UTF-8'
+    ).strip()
+    git_dir = subprocess.check_output(
+        ['git', 'rev-parse', '--show-toplevel'], encoding='UTF-8'
+    ).strip()
+    git_subdir = os.getcwd()[len(git_dir) + 1 :]
+    git_clone = (
+        f'git clone {git_repo} repo && cd repo && '
+        f'git checkout {git_sha} && cd ./{git_subdir}'
+    )
+
     main_job.command(git_clone)
+
     if pyfiles:
         subprocess.check_call(['mkdir', PYFILES_DIR])
         subprocess.check_call(['cp', '-r'] + pyfiles + [PYFILES_DIR])
