@@ -14,7 +14,7 @@ service_backend = hb.ServiceBackend(
     billing_project=os.getenv('HAIL_BILLING_PROJECT'), bucket=os.getenv('HAIL_BUCKET')
 )
 
-batch = hb.Batch(backend=service_backend)
+batch = hb.Batch(name='dataproc example', backend=service_backend)
 
 dataproc.hail_dataproc_job(
     batch, f'query.py --output={OUTPUT}', max_age='1h', packages=['click']

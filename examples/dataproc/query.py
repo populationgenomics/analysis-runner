@@ -20,8 +20,8 @@ def query(output):
     mt = hl.read_matrix_table(GNOMAD_HGDP_1KG_MT)
     mt = mt.head(100, n_cols=100)
 
-    mt = mt.sample_qc()
-    mt.write(f'{output}/sample_qc.mt')
+    mt_qc = hl.sample_qc(mt)
+    mt_qc.write(f'{output}/sample_qc.mt')
 
 
 if __name__ == '__main__':
