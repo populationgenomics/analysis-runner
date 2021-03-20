@@ -82,7 +82,7 @@ def hail_dataproc_job(
 
     if pyfiles:
         main_job.command(f'mkdir {PYFILES_DIR}')
-        main_job.command(f'cp -r {pyfiles} {PYFILES_DIR}')
+        main_job.command(f'cp -r {" ".join(pyfiles)} {PYFILES_DIR}')
         main_job.command(f'cd {PYFILES_DIR}')
         main_job.command(f'zip -r {PYFILES_ZIP} .')
         main_job.command(f'cd -')
