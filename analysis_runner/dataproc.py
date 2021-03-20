@@ -81,9 +81,11 @@ def hail_dataproc_job(
     main_job.command(f'cd ./{git_subdir}')
 
     if pyfiles:
-        os.mkdir(PYFILES_DIR)
-        subprocess.check_call(['cp', '-r'] + pyfiles + [PYFILES_DIR])
-        subprocess.check_call(['zip', '-r', PYFILES_ZIP, '.'], cwd=PYFILES_DIR)
+        main_job.command(f'mkdir {PYFILES_DIR}')
+        main_job.command(f'cp -r {pyfiles} {PYFILES_DIR}')
+        main_job.command(f'cd {PYFILES_DIR}')
+        main_job.command(f'zip -r {PYFILES_ZIP} .')
+        main_job.command(f'cd -')
 
     main_job.command(
         f'hailctl dataproc submit --region {REGION} '
