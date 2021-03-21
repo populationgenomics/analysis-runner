@@ -9,6 +9,8 @@ SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
 
 
 def get_output_of_command(command: List[str], description: str) -> str:
+    """subprocess.check_output wrapper that returns string output and raises detailed
+    exceptions on error."""
     try:
         return subprocess.check_output(command).decode().strip()
     # Handle and rethrow KeyboardInterrupt error to stop global exception catch
@@ -39,17 +41,20 @@ def get_relative_script_path_from_git_root(script_name: str) -> str:
 
 
 def get_git_default_remote() -> str:
+    """Returns the default git remote."""
     command = ['git', 'remote', 'get-url', 'origin']
-    return get_output_of_command(command, 'get default Git repository')
+    return get_output_of_command(command, 'get default Git remote')
 
 
 def get_git_repo_root() -> str:
+    """Returns the git repository directory root."""
     command = ['git', 'rev-parse', '--show-toplevel']
     repo_root = get_output_of_command(command, 'get Git repo directory')
     return repo_root
 
 
 def get_git_commit_ref_of_current_repository() -> str:
+    """Returns the commit SHA at the current HEAD."""
     command = ['git', 'rev-parse', 'HEAD']
     return get_output_of_command(command, 'get latest Git commit')
 
