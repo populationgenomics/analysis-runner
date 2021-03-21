@@ -3,7 +3,7 @@
 import uuid
 from typing import Optional, List
 import hailtop.batch as hb
-from .git import (
+from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_relative_script_path_from_git_root,

@@ -9,8 +9,8 @@ import click
 import requests
 import google.auth
 import google.auth.transport.requests
-from cli import _version
-from .git import (
+from analysis_runner import _version
+from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
