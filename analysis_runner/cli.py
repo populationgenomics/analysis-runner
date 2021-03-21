@@ -87,8 +87,7 @@ def main(
 
     if access_level == 'full':
         click.confirm(
-            'Please only request full access when absolutely necessary, as it '
-            'increases the risk of accidental data loss. Continue?',
+            'Full access increases the risk of accidental data loss. Continue?',
             abort=True,
         )
 
