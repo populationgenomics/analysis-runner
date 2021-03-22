@@ -87,9 +87,7 @@ async def index(request):
                 )
             )
 
-        extended_access = params['extendedAccess']
-        group_type = 'extended' if extended_access else 'restricted'
-        group_name = f'{dataset}-{group_type}-access@populationgenomics.org.au'
+        group_name = f'{dataset}-restricted-access@populationgenomics.org.au'
         if not cloud_identity.check_group_membership(email, group_name):
             raise web.HTTPForbidden(reason=f'{email} is not a member of {group_name}')
 
@@ -103,13 +101,12 @@ async def index(request):
                 )
             )
 
-        hail_bucket = f'cpg-{dataset}-hail'
-        hail_token = (
-            config[dataset]['extendedToken']
-            if extended_access
-            else config[dataset]['token']
-        )
+        access_level = params['accessLevel']
+        hail_token = config[dataset].get(f'{access_level}Token')
+        if not hail_token:
+            raise web.HTTPBadRequest(reason=f'Invalid access level "{access_level}"')
 
+        hail_bucket = f'cpg-{dataset}-hail'
         backend = hb.ServiceBackend(
             billing_project=dataset,
             bucket=hail_bucket,
@@ -146,9 +143,11 @@ async def index(request):
         # be escaped to avoid command injection.
         job.command(f'git clone https://github.com/{GITHUB_ORG}/{quote(repo)}.git')
         job.command(f'cd {quote(repo)}')
-        job.command('git checkout main')
-        # Check whether the given commit is in the main branch.
-        job.command(f'git merge-base --is-ancestor {quote(commit)} HEAD')
+        # Except for the "test" access level, we check whether commits have been
+        # reviewed by verifying that the given commit is in the main branch.
+        if access_level != 'test':
+            job.command('git checkout main')
+            job.command(f'git merge-base --is-ancestor {quote(commit)} HEAD')
         job.command(f'git checkout {quote(commit)}')
         # Make sure the file is in a subdirectory of the repository.
         job.command(f'[[ -f {quote(script_file)} ]]')
@@ -162,7 +161,7 @@ async def index(request):
             {
                 'dataset': dataset,
                 'user': email,
-                'extendedAccess': extended_access,
+                'accessLevel': access_level,
                 'repo': repo,
                 'commit': commit,
                 'script': ' '.join(script),

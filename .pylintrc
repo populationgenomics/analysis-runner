@@ -28,3 +28,5 @@ max-line-length=88
 max-locals=40
 # Maximum number of arguments for function / method
 max-args=10
+# Maximum number of branches per function
+max-branches=30

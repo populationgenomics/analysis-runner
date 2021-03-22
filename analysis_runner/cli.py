@@ -31,21 +31,21 @@ SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
 @click.option(
     '--dataset',
     required=True,
-    help='The dataset name, which determines which '
-    'analysis-runner server to send the request to',
+    help='The dataset name, which determines which analysis-runner server to send the '
+    ' request to.',
 )
 @click.option(
     '--output-dir',
     '-o',
     required=True,
-    help='The output directory of the run, MUST start with gs://',
+    help='The output directory of the run, MUST start with "gs://".',
 )
 @click.option(
     '--repository',
     '--repo',
     help='The URI of the repository to run, must be approved by the appropriate server.'
     ' Default behavior is to find the repository of the current working'
-    ' directory with `git remote get-url origin`',
+    ' directory with `git remote get-url origin`.',
 )
 @click.option(
     '--commit',
@@ -56,11 +56,13 @@ SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
 @click.option(
     '--description',
     required=True,
-    help='Description of job, otherwise defaults to: "$USER FROM LOCAL: $REPO@$COMMIT"',
+    help='Human-readable description of the job, logged together with the output data.',
 )
 @click.option(
-    '--extended-access/--no-extended-access',
-    help='Whether to use the extended-access permissions group.',
+    '--access-level',
+    type=click.Choice(['test', 'standard', 'full']),
+    default='test',
+    help='Which permissions to grant when running the job.',
 )
 @click.argument('script', nargs=-1)
 def main(
@@ -68,9 +70,9 @@ def main(
     output_dir,
     script,
     description,
+    access_level,
     commit=None,
     repository=None,
-    extended_access=False,
 ):
     """
     Main function that drives the CLI.
@@ -81,6 +83,12 @@ def main(
         raise Exception(
             "You must supply the '--commit <SHA>' parameter "
             "when specifying the '--repository'"
+        )
+
+    if access_level == 'full':
+        click.confirm(
+            'Full access increases the risk of accidental data loss. Continue?',
+            abort=True,
         )
 
     _repository = repository
@@ -110,7 +118,7 @@ def main(
             'dataset': dataset,
             'output': output_dir,
             'repo': _repository,
-            'extendedAccess': extended_access,
+            'accessLevel': access_level,
             'commit': _commit_ref,
             'script': _script,
             'description': description,

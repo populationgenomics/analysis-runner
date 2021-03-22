@@ -1,9 +1,12 @@
 # Analysis runner
 
+Please read the [relevant section](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner) in the storage policies first.
+
 This tool helps to [make analysis results reproducible](https://github.com/populationgenomics/team-docs/blob/main/reproducible_analyses.md),
 by automating the following aspects:
 
-- Only run code that has been committed to a repository.
+- Allow quick iteration using an environment that resembles production.
+- Only allow access to production datasets through code that has been reviewed.
 - Link the output data with the exact program invocation of how the data has
   been generated.
 
@@ -16,8 +19,8 @@ Furthermore, all invocations are logged together with the output data, as well a
 When using the analysis-runner, the batches are not run under your standard
 Hail Batch service account user. Instead, a separate Hail Batch account is
 used to run the batch on your behalf. There's a dedicated Batch service
-account for each dataset (e.g. "tob-wgs"), which helps with bucket permission
-management and billing budgets.
+account for each dataset (e.g. "tob-wgs") and access level, which helps with bucket
+permission management and billing budgets.
 
 ## CLI
 
@@ -28,39 +31,11 @@ repository, commit, and command to run. To install it, use conda:
 conda install -c cpg -c conda-forge analysis-runner
 ```
 
-Usage:
+Run `analysis-runner --help` to see usage information.
 
-```bash
-Usage: analysis-runner [OPTIONS] [SCRIPT]...
-Options:
-  --dataset TEXT             The dataset name, which determines which
-                             analysis-runner server to send the request to
-                             [required]
-
-  -o, --output-dir TEXT      The output directory of the run, MUST start with
-                             gs://  [required]
-
-  --repository, --repo TEXT  The URI of the repository to run, must be
-                             approved by the appropriate server. Default
-                             behavior is to find the repository of the current
-                             working directory with `git remote get-url
-                             origin`
-
-  --commit TEXT              The commit HASH or TAG of a commit to run, the
-                             default behavior is to use the current commit of
-                             the local repository, however the literal value
-                             "HEAD" is not allowed.
-
-  --description TEXT         Description of job, otherwise defaults to: "$USER
-                             FROM LOCAL: $REPO@$COMMIT"  [required]
-
-  --version                  Show the version and exit.
-  --help                     Show this message and exit.
-```
-
-If you're in the directory of the project you want to run, you can omit
-the `--commit` and `--repository` parameters, which will use your current REMOTE
-and commit HEAD.
+If you're in the directory of the project you want to run, you can omit the
+`--commit` and `--repository` parameters, which will use your current git remote and
+commit HEAD.
 
 For example:
 
@@ -136,7 +111,7 @@ git push --set-upstream origin add-new-version
 open "https://github.com/populationgenomics/analysis-runner/pull/new/add-new-version"
 ```
 
-It's important the pull request name start with "Bump version:" (which should happen by default).
-Once this is merged into `main`, a GitHub action workflow will build a new conda package, that
-will be uploaded to the conda [CPG channel](https://anaconda.org/cpg/),
-and become available to install with `conda install -c cpg -c conda-forge ...`
+It's important the pull request name start with "Bump version:" (which should happen
+by default). Once this is merged into `main`, a GitHub action workflow will build a
+new conda package, that will be uploaded to the conda [CPG
+channel](https://anaconda.org/cpg/), and become available to install with `conda install -c cpg -c conda-forge ...`
