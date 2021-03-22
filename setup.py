@@ -3,7 +3,7 @@
 """
 Setup script for the Python package
 - Used for development setup with `pip install --editable .`
-- Parsed by conda-build to extact version and metainfo
+- Parsed by conda-build to extract version and metainfo
 """
 
 import setuptools
@@ -19,10 +19,10 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url=f'https://github.com/populationgenomics/{PKG}',
     license='MIT',
-    packages=['cli'],
+    packages=['analysis_runner'],
     include_package_data=True,
     zip_safe=False,
-    entry_points={'console_scripts': ['analysis-runner=cli.cli:main']},
+    entry_points={'console_scripts': ['analysis-runner=analysis_runner.cli:main']},
     keywords='bioinformatics',
     classifiers=[
         'Environment :: Console',

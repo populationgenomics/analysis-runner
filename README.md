@@ -111,7 +111,7 @@ pip install --editable .
 1. [Copy the Hail tokens](tokens) to the Secret Manager.
 1. Deploy the [server](server) by invoking the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) manually, specifying the Hail package version in conda.
 1. Deploy the [Airtable](airtable) publisher.
-1. Publish the [CLI tool](cli) to conda.
+1. Publish the [CLI tool and library](analysis_runner) to conda.
 
 Note that the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) gets invoked whenever a new Hail package is published to conda. You can test this manually as follows:
 
@@ -123,7 +123,7 @@ curl \
   -d '{"ref": "main", "inputs": {"hail_version": "0.2.63.deveb7251e548b1"}}'
 ```
 
-CLI tool is shipped as a conda package. To build a new version,
+The CLI tool is shipped as a conda package. To build a new version,
 we use [bump2version](https://pypi.org/project/bump2version/).
 For example, to increment the patch section of the version tag 1.0.0 and make
 it 1.0.1, run:

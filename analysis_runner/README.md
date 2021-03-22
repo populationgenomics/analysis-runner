@@ -1,8 +1,6 @@
-# Analysis Runner CLI
+# Analysis Runner CLI and library
 
-CLI for interacting with the REMOTE analysis-runner (externally hosted `server/main.py` script).
-
-Motivation: [Source](https://github.com/populationgenomics/analysis-runner/issues/8)
+## CLI
 
 There are two ways to run the analysis-runner CLI: with the `--repository` parameter, and without:
 
@@ -31,27 +29,22 @@ analysis-runner \
     path/to/script/main.py and some arguments
 ```
 
-## CLI Overview
+## Library
 
-Process:
+This package also contains convenience modules for writing scripts that will be
+executed through the analysis-runner.
 
-1. Fill in the mising info (repository, commit hash)
-1. Get the gcloud auth token
-   - `gcloud auth print-identity-token`
-   - `google.auth.default()[0].id_token` (after credentials refresh)
-1. Form a POST request with params:
-   - dataset
-   - output
-   - repo
-   - extendedAccess
-   - commit
-   - script
-   - description
-1. Collect and print response
+### [Dataproc](dataproc.py)
 
-## Requirements
+Provides a wrapper for starting a Dataproc cluster from within Hail Batch and
+submitting a Query script to it ([example](../examples/dataproc)). This is
+particularly useful as an intermediate solution before all Hail Query features are
+supported by the `ServiceBackend`.
 
-These packages are pinned to specific versions in the `conda/analysis-runner/meta.yaml` config.
+**Note:** for this to work, the Hail Batch service accounts will need the IAM
+permissions below, which are not set by default. Reach out in the `#team-software`
+channel if you need this to be set up for your project.
 
-- `click` for the command line
-- `google-auth` to request the identity token
+- _Dataproc Administrator_ (at the project level)
+- _Dataproc Worker_ (at the project level)
+- _Service Account User_ (on the account itself...!)
