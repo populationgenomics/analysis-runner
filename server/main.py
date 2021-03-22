@@ -87,7 +87,7 @@ async def index(request):
                 )
             )
 
-        group_name = f'{dataset}-restricted-access@populationgenomics.org.au'
+        group_name = f'{dataset}-access@populationgenomics.org.au'
         if not cloud_identity.check_group_membership(email, group_name):
             raise web.HTTPForbidden(reason=f'{email} is not a member of {group_name}')
 
