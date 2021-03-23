@@ -9,5 +9,3 @@ Therefore, the main dependency that's installed is Hail, which comes with the
 Batch API bindings.
 
 The driver image gets rebuilt and pushed automatically as part of the [Hail update workflow](../.github/workflows/hail_update.yaml).
-
-
