@@ -17,6 +17,11 @@ from analysis_runner.git import (
     get_relative_script_path_from_git_root,
 )
 
+logger = logging.getLogger('analysis_runner')
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
+
+
 BRANCH = 'main'
 
 SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
@@ -110,7 +115,7 @@ def main(
 
     _token = _get_google_auth_token()
 
-    logging.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
+    logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 
     response = requests.post(
         SERVER_ENDPOINT,
@@ -127,9 +132,9 @@ def main(
     )
     try:
         response.raise_for_status()
-        logging.info(f'Request submitted successfully: {response.text}')
+        logger.info(f'Request submitted successfully: {response.text}')
     except requests.HTTPError as e:
-        logging.critical(
+        logger.critical(
             f'Request failed with status {response.status_code}: {str(e)}\n'
             f'Full response: {response.text}',
         )
