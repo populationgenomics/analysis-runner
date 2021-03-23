@@ -14,7 +14,9 @@ Then run:
 ```bash
 gcloud config set project analysis-runner
 
+git stash
 IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/driver
 COMMIT_HASH=$(git rev-parse --short=12 HEAD)
 gcloud builds submit --timeout 1h --tag $IMAGE:$COMMIT_HASH
+git stash pop
 ```
