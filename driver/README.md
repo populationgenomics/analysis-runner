@@ -8,15 +8,6 @@ defines the Hail Batch pipeline.
 Therefore, the main dependency that's installed is Hail, which comes with the
 Batch API bindings.
 
-To build this image, make sure that you don't have any uncommitted changes.
-Then run:
+The driver image gets rebuilt and pushed automatically as part of the [Hail update workflow](../.github/workflows/hail_update.yaml).
 
-```bash
-gcloud config set project analysis-runner
 
-git stash
-IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/driver
-COMMIT_HASH=$(git rev-parse --short=12 HEAD)
-gcloud builds submit --timeout 1h --tag $IMAGE:$COMMIT_HASH
-git stash pop
-```
