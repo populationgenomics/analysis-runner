@@ -33,6 +33,12 @@ conda install -c cpg -c conda-forge analysis-runner
 
 Run `analysis-runner --help` to see usage information.
 
+Make sure that you're logged into GCP:
+
+```bash
+gcloud auth application-default login
+```
+
 If you're in the directory of the project you want to run, you can omit the
 `--commit` and `--repository` parameters, which will use your current git remote and
 commit HEAD.
