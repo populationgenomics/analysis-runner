@@ -4,8 +4,7 @@
 
 There are two ways to run the analysis-runner CLI:
 
-- **Omitting** the `--repository` parameter: the repository containing the local
-  directory that you're in is used. The repository name will be retrieved from
+- **Omitting** the `--repository` parameter: uses the repository of the current directory. The repository name will be retrieved from
   the git remote URL, while the commit of HEAD is used (if the `--commit`
   parameter is omitted). The script path is made relative to the root of the git
   repository. For example:
@@ -20,8 +19,7 @@ analysis-runner \
     main.py and some arguments # becomes path/to/script/main.py and some arguments
 ```
 
-- **Providing** the `--repository` parameter: making the script path relative to
-  the git repository is disabled, and you must provide a commit hash too. For
+- **Providing** the `--repository` parameter: you must specify the complete relative path from the git root directory (determining this relative to the git repository is disabled), and provide a commit hash too. For
   example:
 
 ```bash
