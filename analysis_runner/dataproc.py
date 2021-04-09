@@ -34,6 +34,7 @@ def hail_dataproc_job(
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = False,
     depends_on: Optional[List[hb.batch.job.Job]] = None,
+    job_name: Optional[str] = None
 ) -> hb.batch.job.Job:
     """Returns a Batch job which starts a Dataproc cluster, submits a Hail
     Query script to it, and stops the cluster. See the `hailctl` tool for
@@ -42,7 +43,8 @@ def hail_dataproc_job(
 
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
 
-    start_job = batch.new_job(name='start Dataproc cluster')
+    job_name_prefix = f'{job_name}: ' if job_name else ''
+    start_job = batch.new_job(name=f'{job_name_prefix}start Dataproc cluster')
     if depends_on:
         for dependency in depends_on:
             start_job.depends_on(dependency)
@@ -61,7 +63,7 @@ def hail_dataproc_job(
         + f'{cluster_name}'
     )
 
-    main_job = batch.new_job(name='main')
+    main_job = batch.new_job(name=f'{job_name_prefix}main')
     main_job.depends_on(start_job)
     main_job.image(DRIVER_IMAGE)
     main_job.command(GCLOUD_AUTH)
@@ -91,7 +93,7 @@ def hail_dataproc_job(
         + f'{cluster_name} {script} '
     )
 
-    stop_job = batch.new_job(name='stop Dataproc cluster')
+    stop_job = batch.new_job(name=f'{job_name_prefix}stop Dataproc cluster')
     stop_job.depends_on(main_job)
     stop_job.always_run()  # Always clean up.
     stop_job.image(DRIVER_IMAGE)
