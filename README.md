@@ -1,7 +1,5 @@
 # Analysis runner
 
-Please read the [relevant section](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner) in the storage policies first.
-
 This tool helps to [make analysis results reproducible](https://github.com/populationgenomics/team-docs/blob/main/reproducible_analyses.md),
 by automating the following aspects:
 
@@ -10,25 +8,29 @@ by automating the following aspects:
 - Link the output data with the exact program invocation of how the data has
   been generated.
 
-One of our main workflow pipeline systems at the CPG is Hail Batch. By
-default, its pipelines are defined by running a Python program
+One of our main workflow pipeline systems at the CPG is
+[Hail Batch](https://hail.is/docs/batch/getting_started.html). By default, its
+pipelines are defined by running a Python program
 _locally_. This tool instead lets you run the "driver" on Hail Batch itself.
 
 Furthermore, all invocations are logged together with the output data, as well as [Airtable](https://airtable.com/tblx9NarwtJwGqTPA/viwIomAHV49Stq5zr).
 
-When using the analysis-runner, the batches are not run under your standard
-Hail Batch service account user. Instead, a separate Hail Batch account is
-used to run the batch on your behalf. There's a dedicated Batch service
-account for each dataset (e.g. "tob-wgs") and access level, which helps with bucket
-permission management and billing budgets.
+When using the analysis-runner, the batch jobs are not run under your standard
+Hail Batch [service account user](https://hail.is/docs/batch/service.html#sign-up)
+(`<USERNAME>-trial`). Instead, a separate Hail Batch account is
+used to run the batch jobs on your behalf. There's a dedicated Batch service
+account for each dataset (e.g. "tob-wgs", "fewgenomes") and access level
+("test", "standard", or "full", as documented in the team docs
+[storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner)),
+which helps with bucket permission management and billing budgets.
 
 ## CLI
 
 CLI helps request the analysis-runner to start pipelines based on a GitHub
-repository, commit, and command to run. To install it, use conda:
+repository, commit, and command to run. To install it, use mamba:
 
 ```bash
-conda install -c cpg -c conda-forge analysis-runner
+mamba install -c cpg -c conda-forge analysis-runner
 ```
 
 Run `analysis-runner --help` to see usage information.
@@ -53,7 +55,7 @@ analysis-runner \
     script_to_run.py with arguments
 ```
 
-If you provide a `--repository`, you MUST supply a `--commit <SHA>`, eg:
+If you provide a `--repository`, you MUST supply a `--commit <SHA>`, e.g.:
 
 ```bash
 analysis-runner \
@@ -73,11 +75,11 @@ To bring up a stack corresponding to a dataset as described in the
 [storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies),
 see the [stack](stack) directory.
 
-To set up a development environment for the analysis runner using conda, run
+To set up a development environment for the analysis runner using mamba, run
 the following:
 
 ```bash
-conda env create --file environment-dev.yml
+mamba env create --file environment-dev.yml
 
 conda activate analysis-runner
 
@@ -110,7 +112,7 @@ For example, to increment the patch section of the version tag 1.0.0 and make
 it 1.0.1, run:
 
 ```bash
-git checkout -b bump-version-for-release
+git checkout -b add-new-version
 bump2version patch
 git push --set-upstream origin add-new-version
 # Open pull request
@@ -119,5 +121,5 @@ open "https://github.com/populationgenomics/analysis-runner/pull/new/add-new-ver
 
 It's important the pull request name start with "Bump version:" (which should happen
 by default). Once this is merged into `main`, a GitHub action workflow will build a
-new conda package, that will be uploaded to the conda [CPG
-channel](https://anaconda.org/cpg/), and become available to install with `conda install -c cpg -c conda-forge ...`
+new conda package that will be uploaded to the conda [CPG
+channel](https://anaconda.org/cpg/), and become available to install with `mamba install -c cpg -c conda-forge ...`

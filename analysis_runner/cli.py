@@ -37,7 +37,7 @@ SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
     '--dataset',
     required=True,
     help='The dataset name, which determines which analysis-runner server to send the '
-    ' request to.',
+    'request to.',
 )
 @click.option(
     '--output-dir',
@@ -48,9 +48,9 @@ SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
 @click.option(
     '--repository',
     '--repo',
-    help='The URI of the repository to run, must be approved by the appropriate server.'
-    ' Default behavior is to find the repository of the current working'
-    ' directory with `git remote get-url origin`.',
+    help='The URI of the repository to run, must be approved by the appropriate '
+    'server. Default behavior is to find the repository of the current working '
+    'directory with `git remote get-url origin`.',
 )
 @click.option(
     '--commit',
