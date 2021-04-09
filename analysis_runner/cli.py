@@ -99,6 +99,8 @@ def main(
     _repository = repository
     _commit_ref = commit
     _script = list(script)
+    if ' ' in _script[0]:
+        _script = _script[0].split() + _script[1:]
 
     # false-y value catches empty list / tuple as well
     if not _script:
