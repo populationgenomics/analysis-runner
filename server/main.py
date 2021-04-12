@@ -1,5 +1,6 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
 
+import datetime
 import json
 import logging
 import os
@@ -157,8 +158,10 @@ async def index(request):
 
         # This metadata dictionary gets stored at the output_dir location.
         hail_version = await _get_hail_version()
+        timestamp = datetime.datetime.now().astimezone().isoformat()
         metadata = json.dumps(
             {
+                'timestamp': timestamp,
                 'dataset': dataset,
                 'user': email,
                 'accessLevel': access_level,
