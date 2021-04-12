@@ -34,7 +34,7 @@ def hail_dataproc_job(
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = False,
     depends_on: Optional[List[hb.batch.job.Job]] = None,
-    job_name: Optional[str] = None
+    job_name: Optional[str] = None,
 ) -> hb.batch.job.Job:
     """Returns a Batch job which starts a Dataproc cluster, submits a Hail
     Query script to it, and stops the cluster. See the `hailctl` tool for
