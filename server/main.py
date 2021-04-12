@@ -175,11 +175,18 @@ async def index(request):
         # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
         publisher.publish(PUBSUB_TOPIC, metadata.encode('utf-8')).result()
 
-        job.command(f'echo {quote(metadata)} > {METADATA_FILE}')
         job.command(
             f'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
         )
-        job.command(f'gsutil cp {METADATA_FILE} {quote(output_dir)}/metadata.json')
+
+        # Append metadata information, in case the same output directory gets used
+        # multiple times.
+        job.command(f'echo {quote(metadata)} > {METADATA_FILE}')
+        job.command(
+            f'gsutil cat {quote(output_dir)}/metadata.json | '
+            f'jq ".[]" - {METADATA_FILE} | jq -s | '
+            f'gsutil cp - {quote(output_dir)}/metadata.json'
+        )
 
         # Finally, run the script.
         escaped_args = ' '.join(quote(s) for s in script_args if s)
