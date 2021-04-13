@@ -29,7 +29,7 @@ SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
 
 def main_from_args(args=None):
     """
-    Parse arguments (default: sys.argv) and run main
+    Parse arguments (if args is None, argparse automatically uses `sys.argv`) and run main
     """
     args = parse_args(args=args)
     return main(**vars(args))
@@ -134,7 +134,7 @@ def _get_google_auth_token() -> str:
 
 def parse_args(args=None):
     """
-    Parse args using argparse (
+    Parse args using argparse (if args is None, argparse automatically uses `sys.argv`) 
     """
     parser = argparse.ArgumentParser()
     # https://docs.python.org/dev/library/argparse.html#action
