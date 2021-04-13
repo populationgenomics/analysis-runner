@@ -134,7 +134,8 @@ def _get_google_auth_token() -> str:
 
 def parse_args(args=None):
     """
-    Parse args using argparse (if args is None, argparse automatically uses `sys.argv`) 
+    Parse args using argparse
+    (if args is None, argparse automatically uses `sys.argv`)
     """
     parser = argparse.ArgumentParser()
     # https://docs.python.org/dev/library/argparse.html#action
