@@ -33,7 +33,7 @@ def get_relative_script_path_from_git_root(script_name: str) -> str:
     to the current directory. For example, the relative path to this
     script directly is:
 
-        cli/cli.py
+        analysis_runner/git.py
     """
     root = get_git_repo_root()
     base = os.path.relpath(os.getcwd(), root)
@@ -41,13 +41,17 @@ def get_relative_script_path_from_git_root(script_name: str) -> str:
 
 
 def get_git_default_remote() -> str:
-    """Returns the default git remote."""
+    """Returns the default git remote,
+    e.g. https://github.com/populationgenomics/analysis-runner
+    """
     command = ['git', 'remote', 'get-url', 'origin']
     return get_output_of_command(command, 'get default Git remote')
 
 
 def get_git_repo_root() -> str:
-    """Returns the git repository directory root."""
+    """Returns the git repository directory root,
+    e.g. /Users/foo/repos/analysis-runner
+    """
     command = ['git', 'rev-parse', '--show-toplevel']
     repo_root = get_output_of_command(command, 'get Git repo directory')
     return repo_root
@@ -61,7 +65,8 @@ def get_git_commit_ref_of_current_repository() -> str:
 
 def get_repo_name_from_remote(remote_name: str) -> str:
     """
-    Turn the remote name received from 'git remote get-url origin' into the
+    Get the name of a GitHub repo from a supported organization
+    based on its remote URL e.g.:
 
     >>> get_repo_name_from_remote(\
         'git@github.com:populationgenomics/analysis-runner.git'\
