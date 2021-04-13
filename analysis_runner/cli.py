@@ -4,8 +4,8 @@
 CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
+import argparse
 import logging
-import click
 import requests
 import google.auth
 import google.auth.transport.requests
@@ -27,49 +27,14 @@ BRANCH = 'main'
 SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
 
 
-@click.version_option(_version.__version__)
-@click.command(
-    help='CLI for the analysis runner - a CPG service for running analysis from '
-    'some GitHub repository (at a specific commit). The parameters are used to form a '
-    'POST request, sent to a server based on the --dataset parameter you provide.'
-)
-@click.option(
-    '--dataset',
-    required=True,
-    help='The dataset name, which determines which analysis-runner server to send the '
-    ' request to.',
-)
-@click.option(
-    '--output-dir',
-    '-o',
-    required=True,
-    help='The output directory of the run, MUST start with "gs://".',
-)
-@click.option(
-    '--repository',
-    '--repo',
-    help='The URI of the repository to run, must be approved by the appropriate server.'
-    ' Default behavior is to find the repository of the current working'
-    ' directory with `git remote get-url origin`.',
-)
-@click.option(
-    '--commit',
-    help='The commit HASH or TAG of a commit to run, the default behavior is to '
-    'use the current commit of the local repository, however the literal value '
-    '"HEAD" is not allowed.',
-)
-@click.option(
-    '--description',
-    required=True,
-    help='Human-readable description of the job, logged together with the output data.',
-)
-@click.option(
-    '--access-level',
-    type=click.Choice(['test', 'standard', 'full']),
-    default='test',
-    help='Which permissions to grant when running the job.',
-)
-@click.argument('script', nargs=-1)
+def main_from_args(args=None):
+    """
+    Parse arguments (default: sys.argv) and run main
+    """
+    args = parse_args(args=args)
+    return main(**vars(args))
+
+
 def main(
     dataset,
     output_dir,
@@ -81,7 +46,6 @@ def main(
 ):
     """
     Main function that drives the CLI.
-    The parameters are provided automatically by @click.
     """
 
     if repository is not None and commit is None:
@@ -91,10 +55,10 @@ def main(
         )
 
     if access_level == 'full':
-        click.confirm(
+        if not confirm_choice(
             'Full access increases the risk of accidental data loss. Continue?',
-            abort=True,
-        )
+        ):
+            raise SystemExit()
 
     _repository = repository
     _commit_ref = commit
@@ -142,6 +106,21 @@ def main(
         )
 
 
+def confirm_choice(choice: str):
+    """
+    Confirm 'choice' with user input: y/n
+    """
+    choice += ' (y/n): '
+    while True:
+        confirmation = str(input(choice)).lower()
+        if confirmation in ('yes', 'y'):
+            return True
+        if confirmation in ('no', 'n'):
+            return False
+
+        print('Unrecognised option, please try again.')
+
+
 def _get_google_auth_token() -> str:
     # https://stackoverflow.com/a/55804230
     # command = ['gcloud', 'auth', 'print-identity-token']
@@ -153,7 +132,64 @@ def _get_google_auth_token() -> str:
     return creds.id_token
 
 
+def parse_args(args=None):
+    """
+    Parse args using argparse (
+    """
+    parser = argparse.ArgumentParser()
+    # https://docs.python.org/dev/library/argparse.html#action
+    parser.add_argument(
+        '-v',
+        '--version',
+        action='version',
+        version=f'analysis-runner v{_version.__version__}',
+    )
+    parser.add_argument(
+        '--dataset',
+        required=True,
+        type=str,
+        help='The dataset name, which determines which analysis-runner '
+        'server to send the request to.',
+    )
+    parser.add_argument(
+        '-o',
+        '--output-dir',
+        required=True,
+        type=str,
+        help='The output directory of the run, MUST start with "gs://".',
+    )
+    parser.add_argument(
+        '--repository',
+        '--repo',
+        help='The URI of the repository to run, must be approved by the appropriate '
+        'server. Default behavior is to find the repository of the current working '
+        'directory with `git remote get-url origin`.',
+    )
+    parser.add_argument(
+        '--commit',
+        help='The commit HASH or TAG of a commit to run, the default behavior is to '
+        'use the current commit of the local repository, however the literal value '
+        '"HEAD" is not allowed.',
+    )
+
+    parser.add_argument(
+        '--description',
+        required=True,
+        help='Human-readable description of the job, '
+        'logged together with the output data.',
+    )
+
+    parser.add_argument(
+        '--access-level',
+        choices=(['test', 'standard', 'full']),
+        default='test',
+        help='Which permissions to grant when running the job.',
+    )
+
+    parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
+
+    return parser.parse_args(args)
+
+
 if __name__ == '__main__':
-    # Disable pylint because click decorates the function in a specific way
-    # pylint: disable=no-value-for-parameter
-    main()
+    main_from_args()
