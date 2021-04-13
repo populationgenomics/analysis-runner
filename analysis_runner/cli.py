@@ -29,7 +29,7 @@ SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
 
 def main_from_args(args=None):
     """
-    Parse arguments (if args is None, argparse automatically uses `sys.argv`) and run main
+    Parse args (if args is None, argparse automatically uses sys.argv) and run main
     """
     args = parse_args(args=args)
     return main(**vars(args))
