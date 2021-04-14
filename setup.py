@@ -22,7 +22,9 @@ setuptools.setup(
     packages=['analysis_runner'],
     include_package_data=True,
     zip_safe=False,
-    entry_points={'console_scripts': ['analysis-runner=analysis_runner.cli:main']},
+    entry_points={
+        'console_scripts': ['analysis-runner=analysis_runner.cli:main_from_args']
+    },
     keywords='bioinformatics',
     classifiers=[
         'Environment :: Console',
