@@ -17,11 +17,23 @@ from hailtop.config import get_deploy_config
 import cloud_identity
 
 GITHUB_ORG = 'populationgenomics'
-METADATA_FILE = '/tmp/metadata.json'
+METADATA_PREFIX = '/tmp/metadata'
 PUBSUB_TOPIC = 'projects/analysis-runner/topics/submissions'
 
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
+
+COMBINE_METADATA = """
+import json
+import sys
+
+def load(filename):
+    text = open(filename).read().strip()
+    val = json.loads(text) if len(text) else []
+    return val if type(val) is list else [val]
+
+print(json.dumps(load(sys.argv[1]) + load(sys.argv[2])))
+"""
 
 routes = web.RouteTableDef()
 
@@ -184,11 +196,17 @@ async def index(request):
 
         # Append metadata information, in case the same output directory gets used
         # multiple times.
-        job.command(f'echo {quote(metadata)} > {METADATA_FILE}')
         job.command(
-            f'gsutil cat {quote(output_dir)}/metadata.json | '
-            f'jq ".[]" - {METADATA_FILE} | jq -s | '
-            f'gsutil cp - {quote(output_dir)}/metadata.json'
+            f'gsutil cat {quote(output_dir)}/metadata.json > {METADATA_PREFIX}_old.json'
+        )
+        job.command(f'echo {quote(metadata)} > {METADATA_PREFIX}_new.json')
+        job.command(f'echo "{COMBINE_METADATA}" > {METADATA_PREFIX}_combiner.py')
+        job.command(
+            f'python3 {METADATA_PREFIX}_combiner.py {METADATA_PREFIX}_old.json '
+            f'{METADATA_PREFIX}_new.json > {METADATA_PREFIX}.json'
+        )
+        job.command(
+            f'gsutil cp {METADATA_PREFIX}.json {quote(output_dir)}/metadata.json'
         )
 
         # Finally, run the script.
