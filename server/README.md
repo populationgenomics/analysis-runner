@@ -10,24 +10,7 @@ Each dataset / [storage
 stack](https://github.com/populationgenomics/team-docs/tree/main/storage_policies)
 has its own permissions groups, which are checked through a single analysis-runner instance.
 
-To build a new Docker image for the server, run:
-
-```bash
-gcloud config set project analysis-runner
-
-IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/server
-COMMIT_HASH=$(git rev-parse --short=12 HEAD)
-echo $COMMIT_HASH
-gcloud builds submit --timeout 1h --tag $IMAGE:$COMMIT_HASH
-```
-
-Deployment happens continuously using the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml). However, if you ever need to deploy manually, run:
-
-```bash
-gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated \
-    --service-account analysis-runner-server@analysis-runner.iam.gserviceaccount.com \
-    --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $IMAGE:$COMMIT_HASH
-```
+Deployment happens continuously using the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml).
 
 Hail service account [tokens](../tokens) need to be copied to a Secret Manager secret
 separately, after the stacks have been set up.

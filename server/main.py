@@ -197,7 +197,8 @@ async def index(request):
         # Append metadata information, in case the same output directory gets used
         # multiple times.
         job.command(
-            f'gsutil cat {quote(output_dir)}/metadata.json > {METADATA_PREFIX}_old.json'
+            f'gsutil cp {quote(output_dir)}/metadata.json {METADATA_PREFIX}_old.json '
+            f'|| touch {METADATA_PREFIX}_old.json'
         )
         job.command(f'echo {quote(metadata)} > {METADATA_PREFIX}_new.json')
         job.command(f'echo "{COMBINE_METADATA}" > {METADATA_PREFIX}_combiner.py')
