@@ -75,10 +75,9 @@ def hail_dataproc_job(
     git_dir = get_relative_script_path_from_git_root('')
     repo_name = get_repo_name_from_remote(git_remote)
 
-    main_job.command(f'git clone {git_remote} {repo_name}')
+    main_job.command(f'git clone --recurse-submodules {git_remote} {repo_name}')
     main_job.command(f'cd {repo_name}')
     main_job.command(f'git checkout {git_sha}')
-    main_job.command(f'git submodule init')
     main_job.command(f'git submodule update')
     main_job.command(f'cd ./{git_dir}')
 
