@@ -78,6 +78,8 @@ def hail_dataproc_job(
     main_job.command(f'git clone {git_remote} {repo_name}')
     main_job.command(f'cd {repo_name}')
     main_job.command(f'git checkout {git_sha}')
+    main_job.command(f'git submodule init')
+    main_job.command(f'git submodule update')
     main_job.command(f'cd ./{git_dir}')
 
     if pyfiles:
