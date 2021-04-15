@@ -10,9 +10,10 @@
 #    C0330: Wrong hanging indentation before block (add 4 spaces)
 #    C0326: Bad whitespace
 # 5. fixme (left 'TODO' lines)
+# 6. line-too-long
 
 disable=f-string-without-interpolation,inherit-non-class,too-few-public-methods,C0330,
-        C0326,fixme,logging-fstring-interpolation
+        C0326,fixme,logging-fstring-interpolation,line-too-long
 
 # Overriding variable name patterns to allow short 1- or 2-letter variables
 attr-rgx=[a-z_][a-z0-9_]{0,30}$
