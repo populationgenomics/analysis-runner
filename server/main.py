@@ -154,7 +154,7 @@ async def index(request):
         # Note: for private GitHub repos we'd need to use a token to clone.
         # Any job commands here are evaluated in a bash shell, so user arguments should
         # be escaped to avoid command injection.
-        job.command(f'git clone https://github.com/{GITHUB_ORG}/{quote(repo)}.git')
+        job.command(f'git clone --recurse-submodules https://github.com/{GITHUB_ORG}/{quote(repo)}.git')
         job.command(f'cd {quote(repo)}')
         # Except for the "test" access level, we check whether commits have been
         # reviewed by verifying that the given commit is in the main branch.
@@ -162,7 +162,6 @@ async def index(request):
             job.command('git checkout main')
             job.command(f'git merge-base --is-ancestor {quote(commit)} HEAD')
         job.command(f'git checkout {quote(commit)}')
-        job.command(f'git submodule init')
         job.command(f'git submodule update')
         # Make sure the file is in a subdirectory of the repository.
         job.command(f'[[ -f {quote(script_file)} ]]')
