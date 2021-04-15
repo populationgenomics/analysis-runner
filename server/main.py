@@ -162,6 +162,8 @@ async def index(request):
             job.command('git checkout main')
             job.command(f'git merge-base --is-ancestor {quote(commit)} HEAD')
         job.command(f'git checkout {quote(commit)}')
+        job.command(f'git submodule init')
+        job.command(f'git submodule update')
         # Make sure the file is in a subdirectory of the repository.
         job.command(f'[[ -f {quote(script_file)} ]]')
         job.command(f'[[ $(realpath {quote(script_file)}) == $PWD* ]]')
