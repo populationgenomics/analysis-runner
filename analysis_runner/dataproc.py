@@ -15,7 +15,7 @@ DATAPROC_IMAGE = (
 )
 GCLOUD_AUTH = 'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
 GCLOUD_PROJECT = 'gcloud config set project hail-295901'
-DATAPROC_REGION = f'gcloud config set dataproc/region australia-southeast1'
+DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
 
