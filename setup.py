@@ -13,7 +13,7 @@ PKG = 'analysis-runner'
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='1.5.0',
+    version='1.5.1',
     description='Analysis runner to help make analysis results reproducible',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
