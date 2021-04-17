@@ -51,13 +51,13 @@ def hail_dataproc_job(
     start_job.command(GCLOUD_AUTH)
     start_job.command(GCLOUD_PROJECT)
     start_job.command(
-        f'hailctl dataproc start --region {REGION} --service-account='
+        f'hailctl dataproc start --region={REGION} --service-account='
         f'$(gcloud config list account --format "value(core.account)") '
-        f'--max-age {max_age} --num-workers {num_workers} '
-        f'--num-secondary-workers {num_secondary_workers} '
-        + (f'--packages {",".join(packages)} ' if packages else '')
-        + (f'--init {",".join(init)} ' if init else '')
-        + (f'--vep {vep}' if vep else '')
+        f'--max-age={max_age} --num-workers={num_workers} '
+        f'--num-secondary-workers={num_secondary_workers} '
+        + (f'--packages={",".join(packages)} ' if packages else '')
+        + (f'--init={",".join(init)} ' if init else '')
+        + (f'--vep={vep}' if vep else '')
         + (f'--requester-pays-allow-all ' if requester_pays_allow_all else '')
         + f'{cluster_name}'
     )
@@ -88,7 +88,7 @@ def hail_dataproc_job(
         main_job.command(f'cd -')
 
     main_job.command(
-        f'hailctl dataproc submit --region {REGION} '
+        f'hailctl dataproc submit --region={REGION} '
         + (f'--pyfiles {PYFILES_DIR}/{PYFILES_ZIP} ' if pyfiles else '')
         + f'{cluster_name} {script} '
     )
@@ -99,6 +99,6 @@ def hail_dataproc_job(
     stop_job.image(DATAPROC_IMAGE)
     stop_job.command(GCLOUD_AUTH)
     stop_job.command(GCLOUD_PROJECT)
-    stop_job.command(f'hailctl dataproc stop --region {REGION} {cluster_name}')
+    stop_job.command(f'hailctl dataproc stop --region={REGION} {cluster_name}')
 
     return stop_job
