@@ -13,9 +13,9 @@ from analysis_runner.git import (
 DATAPROC_IMAGE = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.64'
 )
-REGION = 'australia-southeast1'
 GCLOUD_AUTH = 'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
 GCLOUD_PROJECT = 'gcloud config set project hail-295901'
+DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
 
@@ -50,8 +50,9 @@ def hail_dataproc_job(
     start_job.image(DATAPROC_IMAGE)
     start_job.command(GCLOUD_AUTH)
     start_job.command(GCLOUD_PROJECT)
+    start_job.command(DATAPROC_REGION)
     start_job.command(
-        f'hailctl dataproc start --region={REGION} --service-account='
+        f'hailctl dataproc start --service-account='
         f'$(gcloud config list account --format "value(core.account)") '
         f'--max-age={max_age} --num-workers={num_workers} '
         f'--num-secondary-workers={num_secondary_workers} '
@@ -67,6 +68,7 @@ def hail_dataproc_job(
     main_job.image(DATAPROC_IMAGE)
     main_job.command(GCLOUD_AUTH)
     main_job.command(GCLOUD_PROJECT)
+    main_job.command(DATAPROC_REGION)
 
     # Clone the repository to pass scripts to the cluster.
     git_remote = get_git_default_remote()
@@ -88,7 +90,7 @@ def hail_dataproc_job(
         main_job.command(f'cd -')
 
     main_job.command(
-        f'hailctl dataproc submit --region={REGION} '
+        f'hailctl dataproc submit '
         + (f'--pyfiles {PYFILES_DIR}/{PYFILES_ZIP} ' if pyfiles else '')
         + f'{cluster_name} {script} '
     )
@@ -99,6 +101,7 @@ def hail_dataproc_job(
     stop_job.image(DATAPROC_IMAGE)
     stop_job.command(GCLOUD_AUTH)
     stop_job.command(GCLOUD_PROJECT)
-    stop_job.command(f'hailctl dataproc stop --region={REGION} {cluster_name}')
+    stop_job.command(DATAPROC_REGION)
+    stop_job.command(f'hailctl dataproc stop {cluster_name}')
 
     return stop_job
