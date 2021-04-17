@@ -10,9 +10,8 @@ from analysis_runner.git import (
     get_repo_name_from_remote,
 )
 
-DRIVER_IMAGE = (
-    'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:'
-    '7f1a676f0b1e734981878576f6f091689e7d71c1-hail-0.2.64.dev529856899024'
+DATAPROC_IMAGE = (
+    'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.64'
 )
 REGION = 'australia-southeast1'
 GCLOUD_AUTH = 'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
@@ -48,7 +47,7 @@ def hail_dataproc_job(
     if depends_on:
         for dependency in depends_on:
             start_job.depends_on(dependency)
-    start_job.image(DRIVER_IMAGE)
+    start_job.image(DATAPROC_IMAGE)
     start_job.command(GCLOUD_AUTH)
     start_job.command(GCLOUD_PROJECT)
     start_job.command(
@@ -65,7 +64,7 @@ def hail_dataproc_job(
 
     main_job = batch.new_job(name=f'{job_name_prefix}main')
     main_job.depends_on(start_job)
-    main_job.image(DRIVER_IMAGE)
+    main_job.image(DATAPROC_IMAGE)
     main_job.command(GCLOUD_AUTH)
     main_job.command(GCLOUD_PROJECT)
 
@@ -97,7 +96,7 @@ def hail_dataproc_job(
     stop_job = batch.new_job(name=f'{job_name_prefix}stop Dataproc cluster')
     stop_job.depends_on(main_job)
     stop_job.always_run()  # Always clean up.
-    stop_job.image(DRIVER_IMAGE)
+    stop_job.image(DATAPROC_IMAGE)
     stop_job.command(GCLOUD_AUTH)
     stop_job.command(GCLOUD_PROJECT)
     stop_job.command(f'hailctl dataproc stop --region {REGION} {cluster_name}')
