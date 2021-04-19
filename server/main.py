@@ -153,7 +153,9 @@ async def index(request):
 
         # Note: for private GitHub repos we'd need to use a token to clone.
         # Any job commands here are evaluated in a bash shell, so user arguments should
-        # be escaped to avoid command injection.
+        # be escaped to avoid command injection. Use "set -x" to print the commands for
+        # easier debugging.
+        job.command('set -x')
         job.command(
             f'git clone --recurse-submodules https://github.com/{GITHUB_ORG}/{quote(repo)}.git'
         )
@@ -162,12 +164,21 @@ async def index(request):
         # reviewed by verifying that the given commit is in the main branch.
         if access_level != 'test':
             job.command('git checkout main')
-            job.command(f'git merge-base --is-ancestor {quote(commit)} HEAD')
+            job.command(
+                f'git merge-base --is-ancestor {quote(commit)} HEAD || '
+                '{ echo "error: commit not merged into main branch"; exit 1; }'
+            )
         job.command(f'git checkout {quote(commit)}')
         job.command(f'git submodule update')
         # Make sure the file is in a subdirectory of the repository.
-        job.command(f'[[ -f {quote(script_file)} ]]')
-        job.command(f'[[ $(realpath {quote(script_file)}) == $PWD* ]]')
+        job.command(
+            f'[[ -f {quote(script_file)} ]] || '
+            '{ echo "error: cannot find script file"; exit 1; }'
+        )
+        job.command(
+            f'[[ $(realpath {quote(script_file)}) == $PWD* ]] || '
+            '{ echo "error: script is not in the repository"; exit 1; }'
+        )
         # Change the working directory (to make relative file look-ups more intuitive).
         job.command(f'cd $(dirname {quote(script_file)})')
 
