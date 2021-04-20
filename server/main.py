@@ -4,6 +4,8 @@ import datetime
 import json
 import logging
 import os
+from typing import List
+from enum import Enum
 from shlex import quote
 from aiohttp import web, ClientSession
 
@@ -39,6 +41,61 @@ routes = web.RouteTableDef()
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
+
+
+class ExecutionType(Enum):
+    """Defines different execution types that analysis-runner supports"""
+
+    PYTHON3 = 'python'
+    R = 'r'
+    BASH = 'bash'
+    CUSTOM = 'custom'
+
+    def get_container(self):
+        """Get relevant container for ExecutionType"""
+        images = {self.PYTHON3: DRIVER_IMAGE}
+
+        return images.get(self, DRIVER_IMAGE)
+
+    def prepare_commands(self, script, arguments) -> List[str]:
+        """Return list of commands required to run {script} with {arguments}"""
+        script_builders = {
+            self.PYTHON3: self.prepare_python3_command,
+            self.R: self.prepare_r_command,
+            self.BASH: self.prepare_bash_command,
+            self.CUSTOM: self.prepare_custom_command,
+        }
+
+        return_commands = script_builders[self](script, arguments)
+        if not isinstance(return_commands, list):
+            return_commands = [return_commands]
+        return return_commands
+
+    @staticmethod
+    def prepare_python3_command(command, arguments):
+        """Prepare run command for python3"""
+        return f'python3 {command} {arguments}'
+
+    @staticmethod
+    def prepare_r_command(command, arguments):
+        """Prepare run command for Rscript"""
+        # R vs Rscript: https://stackoverflow.com/a/22355386
+        return f'Rscript {command} {arguments}'
+
+    @staticmethod
+    def prepare_bash_command(command, arguments):
+        """Prepare run command for bash"""
+        return f'bash {command} {arguments}'
+
+    @staticmethod
+    def prepare_custom_command(command, arguments):
+        """
+        Prepare run commands for an arbitrary script,
+            1. assume the script has a #! SHEBANG
+            2. make the script executable
+            3. run the script directly
+        """
+        return ['chmod +x {command}', f'{command} {arguments}']
 
 
 def _email_from_id_token(auth_header: str) -> str:
@@ -92,6 +149,11 @@ async def index(request):
 
         dataset = params['dataset']
         config = json.loads(_read_secret('server-config'))
+        # throws ValueError: {} is not a valid ExecutionType
+        execution_type: ExecutionType = ExecutionType(
+            params.get('execution_type', ExecutionType.PYTHON3)
+        )
+
         if dataset not in config:
             raise web.HTTPForbidden(
                 reason=(
@@ -145,7 +207,13 @@ async def index(request):
         batch = hb.Batch(backend=backend, name=batch_name)
 
         job = batch.new_job(name='driver')
-        job.image(DRIVER_IMAGE)
+
+        # 2021-04 mfranklin:
+        #   we might consider users providing their own container,
+        #   but it also means they can run arbitrary code without code review
+        #   on production data. Maybe "test" can run any image, and standard
+        #   must use an image from a specific artifact registry?
+        job.image(execution_type.get_container())
 
         job.env('HAIL_BILLING_PROJECT', dataset)
         job.env('HAIL_BUCKET', hail_bucket)
@@ -226,7 +294,11 @@ async def index(request):
 
         # Finally, run the script.
         escaped_args = ' '.join(quote(s) for s in script_args if s)
-        job.command(f'python3 $(basename {quote(script_file)}) {escaped_args}')
+        script_commands = execution_type.prepare_commands(
+            script=f'$(basename {quote(script_file)})', arguments=escaped_args
+        )
+        for sc in script_commands:
+            job.command(sc)
 
         bc_batch = batch.run(wait=False)
 
