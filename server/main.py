@@ -57,8 +57,13 @@ class ExecutionType(Enum):
 
         return images.get(self, DRIVER_IMAGE)
 
-    def prepare_commands(self, script, arguments) -> List[str]:
-        """Return list of commands required to run {script} with {arguments}"""
+    def prepare_commands(self, script, arguments, **kwargs) -> List[str]:
+        """
+        Return list of commands required to run {script} with {arguments}
+        Kwargs might be a list of elements that a specific subtype of
+            'prepare_*_command' is looking for, eg: R might look for
+            'r_packages' as a kwarg (to prepare install commands).
+        """
         script_builders = {
             self.PYTHON3: self.prepare_python3_command,
             self.R: self.prepare_r_command,
@@ -66,29 +71,29 @@ class ExecutionType(Enum):
             self.CUSTOM: self.prepare_custom_command,
         }
 
-        return_commands = script_builders[self](script, arguments)
+        return_commands = script_builders[self](script, arguments, **kwargs)
         if not isinstance(return_commands, list):
             return_commands = [return_commands]
         return return_commands
 
     @staticmethod
-    def prepare_python3_command(command, arguments):
+    def prepare_python3_command(command, arguments, **_):
         """Prepare run command for python3"""
         return f'python3 {command} {arguments}'
 
     @staticmethod
-    def prepare_r_command(command, arguments):
+    def prepare_r_command(command, arguments, **_):
         """Prepare run command for Rscript"""
         # R vs Rscript: https://stackoverflow.com/a/22355386
         return f'Rscript {command} {arguments}'
 
     @staticmethod
-    def prepare_bash_command(command, arguments):
+    def prepare_bash_command(command, arguments, **_):
         """Prepare run command for bash"""
         return f'bash {command} {arguments}'
 
     @staticmethod
-    def prepare_custom_command(command, arguments):
+    def prepare_custom_command(command, arguments, **_):
         """
         Prepare run commands for an arbitrary script,
             1. assume the script has a #! SHEBANG
