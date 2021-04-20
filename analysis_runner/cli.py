@@ -43,6 +43,7 @@ def main(
     access_level,
     commit=None,
     repository=None,
+    execution_type=None,
 ):
     """
     Main function that drives the CLI.
@@ -70,6 +71,10 @@ def main(
     if not _script:
         _script = ['main.py']
 
+    # potentially TODO: determine execution_type from file extension
+    #   if the execution_type is None (then set default in click to None)
+    # execution_type = get_execution_type_from_script(_script)
+
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
         if _commit_ref is None:
@@ -93,6 +98,7 @@ def main(
             'commit': _commit_ref,
             'script': _script,
             'description': description,
+            'execution_type': execution_type,
         },
         headers={'Authorization': f'Bearer {_token}'},
     )
@@ -185,6 +191,13 @@ def parse_args(args=None):
         choices=(['test', 'standard', 'full']),
         default='test',
         help='Which permissions to grant when running the job.',
+    )
+
+    parser.add_argument(
+        '--execution-type',
+        choices=(['python', 'r', 'bash', 'custom']),
+        default='python',
+        help='Determine which executor is used to run the script',
     )
 
     parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
