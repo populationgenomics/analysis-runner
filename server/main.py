@@ -220,11 +220,11 @@ async def index(request):
 
         # if
         job.command(
-            f'''\
+            f"""\
 if [[ -f {quote(script[0])} ]] then
     chmod +x {quote(script[0])}
 fi
-'''
+"""
         )
 
         # Finally, run the script.
