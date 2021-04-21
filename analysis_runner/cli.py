@@ -4,6 +4,7 @@
 CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
+import os
 import argparse
 import logging
 import requests
@@ -14,7 +15,7 @@ from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
-    get_relative_script_path_from_git_root,
+    get_relative_path_from_git_root,
 )
 
 logger = logging.getLogger('analysis_runner')
@@ -63,6 +64,8 @@ def main(
     _repository = repository
     _commit_ref = commit
     _script = list(script)
+    _cwd = None
+
     if ' ' in _script[0]:
         _script = _script[0].split() + _script[1:]
 
@@ -70,14 +73,18 @@ def main(
     if not _script:
         _script = ['main.py']
 
+    if _script[0]:
+        if os.path.exists(_script[0]):
+            _perform_shebang_check(_script[0])
+
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
         if _commit_ref is None:
             _commit_ref = get_git_commit_ref_of_current_repository()
 
-        # Make the first argument (the script name) relative
-        # to the git root and current directory
-        _script[0] = get_relative_script_path_from_git_root(_script[0])
+        _cwd = get_relative_path_from_git_root()
+        if _cwd == ".":
+            _cwd = None
 
     _token = _get_google_auth_token()
 
@@ -93,6 +100,7 @@ def main(
             'commit': _commit_ref,
             'script': _script,
             'description': description,
+            'cwd': _cwd
         },
         headers={'Authorization': f'Bearer {_token}'},
     )
