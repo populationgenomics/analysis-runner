@@ -7,9 +7,12 @@ See README.md for more information.
 import os
 import argparse
 import logging
+from shutil import which
+
 import requests
 import google.auth
 import google.auth.transport.requests
+
 from analysis_runner import _version
 from analysis_runner.git import (
     get_git_default_remote,
@@ -76,6 +79,15 @@ def main(
     if _script[0]:
         if os.path.exists(_script[0]):
             _perform_shebang_check(_script[0])
+        elif not which(_script[0]):
+            # the first el of _script is not executable
+            # (at least on this computer)
+            if not confirm_choice(
+                f"The first element of the script '{_script[0]}' was not executable \n"
+                f'(or a script could not be found) on this computer. \n'
+                f'Please confirm to continue.'
+            ):
+                raise SystemExit()
 
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
@@ -83,7 +95,7 @@ def main(
             _commit_ref = get_git_commit_ref_of_current_repository()
 
         _cwd = get_relative_path_from_git_root()
-        if _cwd == ".":
+        if _cwd == '.':
             _cwd = None
 
     _token = _get_google_auth_token()
@@ -100,7 +112,7 @@ def main(
             'commit': _commit_ref,
             'script': _script,
             'description': description,
-            'cwd': _cwd
+            'cwd': _cwd,
         },
         headers={'Authorization': f'Bearer {_token}'},
     )
@@ -138,6 +150,28 @@ def _get_google_auth_token() -> str:
     auth_req = google.auth.transport.requests.Request()
     creds.refresh(auth_req)
     return creds.id_token
+
+
+def _perform_shebang_check(script):
+    with open(script) as f:
+        potential_shebang = f.readline()
+        if potential_shebang.startswith('#!'):
+            return True
+
+        suggestion_shebang = ''
+        if script.endswith('.py'):
+            suggestion_shebang = '#!/usr/bin/env python3'
+        elif script.endswith('.sh'):
+            suggestion_shebang = '#!/usr/bin/env bash'
+        elif script.lower().endswith('.r') or script.lower().endswith('.rscript'):
+            suggestion_shebang = '#!/usr/bin/env Rscript'
+
+        message = f"Couldn't find shebang at start of '{script}'"
+        if suggestion_shebang:
+            message += (
+                f", consider inserting '{suggestion_shebang}' at the top of this file"
+            )
+        raise Exception(message)
 
 
 def parse_args(args=None):
