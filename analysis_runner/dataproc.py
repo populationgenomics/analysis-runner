@@ -58,7 +58,7 @@ def hail_dataproc_job(
         f'--num-secondary-workers={num_secondary_workers} '
         + (f'--packages={",".join(packages)} ' if packages else '')
         + (f'--init={",".join(init)} ' if init else '')
-        + (f'--vep={vep}' if vep else '')
+        + (f'--vep={vep} ' if vep else '')
         + (f'--requester-pays-allow-all ' if requester_pays_allow_all else '')
         + f'{cluster_name}'
     )
