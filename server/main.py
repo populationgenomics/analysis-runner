@@ -130,6 +130,7 @@ async def index(request):
         if not commit or commit == 'HEAD':
             raise web.HTTPBadRequest(reason='Invalid commit parameter')
 
+        cwd = params.get('cwd')
         script = params['script']
         if not script:
             raise web.HTTPBadRequest(reason='Invalid script parameter')
@@ -137,7 +138,7 @@ async def index(request):
         if not isinstance(script, list):
             raise web.HTTPBadRequest(reason='Script parameter expects an array')
 
-        script_file, *script_args = script
+        # script_file, *script_args = script
 
         user_name = email.split('@')[0]
         batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
@@ -170,17 +171,9 @@ async def index(request):
             )
         job.command(f'git checkout {quote(commit)}')
         job.command(f'git submodule update')
-        # Make sure the file is in a subdirectory of the repository.
-        job.command(
-            f'[[ -f {quote(script_file)} ]] || '
-            '{ echo "error: cannot find script file"; exit 1; }'
-        )
-        job.command(
-            f'[[ $(realpath {quote(script_file)}) == $PWD* ]] || '
-            '{ echo "error: script is not in the repository"; exit 1; }'
-        )
-        # Change the working directory (to make relative file look-ups more intuitive).
-        job.command(f'cd $(dirname {quote(script_file)})')
+        # Change the working directory (usually to make relative scripts possible).
+        if cwd:
+            job.command(f'cd {quote(cwd)}')
 
         # This metadata dictionary gets stored at the output_dir location.
         hail_version = await _get_hail_version()
@@ -198,6 +191,7 @@ async def index(request):
                 'output': output_dir,
                 'hailVersion': hail_version,
                 'driverImage': DRIVER_IMAGE,
+                'cwd': cwd,
             }
         )
 
@@ -224,9 +218,18 @@ async def index(request):
             f'gsutil cp {METADATA_PREFIX}.json {quote(output_dir)}/metadata.json'
         )
 
+        # if
+        job.command(
+            f'''\
+if [[ -f {quote(script[0])} ]] then
+    chmod +x {quote(script[0])}
+fi
+'''
+        )
+
         # Finally, run the script.
-        escaped_args = ' '.join(quote(s) for s in script_args if s)
-        job.command(f'python3 $(basename {quote(script_file)}) {escaped_args}')
+        escaped_script = ' '.join(quote(s) for s in script if s)
+        job.command(escaped_script)
 
         bc_batch = batch.run(wait=False)
 
