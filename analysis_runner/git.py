@@ -35,9 +35,14 @@ def get_relative_script_path_from_git_root(script_name: str) -> str:
 
         analysis_runner/git.py
     """
+    base = get_relative_path_from_git_root()
+    return os.path.join(base, script_name)
+
+
+def get_relative_path_from_git_root() -> str:
     root = get_git_repo_root()
     base = os.path.relpath(os.getcwd(), root)
-    return os.path.join(base, script_name)
+    return base
 
 
 def get_git_default_remote() -> str:
