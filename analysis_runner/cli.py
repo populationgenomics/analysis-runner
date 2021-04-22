@@ -79,6 +79,11 @@ def main(
     if _script[0]:
         if os.path.exists(_script[0]):
             _perform_shebang_check(_script[0])
+            # if it's just the path name, eg: you call
+            #   analysis-runner myfile.py
+            # need to pre-pend "./" to execute
+            if os.path.basename(_script[0]) == _script[0]:
+                _script[0] = './' + _script[0]
         elif not which(_script[0]):
             # the first el of _script is not executable
             # (at least on this computer)
