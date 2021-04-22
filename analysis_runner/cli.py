@@ -69,13 +69,6 @@ def main(
     _script = list(script)
     _cwd = None
 
-    if ' ' in _script[0]:
-        # Some analysts will quote the whole script, eg:
-        #   analysis-runner 'myscript.py --flag --param arg'
-        # so we'll normalise this by splitting the first element.
-        # This means that your script names can't have spaces in them.
-        _script = _script[0].split() + _script[1:]
-
     # false-y value catches empty list / tuple as well
     if not _script:
         _script = ['main.py']
