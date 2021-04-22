@@ -70,29 +70,33 @@ def main(
     _cwd = None
 
     if ' ' in _script[0]:
+        # Some analysts will quote the whole script, eg:
+        #   analysis-runner 'myscript.py --flag --param arg'
+        # so we'll normalise this by splitting the first element.
+        # This means that your script names can't have spaces in them.
         _script = _script[0].split() + _script[1:]
 
     # false-y value catches empty list / tuple as well
     if not _script:
         _script = ['main.py']
 
-    if _script[0]:
-        if os.path.exists(_script[0]):
-            _perform_shebang_check(_script[0])
-            # if it's just the path name, eg: you call
-            #   analysis-runner myfile.py
-            # need to pre-pend "./" to execute
-            if os.path.basename(_script[0]) == _script[0]:
-                _script[0] = './' + _script[0]
-        elif not which(_script[0]):
-            # the first el of _script is not executable
-            # (at least on this computer)
-            if not confirm_choice(
-                f"The first element of the script '{_script[0]}' was not executable \n"
-                f'(or a script could not be found) on this computer. \n'
-                f'Please confirm to continue.'
-            ):
-                raise SystemExit()
+    # we can find the script, and it's a relative path (not absolute)
+    if os.path.exists(_script[0]) and not _script[0].startswith('/'):
+        _perform_shebang_check(_script[0])
+        # if it's just the path name, eg: you call
+        #   analysis-runner my_file.py
+        # need to pre-pend "./" to execute
+        if os.path.basename(_script[0]) == _script[0]:
+            _script[0] = './' + _script[0]
+    elif not which(_script[0]):
+        # the first el of _script is not executable
+        # (at least on this computer)
+        if not confirm_choice(
+            f"The first element of the script '{_script[0]}' was not executable \n"
+            f'(or a script could not be found) on this computer. \n'
+            f'Please confirm to continue.'
+        ):
+            raise SystemExit()
 
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
@@ -158,6 +162,9 @@ def _get_google_auth_token() -> str:
 
 
 def _perform_shebang_check(script):
+    """
+    Returns None if script has shebang, otherwise raises Exception
+    """
     with open(script) as f:
         potential_shebang = f.readline()
         if potential_shebang.startswith('#!'):
@@ -171,7 +178,7 @@ def _perform_shebang_check(script):
         elif script.lower().endswith('.r') or script.lower().endswith('.rscript'):
             suggestion_shebang = '#!/usr/bin/env Rscript'
 
-        message = f'Couldn't find shebang at start of "{script}"'
+        message = f'Couldn\'t find shebang at start of "{script}"'
         if suggestion_shebang:
             message += (
                 f', consider inserting "{suggestion_shebang}" at the top of this file'

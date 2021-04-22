@@ -123,3 +123,7 @@ It's important the pull request name start with "Bump version:" (which should ha
 by default). Once this is merged into `main`, a GitHub action workflow will build a
 new conda package that will be uploaded to the conda [CPG
 channel](https://anaconda.org/cpg/), and become available to install with `mamba install -c cpg -c conda-forge ...`
+
+## Limitations
+
+- Your script name cannot contain spaces, even if you quote it.
