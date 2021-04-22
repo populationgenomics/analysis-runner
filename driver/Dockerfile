@@ -1,4 +1,5 @@
-FROM debian:buster-slim
+# uses debian base
+FROM rocker/tidyverse:4.0.4
 
 ARG HAIL_VERSION
 
