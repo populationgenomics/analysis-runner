@@ -130,15 +130,14 @@ async def index(request):
         if not commit or commit == 'HEAD':
             raise web.HTTPBadRequest(reason='Invalid commit parameter')
 
-        cwd = params.get('cwd')
+        # make cwd non-optional to make all old clients break
+        cwd = params['cwd']
         script = params['script']
         if not script:
             raise web.HTTPBadRequest(reason='Invalid script parameter')
 
         if not isinstance(script, list):
             raise web.HTTPBadRequest(reason='Script parameter expects an array')
-
-        # script_file, *script_args = script
 
         user_name = email.split('@')[0]
         batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
@@ -218,7 +217,6 @@ async def index(request):
             f'gsutil cp {METADATA_PREFIX}.json {quote(output_dir)}/metadata.json'
         )
 
-        # if
         job.command(
             f"""\
 if [[ -f {quote(script[0])} ]] then
