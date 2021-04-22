@@ -130,7 +130,6 @@ async def index(request):
         if not commit or commit == 'HEAD':
             raise web.HTTPBadRequest(reason='Invalid commit parameter')
 
-        # make cwd non-optional to make all old clients break
         cwd = params['cwd']
         script = params['script']
         if not script:
