@@ -161,7 +161,7 @@ def _perform_shebang_check(script):
     with open(script) as f:
         potential_shebang = f.readline()
         if potential_shebang.startswith('#!'):
-            return True
+            return
 
         suggestion_shebang = ''
         if script.endswith('.py'):
@@ -171,10 +171,10 @@ def _perform_shebang_check(script):
         elif script.lower().endswith('.r') or script.lower().endswith('.rscript'):
             suggestion_shebang = '#!/usr/bin/env Rscript'
 
-        message = f"Couldn't find shebang at start of '{script}'"
+        message = f'Couldn't find shebang at start of "{script}"'
         if suggestion_shebang:
             message += (
-                f", consider inserting '{suggestion_shebang}' at the top of this file"
+                f', consider inserting "{suggestion_shebang}" at the top of this file'
             )
         raise Exception(message)
 
