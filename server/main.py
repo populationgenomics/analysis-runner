@@ -216,14 +216,7 @@ async def index(request):
         job.command(
             f'gsutil cp {METADATA_PREFIX}.json {quote(output_dir)}/metadata.json'
         )
-        if not script[0].startswith('/'):
-            job.command(
-                f"""\
-if [[ -f {quote(script[0])} ]] then
-    chmod +x {quote(script[0])}
-fi
-    """
-            )
+        job.command(f'which {quote(script[0])} || chmod +x {quote(script[0])}')
 
         # Finally, run the script.
         escaped_script = ' '.join(quote(s) for s in script if s)
