@@ -4,17 +4,21 @@
 CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
+import os
 import argparse
 import logging
+from shutil import which
+
 import requests
 import google.auth
 import google.auth.transport.requests
+
 from analysis_runner import _version
 from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
-    get_relative_script_path_from_git_root,
+    get_relative_path_from_git_root,
 )
 
 logger = logging.getLogger('analysis_runner')
@@ -63,21 +67,38 @@ def main(
     _repository = repository
     _commit_ref = commit
     _script = list(script)
-    if ' ' in _script[0]:
-        _script = _script[0].split() + _script[1:]
+    _cwd = None
 
     # false-y value catches empty list / tuple as well
     if not _script:
         _script = ['main.py']
+
+    # we can find the script, and it's a relative path (not absolute)
+    if os.path.exists(_script[0]) and not _script[0].startswith('/'):
+        _perform_shebang_check(_script[0])
+        # if it's just the path name, eg: you call
+        #   analysis-runner my_file.py
+        # need to pre-pend "./" to execute
+        if os.path.basename(_script[0]) == _script[0]:
+            _script[0] = './' + _script[0]
+    elif not which(_script[0]):
+        # the first el of _script is not executable
+        # (at least on this computer)
+        if not confirm_choice(
+            f"The first element of the script '{_script[0]}' was not executable \n"
+            f'(or a script could not be found) on this computer. \n'
+            f'Please confirm to continue.'
+        ):
+            raise SystemExit()
 
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
         if _commit_ref is None:
             _commit_ref = get_git_commit_ref_of_current_repository()
 
-        # Make the first argument (the script name) relative
-        # to the git root and current directory
-        _script[0] = get_relative_script_path_from_git_root(_script[0])
+        _cwd = get_relative_path_from_git_root()
+        if _cwd == '.':
+            _cwd = None
 
     _token = _get_google_auth_token()
 
@@ -93,6 +114,7 @@ def main(
             'commit': _commit_ref,
             'script': _script,
             'description': description,
+            'cwd': _cwd,
         },
         headers={'Authorization': f'Bearer {_token}'},
     )
@@ -130,6 +152,31 @@ def _get_google_auth_token() -> str:
     auth_req = google.auth.transport.requests.Request()
     creds.refresh(auth_req)
     return creds.id_token
+
+
+def _perform_shebang_check(script):
+    """
+    Returns None if script has shebang, otherwise raises Exception
+    """
+    with open(script) as f:
+        potential_shebang = f.readline()
+        if potential_shebang.startswith('#!'):
+            return
+
+        suggestion_shebang = ''
+        if script.endswith('.py'):
+            suggestion_shebang = '#!/usr/bin/env python3'
+        elif script.endswith('.sh'):
+            suggestion_shebang = '#!/usr/bin/env bash'
+        elif script.lower().endswith('.r') or script.lower().endswith('.rscript'):
+            suggestion_shebang = '#!/usr/bin/env Rscript'
+
+        message = f'Couldn\'t find shebang at start of "{script}"'
+        if suggestion_shebang:
+            message += (
+                f', consider inserting "{suggestion_shebang}" at the top of this file'
+            )
+        raise Exception(message)
 
 
 def parse_args(args=None):

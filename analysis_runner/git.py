@@ -30,14 +30,23 @@ def get_output_of_command(command: List[str], description: str) -> str:
 def get_relative_script_path_from_git_root(script_name: str) -> str:
     """
     If we're in a subdirectory, get the relative path from the git root
-    to the current directory. For example, the relative path to this
-    script directly is:
+    to the current directory, and append the script path.
+    For example, the relative path to this script (from git root) is:
 
         analysis_runner/git.py
     """
+    base = get_relative_path_from_git_root()
+    return os.path.join(base, script_name)
+
+
+def get_relative_path_from_git_root() -> str:
+    """
+    If we're in a subdirectory, get the relative path from the git root
+    to the current directory. Relpath returns "." if cwd is a git root.
+    """
     root = get_git_repo_root()
     base = os.path.relpath(os.getcwd(), root)
-    return os.path.join(base, script_name)
+    return base
 
 
 def get_git_default_remote() -> str:
