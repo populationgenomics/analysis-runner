@@ -11,7 +11,7 @@ from analysis_runner.git import (
 )
 
 DATAPROC_IMAGE = (
-    'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.64'
+    'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.65'
 )
 GCLOUD_AUTH = 'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
 GCLOUD_PROJECT = 'gcloud config set project hail-295901'
