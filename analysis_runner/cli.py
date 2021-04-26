@@ -5,6 +5,7 @@ CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
 import os
+import re
 import argparse
 import logging
 from shutil import which
@@ -57,6 +58,8 @@ def main(
             "You must supply the '--commit <SHA>' parameter "
             "when specifying the '--repository'"
         )
+
+    _perform_version_check()
 
     if access_level == 'full':
         if not confirm_choice(
@@ -177,6 +180,34 @@ def _perform_shebang_check(script):
                 f', consider inserting "{suggestion_shebang}" at the top of this file'
             )
         raise Exception(message)
+
+
+def _perform_version_check():
+
+    current_version = _version.__version__
+
+    # with this URL, we're looking for a line with format:
+    #   __version__ = '<version>'
+    # match it with regex: r"__version__ = '(.+)'$"
+    version_url = (
+        'https://raw.githubusercontent.com/populationgenomics/'
+        'analysis-runner/main/analysis_runner/_version.py'
+    )
+
+    data = requests.get(version_url).text
+    for line in data.splitlines(keepends=False):
+        if not line.startswith('__version__ = '):
+            continue
+
+        latest_version = re.match(f"__version__ = '(.+)'$", line).groups()[0]
+        if current_version != latest_version:
+            logger.warning(
+                f'Your version of analysis-runner is out of date: '
+                f'{current_version} != {latest_version} (current vs latest).\n'
+                f'Your analysis will still be submitted, but may not work as expected.'
+                f' You can update the analysis-runner by running '
+                f'"conda install -c cpg analysis-runner={latest_version}"'
+            )
 
 
 def parse_args(args=None):
