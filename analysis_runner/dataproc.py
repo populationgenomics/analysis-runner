@@ -27,6 +27,8 @@ def hail_dataproc_job(
     max_age: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
+    worker_boot_disk_size: Optional[int] = None,  # in GB
+    secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
     pyfiles: Optional[List[str]] = None,
     init: Optional[List[str]] = None,
@@ -51,17 +53,31 @@ def hail_dataproc_job(
     start_job.command(GCLOUD_AUTH)
     start_job.command(GCLOUD_PROJECT)
     start_job.command(DATAPROC_REGION)
-    start_job.command(
-        f'hailctl dataproc start --service-account='
-        f'$(gcloud config list account --format "value(core.account)") '
-        f'--max-age={max_age} --num-workers={num_workers} '
-        f'--num-secondary-workers={num_secondary_workers} '
-        + (f'--packages={",".join(packages)} ' if packages else '')
-        + (f'--init={",".join(init)} ' if init else '')
-        + (f'--vep={vep} ' if vep else '')
-        + (f'--requester-pays-allow-all ' if requester_pays_allow_all else '')
-        + f'{cluster_name}'
-    )
+
+    start_job_command = [
+        'hailctl dataproc start',
+        f'--service-account=$(gcloud config list account --format "value(core.account)")',
+        f'--max-age={max_age}',
+        f'--num-workers={num_workers}',
+        f'--num-secondary-workers={num_secondary_workers}',
+    ]
+    if worker_boot_disk_size:
+        start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')
+    if secondary_worker_boot_disk_size:
+        start_job_command.append(
+            f'--secondary-worker-boot-disk-size={secondary_worker_boot_disk_size}'
+        )
+    if packages:
+        start_job_command.append(f'--packages={",".join(packages)}')
+    if init:
+        start_job_command.append(f'--init={",".join(init)}')
+    if vep:
+        start_job_command.append(f'--vep={vep}')
+    if requester_pays_allow_all:
+        start_job_command.append(f'--requester-pays-allow-all')
+    start_job_command.append(cluster_name)
+
+    start_job.command(' '.join(start_job_command))
 
     main_job = batch.new_job(name=f'{job_name_prefix}main')
     main_job.depends_on(start_job)
