@@ -88,7 +88,7 @@ def main(
         # the first el of _script is not executable
         # (at least on this computer)
         if not confirm_choice(
-            f"The first element of the script '{_script[0]}' was not executable \n"
+            f"The program '{_script[0]}' was not executable \n"
             f'(or a script could not be found) on this computer. \n'
             f'Please confirm to continue.'
         ):
@@ -193,21 +193,31 @@ def _perform_version_check():
         'https://raw.githubusercontent.com/populationgenomics/'
         'analysis-runner/main/analysis_runner/_version.py'
     )
-
-    data = requests.get(version_url).text
+    try:
+        resp = requests.get(version_url)
+        resp.raise_for_status()
+        data = resp.text
+    except requests.HTTPError as e:
+        logger.debug(
+            f'An error occurred when fetching version '
+            f'information about the analysis-runner: {e}'
+        )
+        return
     for line in data.splitlines(keepends=False):
         if not line.startswith('__version__ = '):
             continue
 
         latest_version = re.match(f"__version__ = '(.+)'$", line).groups()[0]
         if current_version != latest_version:
-            logger.warning(
+            message = (
                 f'Your version of analysis-runner is out of date: '
                 f'{current_version} != {latest_version} (current vs latest).\n'
                 f'Your analysis will still be submitted, but may not work as expected.'
                 f' You can update the analysis-runner by running '
-                f'"conda install -c cpg analysis-runner={latest_version}"'
+                f'"conda install -c cpg analysis-runner={latest_version}".'
             )
+            logger.warning(message)
+        return
 
 
 def parse_args(args=None):
