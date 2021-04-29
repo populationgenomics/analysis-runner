@@ -90,7 +90,7 @@ def hail_dataproc_job(
         main_job.command(f'cd -')
 
     main_job.command(
-        f'hailctl dataproc submit '
+        f'hailctl dataproc submit --region australia-southeast1 --zone australia-southeast1-a '
         + (f'--pyfiles {PYFILES_DIR}/{PYFILES_ZIP} ' if pyfiles else '')
         + f'{cluster_name} {script} '
     )
