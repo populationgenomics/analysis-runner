@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Demonstrates the use of the dataproc module."""
 
 import os
@@ -18,7 +20,7 @@ batch = hb.Batch(name='dataproc example', backend=service_backend)
 
 dataproc.hail_dataproc_job(
     batch,
-    f'query.py --output={OUTPUT}',
+    f'query.py',
     max_age='1h',
     packages=['click', 'selenium'],
     init=['gs://cpg-reference/hail_dataproc/install_phantomjs.sh'],
