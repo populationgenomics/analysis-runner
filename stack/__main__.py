@@ -237,14 +237,11 @@ gcp.cloudidentity.GroupMembership(
 # Allow the Hail service accounts to pull images. Note that the global project will
 # refer to the dataset, but the Docker image is stored in the "analysis-runner"
 # project's Artifact Registry repository.
-for access_level, service_account in zip(
-    ['test', 'standard', 'full'],
-    [
-        hail_service_account_test,
-        hail_service_account_standard,
-        hail_service_account_full,
-    ],
-):
+for access_level, service_account in [
+    ('test', hail_service_account_test),
+    ('standard', hail_service_account_standard),
+    ('full', hail_service_account_full),
+]:
     for project in [ANALYSIS_RUNNER_PROJECT, CPG_COMMON_PROJECT]:
         gcp.artifactregistry.RepositoryIamMember(
             f'hail-service-account-{access_level}-images-reader-in-{project}',
