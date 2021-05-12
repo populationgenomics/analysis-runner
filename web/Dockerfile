@@ -1,44 +1,19 @@
 FROM python:3.9-slim
 
-# Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
 
-# Copy local code to the container image.
-ENV APP_HOME /app
-WORKDIR $APP_HOME
-COPY . ./
+ENV MAMBA_ROOT_PREFIX /root/micromamba
+ENV PATH $MAMBA_ROOT_PREFIX/bin:$PATH
 
-# Install production dependencies.
-RUN pip install Flask gunicorn
-
-# Run the web service on container startup. Here we use the gunicorn
-# webserver, with one worker process and 8 threads.
-# For environments with multiple CPU cores, increase the number of workers
-# to be equal to the cores available.
-# Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
-
-# Since the server relies on Hail as well, we're reusing the driver image.
-ARG DRIVER_IMAGE
-FROM ${DRIVER_IMAGE}
-
-RUN micromamba install --prefix $MAMBA_ROOT_PREFIX -c cpg -c conda-forge \
-    cpg-utils \
-    google-auth==1.24.0 \
-    google-cloud-secret-manager==2.2.0 \
-    google-cloud-pubsub==2.3.0 \
-    gunicorn && \
+RUN apt-get update && apt-get install -y wget bzip2 && \
+    rm -r /var/lib/apt/lists/* && \
+    rm -r /var/cache/apt/* && \
+    wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.8.2/linux-64/micromamba-0.8.2-he9b6cbd_0.tar.bz2 | tar -xvj -C /usr/local bin/micromamba && \
+    mkdir $MAMBA_ROOT_PREFIX && \
+    micromamba install -y --prefix $MAMBA_ROOT_PREFIX -c cpg -c conda-forge \
+    cpg-utils flask gunicorn && \
     rm -r /root/micromamba/pkgs
 
-# Allow statements and log messages to immediately appear in the Knative logs.
-ENV PYTHONUNBUFFERED 1
+COPY main.py ./
 
-ENV PORT 8080
-EXPOSE $PORT
-
-COPY main.py cloud_identity.py ./
-
-# Prepare the Hail deploy config to point to the CPG domain.
-COPY deploy-config.json /deploy-config/deploy-config.json
-
-CMD gunicorn --bind :$PORT --worker-class aiohttp.GunicornWebWorker main:init_func
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
