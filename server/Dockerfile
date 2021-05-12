@@ -4,7 +4,6 @@ FROM ${DRIVER_IMAGE}
 
 RUN micromamba install --prefix $MAMBA_ROOT_PREFIX -c cpg -c conda-forge \
     cpg-utils \
-    google-auth==1.24.0 \
     google-cloud-secret-manager==2.2.0 \
     google-cloud-pubsub==2.3.0 \
     gunicorn && \
