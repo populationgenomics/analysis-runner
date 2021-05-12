@@ -16,7 +16,7 @@ ENV PYTHONUNBUFFERED 1
 ENV PORT 8080
 EXPOSE $PORT
 
-COPY main.py cloud_identity.py ./
+COPY main.py ./
 
 # Prepare the Hail deploy config to point to the CPG domain.
 COPY deploy-config.json /deploy-config/deploy-config.json
