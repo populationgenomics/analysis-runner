@@ -10,7 +10,7 @@ app = Flask(__name__)
 storage_client = storage.Client()
 
 
-@app.route('/<dataset>/<filename>')
+@app.route('/<dataset>/<path:filename>')
 def handler(dataset=None, filename=None):
     """Main entry point for serving."""
     if not dataset or not filename:
