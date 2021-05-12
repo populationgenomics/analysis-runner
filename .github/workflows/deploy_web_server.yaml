@@ -1,0 +1,37 @@
+name: Deploy web server
+on: workflow_dispatch
+jobs:
+  deploy_server:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_BUILDKIT: 1
+      BUILDKIT_PROGRESS: plain
+      CLOUDSDK_CORE_DISABLE_PROMPTS: 1
+      DOCKER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/web:${{ github.sha }}
+
+    steps:
+    - name: "checkout repo"
+      uses: actions/checkout@v2
+
+    - name: "gcloud setup"
+      uses: google-github-actions/setup-gcloud@master
+      with:
+        project_id: analysis-runner
+        service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+
+    - name: "gcloud docker auth"
+      run: |
+        gcloud auth configure-docker australia-southeast1-docker.pkg.dev
+
+    - name: "build image"
+      run: |
+        docker build --tag $DOCKER_IMAGE web
+
+    - name: "push image"
+      run: |
+        docker push $DOCKER_IMAGE
+
+    - name: "deploy to Cloud Run"
+      run: |
+        gcloud run deploy web --region australia-southeast1 --no-allow-unauthenticated --platform managed --image $DOCKER_IMAGE
