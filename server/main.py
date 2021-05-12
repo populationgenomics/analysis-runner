@@ -7,14 +7,13 @@ import os
 from shlex import quote
 from aiohttp import web, ClientSession
 
-from google.auth import jwt
 from google.cloud import secretmanager
 from google.cloud import pubsub_v1
 
 import hailtop.batch as hb
 from hailtop.config import get_deploy_config
 
-from cpg_utils.cloud import is_google_group_member
+from cpg_utils.cloud import is_google_group_member, email_from_id_token
 
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/tmp/metadata'
@@ -39,18 +38,6 @@ routes = web.RouteTableDef()
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
-
-
-def _email_from_id_token(auth_header: str) -> str:
-    """Decodes the ID token (JWT) to get the email address of the caller.
-
-    See http://bit.ly/2YAIkzy for details.
-
-    This function assumes that the token has been verified beforehand."""
-
-    id_token = auth_header[7:]  # Strip the 'bearer' / 'Bearer' prefix.
-    id_info = jwt.decode(id_token, verify=False)
-    return id_info['email']
 
 
 def _read_secret(name: str) -> str:
@@ -78,7 +65,10 @@ async def index(request):
     if auth_header is None:
         raise web.HTTPUnauthorized(reason='Missing authorization header')
 
-    email = _email_from_id_token(auth_header)
+    try:
+        email = email_from_id_token(auth_header)
+    except ValueError as e:
+        raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
     # When accessing a missing entry in the params dict, the resulting KeyError
     # exception gets translated to a Bad Request error in the try block below.
