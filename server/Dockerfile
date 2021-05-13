@@ -3,7 +3,7 @@ ARG DRIVER_IMAGE
 FROM ${DRIVER_IMAGE}
 
 RUN micromamba install --prefix $MAMBA_ROOT_PREFIX -c cpg -c conda-forge \
-    cpg-utils \
+    cpg-utils==1.0.0 \
     google-cloud-secret-manager==2.2.0 \
     google-cloud-pubsub==2.3.0 \
     gunicorn && \
