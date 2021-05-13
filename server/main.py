@@ -74,12 +74,6 @@ async def index(request):
     # exception gets translated to a Bad Request error in the try block below.
     params = await request.json()
     try:
-        output_dir = params['output']
-        if not output_dir.startswith('gs://'):
-            raise web.HTTPBadRequest(
-                reason='Output directory needs to start with "gs://"'
-            )
-
         dataset = params['dataset']
         config = json.loads(_read_secret('server-config'))
         if dataset not in config:
@@ -89,6 +83,14 @@ async def index(request):
                     f'{", ".join(config.keys())}'
                 )
             )
+
+        output_dir = params['output']
+        if not output_dir.startswith(f'gs://cpg-{dataset}-'):
+            raise web.HTTPBadRequest(
+                reason=f'Output directory needs to start with "gs://cpg-{dataset}-"'
+            )
+        if output_dir.count('/') <= 2:
+            raise web.HTTPBadRequest(reason='Output directory cannot be a bucket root')
 
         group_name = f'{dataset}-access@populationgenomics.org.au'
         if not is_google_group_member(email, group_name):
