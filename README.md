@@ -51,9 +51,12 @@ For example:
 analysis-runner \
     --dataset <dataset> \
     --description <description> \
+    --access-level <level> \
     --output-dir gs://<bucket-path> \
     script_to_run.py with arguments
 ```
+
+`<level>` corresponds to an [access level](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner) as defined in the storage policies.
 
 If you provide a `--repository`, you MUST supply a `--commit <SHA>`, e.g.:
 
@@ -63,6 +66,7 @@ analysis-runner \
     --commit <commit-sha> \
     --dataset <dataset> \
     --description <description> \
+    --access-level <level>
     --output-dir gs://<bucket-path> \
     script_to_run.py with arguments
 ```
