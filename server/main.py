@@ -66,7 +66,8 @@ async def index(request):
         raise web.HTTPUnauthorized(reason='Missing authorization header')
 
     try:
-        email = email_from_id_token(auth_header)
+        id_token = auth_header[7:]  # Strip the 'bearer' / 'Bearer' prefix.
+        email = email_from_id_token(id_token)
     except ValueError as e:
         raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
