@@ -56,7 +56,7 @@ analysis-runner \
     script_to_run.py with arguments
 ```
 
-`<level>` corresponds to an [access levels](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner) as defined in the storage policies.
+`<level>` corresponds to an [access level](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner) as defined in the storage policies.
 
 If you provide a `--repository`, you MUST supply a `--commit <SHA>`, e.g.:
 
