@@ -85,9 +85,9 @@ async def index(request):
             )
 
         output_dir = params['output']
-        if not output_dir.startswith(f'gs://cpg-{dataset}-'):
+        if not output_dir.startswith(f'gs://cpg-'):
             raise web.HTTPBadRequest(
-                reason=f'Output directory needs to start with "gs://cpg-{dataset}-"'
+                reason=f'Output directory needs to start with "gs://cpg-"'
             )
         if output_dir.count('/') <= 2:
             raise web.HTTPBadRequest(reason='Output directory cannot be a bucket root')
