@@ -75,10 +75,14 @@ async def index(request):
     params = await request.json()
     try:
         output_dir = params['output']
-        if not output_dir.startswith('gs://'):
+        if not output_dir.startswith('gs://cpg-'):
             raise web.HTTPBadRequest(
-                reason='Output directory needs to start with "gs://"'
+                reason='Output directory needs to start with "gs://cpg-"'
             )
+        if output_dir[-1] == '/':  # Strip trailing slash.
+            output_dir = output_dir[:-1]
+        if output_dir.count('/') <= 2:
+            raise web.HTTPBadRequest(reason='Output directory cannot be a bucket root')
 
         dataset = params['dataset']
         config = json.loads(_read_secret('server-config'))
