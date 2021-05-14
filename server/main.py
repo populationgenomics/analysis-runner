@@ -8,6 +8,8 @@ from aiohttp import web
 
 import hailtop.batch as hb
 
+from cromwell_routes import add_cromwel_routes
+
 from util import (
     get_analysis_runner_metadata,
     get_email_from_request,
@@ -129,6 +131,9 @@ async def index(request):
     except KeyError as e:
         logging.error(e)
         raise web.HTTPBadRequest(reason='Missing request parameter')
+
+
+add_cromwel_routes(routes)
 
 
 async def init_func():
