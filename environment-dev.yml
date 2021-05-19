@@ -9,6 +9,7 @@ dependencies:
   - flake8
   - flake8-bugbear
   - flask
+  - google-auth=1.24.0
   - google-cloud-secret-manager=2.2.0
   - google-cloud-pubsub=2.3.0
   - google-cloud-storage=1.38.0
