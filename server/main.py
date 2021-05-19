@@ -145,6 +145,7 @@ async def index(request):
         job.env('HAIL_BUCKET', hail_bucket)
         job.env('OUTPUT', output_dir)
         job.env('DRIVER_IMAGE', DRIVER_IMAGE)
+        job.env('ACCESS_LEVEL', access_level)
 
         # Note: for private GitHub repos we'd need to use a token to clone.
         # Any job commands here are evaluated in a bash shell, so user arguments should
