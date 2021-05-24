@@ -202,7 +202,7 @@ add_bucket_permissions(
     'access-group-analysis-bucket-viewer',
     access_group,
     analysis_bucket,
-    'roles/storage.objectViewer',
+    listing_role.name,
 )
 
 add_bucket_permissions(
