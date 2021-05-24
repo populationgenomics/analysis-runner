@@ -477,7 +477,7 @@ notebook_account = gcp.serviceaccount.Account(
     'notebook-account',
     project=NOTEBOOKS_PROJECT,
     account_id=f'notebook-{dataset}',
-    display_name=f'Notebook user for dataset {dataset}',
+    display_name=f'Notebook service account for dataset {dataset}',
     opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
 )
 
