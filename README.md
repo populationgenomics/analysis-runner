@@ -71,6 +71,9 @@ analysis-runner \
     script_to_run.py with arguments
 ```
 
+For more examples (including for running an R script and dataproc), see the
+[examples](examples) directory.
+
 ## Development
 
 You can ignore this section if you just want to run the tool.

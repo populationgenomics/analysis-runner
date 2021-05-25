@@ -6,5 +6,7 @@ This Docker image is used to launch Dataproc clusters when using the
 To build, run:
 
 ```sh
-gcloud builds submit --tag australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.65 .
+gcloud config set project analysis-runner
+
+gcloud builds submit --timeout=1h --tag=australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.63 .
 ```

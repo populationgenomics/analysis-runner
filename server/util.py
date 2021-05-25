@@ -169,6 +169,7 @@ def prepare_git_job(
 
     job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
+    job.env('ACCESS_LEVEL', access_level)
 
     # Use "set -x" to print the commands for easier debugging.
     job.command('set -x')
