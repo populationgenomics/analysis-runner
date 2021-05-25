@@ -8,7 +8,7 @@ from aiohttp import web
 
 import hailtop.batch as hb
 
-from cromwell_routes import add_cromwel_routes
+from cromwell_routes import add_cromwell_routes
 
 from util import (
     get_analysis_runner_metadata,
@@ -16,6 +16,7 @@ from util import (
     _get_hail_version,
     validate_output_dir,
     check_dataset_and_group,
+    check_allowed_repos,
     server_config,
     publisher,
     prepare_git_job,
@@ -38,19 +39,10 @@ async def index(request):
     params = await request.json()
     try:
         output_dir = validate_output_dir(params['output'])
-
         dataset = params['dataset']
         check_dataset_and_group(dataset, email)
-
         repo = params['repo']
-        allowed_repos = server_config[dataset]['allowedRepos']
-        if repo not in allowed_repos:
-            raise web.HTTPForbidden(
-                reason=(
-                    f'Repository "{repo}" is not one of the allowed repositories: '
-                    f'{", ".join(allowed_repos)}'
-                )
-            )
+        check_allowed_repos(dataset, repo)
 
         access_level = params['accessLevel']
         hail_token = server_config[dataset].get(f'{access_level}Token')
@@ -133,7 +125,7 @@ async def index(request):
         raise web.HTTPBadRequest(reason='Missing request parameter')
 
 
-add_cromwel_routes(routes)
+add_cromwell_routes(routes)
 
 
 async def init_func():

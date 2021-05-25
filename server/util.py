@@ -1,3 +1,6 @@
+"""
+Utility methods for analysis-runner server
+"""
 import os
 import json
 from shlex import quote
@@ -42,6 +45,7 @@ cromwell_url = _read_secret('cromwell_url')
 
 
 async def _get_hail_version() -> str:
+    """ASYNC get hail version for the hail server in the local deploy_config"""
     deploy_config = get_deploy_config()
     url = deploy_config.url('query', f'/api/v1alpha/version')
     async with ClientSession() as session:
@@ -51,6 +55,10 @@ async def _get_hail_version() -> str:
 
 
 def get_email_from_request(request):
+    """
+    Get 'Authorization' from request header,
+    and parse the email address using cpg-util
+    """
     auth_header = request.headers.get('Authorization')
     if auth_header is None:
         raise web.HTTPUnauthorized(reason='Missing authorization header')
@@ -62,7 +70,26 @@ def get_email_from_request(request):
         raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
 
+def check_allowed_repos(dataset, repo):
+    """Check that repo is the in server_config allowedRepos for the dataset"""
+    allowed_repos = server_config[dataset]['allowedRepos']
+    if repo not in allowed_repos:
+        raise web.HTTPForbidden(
+            reason=(
+                f'Repository "{repo}" is not one of the allowed repositories: '
+                f'{", ".join(allowed_repos)}'
+            )
+        )
+
+
 def validate_output_dir(output_dir: str):
+    """
+    Check that output_dir:
+        * is a bucket;
+        * not the bucket root;
+        * starts with 'cpg-';
+        * then strip the trailing '/'.
+    """
     if not output_dir.startswith('gs://cpg-'):
         raise web.HTTPBadRequest(
             reason='Output directory needs to start with "gs://cpg-"'
@@ -74,6 +101,7 @@ def validate_output_dir(output_dir: str):
 
 
 def check_dataset_and_group(dataset, email):
+    """Check that the email address is a member of the {dataset}-access@popgen group"""
     if dataset not in server_config:
         raise web.HTTPForbidden(
             reason=(
@@ -102,6 +130,10 @@ def get_analysis_runner_metadata(
     cwd,
     **kwargs,
 ):
+    """
+    Get well-formed analysis-runner metadata, requiring the core listed keys
+    with some flexibility to provide your own keys (as **kwargs)
+    """
 
     return {
         'timestamp': timestamp,
@@ -122,16 +154,31 @@ def get_analysis_runner_metadata(
 def prepare_git_job(
     job, dataset, output_dir, access_level, repo, commit, metadata_str: str
 ):
+    """
+    Takes a hail job, and:
+        * Sets the driver image
+        * Sets HAIL_BILLING_PROJECT, DRIVER_IMAGE env variables
+        * Activates the google service account
+        * Clones the repository, and
+            * if access_level != "test": check the desired commit is on 'main'
+            * check out the specific commit
+        * if metadata_str is provided (an already JSON-ified metadata obj), then:
+            *  copy metadata.json to output bucket (
+    """
     job.image(DRIVER_IMAGE)
 
     job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
 
+    # Use "set -x" to print the commands for easier debugging.
+    job.command('set -x')
+
+    # activate the google service account
+    job.command(f'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json')
+
     # Note: for private GitHub repos we'd need to use a token to clone.
     # Any job commands here are evaluated in a bash shell, so user arguments should
-    # be escaped to avoid command injection. Use "set -x" to print the commands for
-    # easier debugging.
-    job.command('set -x')
+    # be escaped to avoid command injection.
     job.command(
         f'git clone --recurse-submodules https://github.com/{GITHUB_ORG}/{quote(repo)}.git'
     )
@@ -149,10 +196,6 @@ def prepare_git_job(
     # Change the working directory (usually to make relative scripts possible).
 
     if metadata_str:
-        job.command(
-            f'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
-        )
-
         # Append metadata information, in case the same output directory gets used
         # multiple times.
         job.command(
@@ -173,6 +216,7 @@ def prepare_git_job(
 
 
 def run_batch_job_and_print_url(batch, wait):
+    """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
     bc_batch = batch.run(wait=False)
 
     deploy_config = get_deploy_config()

@@ -1,3 +1,8 @@
+# pylint: disable=unused-variable
+"""
+Exports 'add_cromwell_routes', to add the following route to a flask API:
+    POST /cromwell: Posts a workflow to a cromwell_url
+"""
 import json
 import logging
 from datetime import datetime
@@ -11,6 +16,7 @@ from util import (
     get_email_from_request,
     validate_output_dir,
     check_dataset_and_group,
+    check_allowed_repos,
     server_config,
     publisher,
     prepare_git_job,
@@ -21,40 +27,80 @@ from util import (
 )
 
 
-def add_cromwel_routes(
+def add_cromwell_routes(
     routes,
 ):
-    def make_cromwell_url(suffix):
-        return cromwell_url + suffix
+    """Add cromwell route(s) to 'routes' flask API"""
 
     @routes.post('/cromwell')
     async def cromwell(request):
+        """
+        Checks out a repo, and POSTs the designated workflow to the cromwell server
+        ---
+        post:
+          operationId: createCromwellRequest
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    output:
+                      type: string
+                    dataset:
+                      type: string
+                    accessLevel:
+                      type: string
+                    repo:
+                      type: string
+                    commit:
+                      type: string
+                    cwd:
+                      type: string
+                      description: to set the working directory, relative to the repo root
+                    description:
+                      type: string
+                      description: Description of the workflow to run
+                    workflow:
+                      type: string
+                      description: the relative path of the workflow (from the cwd)
+                    dependencies:
+                      type: array
+                      items: string
+                      description: 'An array of directories (/ files) to zip for the '-p / --tools' input to "search for workflow imports"
+                    wait:
+                      type: boolean
+                      description: 'Wait for workflow to complete before returning, could yield long response times'
+
+
+          responses:
+            '200':
+              content:
+                text/plain:
+                  schema:
+                    type: string
+                    example: 'batch.hail.populationgenomics.org.au/batches/{batch}/jobs/'
+              description: URL of submitted hail batch workflow
+        """
         email = get_email_from_request(request)
         # When accessing a missing entry in the params dict, the resulting KeyError
         # exception gets translated to a Bad Request error in the try block below.
         params = await request.json()
         try:
             output_dir = validate_output_dir(params['output'])
-
             dataset = params['dataset']
             check_dataset_and_group(dataset, email)
-
             repo = params['repo']
-            allowed_repos = server_config[dataset]['allowedRepos']
-            if repo not in allowed_repos:
-                raise web.HTTPForbidden(
-                    reason=(
-                        f'Repository "{repo}" is not one of the allowed repositories: '
-                        f'{", ".join(allowed_repos)}'
-                    )
-                )
-
+            check_allowed_repos(dataset, repo)
             access_level = params['accessLevel']
+
             ds_config = server_config[dataset]
             hail_token = ds_config.get(f'{access_level}Token')
             project = ds_config.get(f'{access_level}Project')
             service_account = ds_config.get(f'{access_level}ServiceAccount')
             intermediate_dir = ds_config.get(f'{access_level}IntermediateDir')
+
             if not service_account or not intermediate_dir:
                 raise web.HTTPBadRequest(
                     reason=f'Invalid access level "{access_level}"'
@@ -71,9 +117,9 @@ def add_cromwel_routes(
             if not commit or commit == 'HEAD':
                 raise web.HTTPBadRequest(reason='Invalid commit parameter')
 
-            libs = params.get('deps')
-            if libs:
-                libs.split(',')
+            libs = params.get('dependencies')
+            if not isinstance(libs, list):
+                raise web.HTTPBadRequest(reason='Expected "dependencies" to be a list')
             cwd = params['cwd']
             wf = params['workflow']
             if not wf:
@@ -127,7 +173,7 @@ def add_cromwel_routes(
                     'zip -r tools.zip ' + ' '.join(quote(s + '/') for s in libs)
                 )
 
-            cromwell_post_url = make_cromwell_url('api/workflows/v1/')
+            cromwell_post_url = cromwell_url + 'api/workflows/v1/'
             workflow_options = {
                 'user_service_account_json': service_account,
                 'google_project': project,
@@ -135,6 +181,7 @@ def add_cromwel_routes(
                 'final_workflow_outputs_dir': output_dir,
             }
 
+            # TODO: consider how to reproducibly pass inputs
             workflow_inputs = None
 
             job.command(
@@ -156,30 +203,3 @@ curl -X POST "{cromwell_post_url}" \\
         except KeyError as e:
             logging.error(e)
             raise web.HTTPBadRequest(reason='Missing request parameter: ' + e.args[0])
-
-    @routes.get('/cromwell/engine/version')
-    def get_engine_version(request):
-        # proxy request to cromwell path
-        pass
-
-    @routes.post('/cromwell/{workflow_id}/abort')
-    def abort_cromwell_workflow(request):
-        wid = get_workflow_id(request)
-
-    @routes.get('/cromwell/{workflow_id}/status')
-    def get_cromwell_status(request):
-        wid = get_workflow_id(request)
-
-    @routes.get('/cromwell/{workflow_id}/outputs')
-    def get_cromwell_outputs(request):
-        wid = get_workflow_id(request)
-
-    @routes.get('/cromwell/{workflow_id}/metadata')
-    def get_cromwell_metadata(request):
-        wid = get_workflow_id(request)
-
-    def get_workflow_id(request):
-        wid = request.match_info.get('workflow_id', None)
-        if not wid:
-            raise web.HTTPBadRequest(reason='Missing url parameter: workflow_id')
-        return wid
