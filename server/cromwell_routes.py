@@ -65,6 +65,9 @@ def add_cromwell_routes(
                     workflow:
                       type: string
                       description: the relative path of the workflow (from the cwd)
+                    inputs:
+                      type: string
+                      description: the relative path to an inputs.json (from the cwd). Currently only supports one inputs.json
                     dependencies:
                       type: array
                       items: string
@@ -99,7 +102,7 @@ def add_cromwell_routes(
             hail_token = ds_config.get(f'{access_level}Token')
             project = ds_config.get(f'{access_level}Project')
             service_account = ds_config.get(f'{access_level}ServiceAccount')
-            intermediate_dir = ds_config.get(f'{access_level}IntermediateDir')
+            intermediate_dir = f'gs://cpg-{dataset}-temporary/cromwell'
 
             if not service_account or not intermediate_dir:
                 raise web.HTTPBadRequest(
@@ -124,6 +127,8 @@ def add_cromwell_routes(
             wf = params['workflow']
             if not wf:
                 raise web.HTTPBadRequest(reason='Invalid script parameter')
+
+            inputs_json = params['inputs']
 
             # This metadata dictionary gets stored at the output_dir location.
             timestamp = datetime.now().astimezone().isoformat()
@@ -181,9 +186,6 @@ def add_cromwell_routes(
                 'final_workflow_outputs_dir': output_dir,
             }
 
-            # TODO: consider how to reproducibly pass inputs
-            workflow_inputs = None
-
             job.command(
                 f"""
 cat '{json.dumps(workflow_options)}' > workflow_options.json
@@ -191,7 +193,7 @@ curl -X POST "{cromwell_post_url}" \\
     -H "accept: application/json" \\
     -H "Content-Type: multipart/form-data" \\
     -F "workflowSource=@{wf}" \\
-    {f'-F "workflowInputs=@{workflow_inputs}"' if workflow_inputs else ''} \\
+    {f'-F "workflowInputs=@{inputs_json}"' if inputs_json else ''} \\
     -F "workflowOptions=@workflow-options.json;type=application/json" \\
     {f'-F "workflowOptions=@{deps_path}"' if deps_path else ''} \\
 """
