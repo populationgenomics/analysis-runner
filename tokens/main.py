@@ -56,7 +56,8 @@ def get_project_id(dataset: str) -> str:
         return yaml.safe_load(f)['config']['gcp:project']
 
 
-if __name__ == '__main__':
+def main():
+    """Main entry point."""
     config = {}
     for dataset, allowed_repos in ALLOWED_REPOS.items():
         entries = {'projectId': get_project_id(dataset), 'allowedRepos': allowed_repos}
@@ -67,3 +68,7 @@ if __name__ == '__main__':
         config[dataset] = entries
 
     add_secret('server-config', json.dumps(config))
+
+
+if __name__ == '__main__':
+    main()
