@@ -100,11 +100,11 @@ def add_cromwell_routes(
 
             ds_config = server_config[dataset]
             hail_token = ds_config.get(f'{access_level}Token')
-            project = ds_config.get(f'{access_level}Project')
-            service_account = ds_config.get(f'{access_level}ServiceAccount')
+            project = ds_config.get('projectId')
+            service_account_json = ds_config.get(f'{access_level}Key')
             intermediate_dir = f'gs://cpg-{dataset}-temporary/cromwell'
 
-            if not service_account or not intermediate_dir:
+            if not service_account_json or not intermediate_dir:
                 raise web.HTTPBadRequest(
                     reason=f'Invalid access level "{access_level}"'
                 )
@@ -180,7 +180,7 @@ def add_cromwell_routes(
 
             cromwell_post_url = cromwell_url + 'api/workflows/v1/'
             workflow_options = {
-                'user_service_account_json': service_account,
+                'user_service_account_json': service_account_json,
                 'google_project': project,
                 'jes_gcs_root': intermediate_dir,
                 'final_workflow_outputs_dir': output_dir,
