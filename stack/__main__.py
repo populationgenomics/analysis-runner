@@ -168,7 +168,7 @@ def create_group(mail: str) -> gcp.cloudidentity.Group:
 
 def add_bucket_permissions(
     name: str, group: gcp.cloudidentity.Group, bucket: gcp.storage.Bucket, role: str
-) -> bucket_member:
+) -> gcp.storage.BucketIAMMember:
     """Returns GCS bucket permissions for the given group."""
     return bucket_member(
         name,
