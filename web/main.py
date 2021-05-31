@@ -6,7 +6,8 @@ from flask import Flask, abort, request
 import google.cloud.storage
 from cpg_utils.cloud import is_google_group_member, email_from_id_token
 
-BUCKET_SUFFIX = os.getenv('BUCKET_SUFFIX', 'web')
+BUCKET_SUFFIX = os.getenv('BUCKET_SUFFIX')
+assert BUCKET_SUFFIX
 
 app = Flask(__name__)
 
