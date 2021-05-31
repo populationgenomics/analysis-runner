@@ -6,6 +6,8 @@ from flask import Flask, abort, request
 import google.cloud.storage
 from cpg_utils.cloud import is_google_group_member, email_from_id_token
 
+BUCKET_SUFFIX = os.getenv('BUCKET_SUFFIX', 'web')
+
 app = Flask(__name__)
 
 storage_client = google.cloud.storage.Client()
@@ -35,7 +37,7 @@ def handler(dataset=None, filename=None):
         logger.warning(f'{email} is not a member of {group_name}')
         abort(403)
 
-    bucket_name = f'cpg-{dataset}-web'
+    bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     logger.info(f'Fetching blob gs://{bucket_name}/{filename}')
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.get_blob(filename)
