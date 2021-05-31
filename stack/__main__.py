@@ -561,3 +561,10 @@ bucket_member(
     role='roles/storage.admin',
     member=pulumi.Output.concat('serviceAccount:', notebook_account.email),
 )
+
+bucket_member(
+    'notebook-service-account-test-web-bucket-admin',
+    bucket=test_web_bucket.name,
+    role='roles/storage.admin',
+    member=pulumi.Output.concat('serviceAccount:', notebook_account.email),
+)
