@@ -32,6 +32,10 @@ jobs:
       run: |
         docker push $DOCKER_IMAGE
 
-    - name: "deploy to Cloud Run"
+    - name: "deploy web-test"
       run: |
-        gcloud run deploy web --region australia-southeast1 --no-allow-unauthenticated --platform managed --image $DOCKER_IMAGE
+        gcloud run deploy web-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=BUCKET_SUFFIX=test-web --image $DOCKER_IMAGE
+
+    - name: "deploy web"
+      run: |
+        gcloud run deploy web --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=BUCKET_SUFFIX=main-web --image $DOCKER_IMAGE
