@@ -607,30 +607,12 @@ gcp.serviceaccount.IAMBinding(
     members=[pulumi.Output.concat('group:', access_group.group_key.id)],
 )
 
-bucket_member(
-    'notebook-service-account-test-bucket-admin',
-    bucket=test_bucket.name,
-    role='roles/storage.admin',
-    member=pulumi.Output.concat('serviceAccount:', notebook_account.email),
-)
-
-bucket_member(
-    'notebook-service-account-test-tmp-bucket-admin',
-    bucket=test_tmp_bucket.name,
-    role='roles/storage.admin',
-    member=pulumi.Output.concat('serviceAccount:', notebook_account.email),
-)
-
-bucket_member(
-    'notebook-service-account-test-metadata-bucket-admin',
-    bucket=test_metadata_bucket.name,
-    role='roles/storage.admin',
-    member=pulumi.Output.concat('serviceAccount:', notebook_account.email),
-)
-
-bucket_member(
-    'notebook-service-account-test-web-bucket-admin',
-    bucket=test_web_bucket.name,
-    role='roles/storage.admin',
-    member=pulumi.Output.concat('serviceAccount:', notebook_account.email),
+# Grant the notebook account the same permissions as the access group members.
+gcp.cloudidentity.GroupMembership(
+    'notebook-service-account-access-group-member',
+    group=access_group.id,
+    preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
+        id=notebook_account.email
+    ),
+    roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
 )
