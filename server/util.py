@@ -41,7 +41,7 @@ def _read_secret(name: str) -> str:
 
 
 server_config = json.loads(_read_secret('server-config'))
-cromwell_url = _read_secret('cromwell_url')
+CROMWELL_URL = 'https://cromwell.populationgenomics.org.au'
 
 
 async def _get_hail_version() -> str:
@@ -170,12 +170,15 @@ def prepare_git_job(
     job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
     job.env('ACCESS_LEVEL', access_level)
+    job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
 
     # Use "set -x" to print the commands for easier debugging.
     job.command('set -x')
 
     # activate the google service account
-    job.command(f'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json')
+    job.command(
+        f'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+    )
 
     # Note: for private GitHub repos we'd need to use a token to clone.
     # Any job commands here are evaluated in a bash shell, so user arguments should

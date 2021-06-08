@@ -8,7 +8,7 @@ from aiohttp import web
 
 import hailtop.batch as hb
 
-from cromwell_routes import add_cromwell_routes
+from cromwell import add_cromwell_routes
 
 from util import (
     get_analysis_runner_metadata,

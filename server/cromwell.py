@@ -21,7 +21,7 @@ from util import (
     publisher,
     prepare_git_job,
     run_batch_job_and_print_url,
-    cromwell_url,
+    CROMWELL_URL,
     PUBSUB_TOPIC,
     DRIVER_IMAGE,
 )
@@ -178,7 +178,7 @@ def add_cromwell_routes(
                     'zip -r tools.zip ' + ' '.join(quote(s + '/') for s in libs)
                 )
 
-            cromwell_post_url = cromwell_url + 'api/workflows/v1/'
+            cromwell_post_url = CROMWELL_URL + '/api/workflows/v1/'
             workflow_options = {
                 'user_service_account_json': service_account_json,
                 'google_project': project,
@@ -188,14 +188,18 @@ def add_cromwell_routes(
 
             job.command(
                 f"""
-cat '{json.dumps(workflow_options)}' > workflow_options.json
-curl -X POST "{cromwell_post_url}" \\
+echo '{json.dumps(workflow_options)}' > workflow-options.json
+access_token="$(gcloud auth print-identity-token --audiences="717631777761-ec4u8pffntsekut9kef58hts126v7usl.apps.googleusercontent.com")"
+wid=$(curl -X POST "{cromwell_post_url}" \\
+    -H "Authorization: Bearer $access_token" \\
     -H "accept: application/json" \\
     -H "Content-Type: multipart/form-data" \\
     -F "workflowSource=@{wf}" \\
     {f'-F "workflowInputs=@{inputs_json}"' if inputs_json else ''} \\
     -F "workflowOptions=@workflow-options.json;type=application/json" \\
-    {f'-F "workflowOptions=@{deps_path}"' if deps_path else ''} \\
+    {f'-F "workflowDependencies=@{deps_path}"' if deps_path else ''})
+
+echo "Submitted workflow with ID $wid"
 """
             )
 
