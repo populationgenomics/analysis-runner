@@ -664,3 +664,10 @@ gcp.serviceaccount.IAMBinding(
     role='roles/iam.serviceAccountUser',
     members=[f'serviceAccount:{CROMWELL_SERVER_SERVICE_ACCOUNT}'],
 )
+
+# Cromwell uses the Life Sciences API for running pipelines.
+lifesciences_service = gcp.projects.Service(
+    'lifesciences-service',
+    service='lifesciences.googleapis.com',
+    disable_on_destroy=False,
+)
