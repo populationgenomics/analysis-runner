@@ -666,7 +666,7 @@ gcp.serviceaccount.IAMBinding(
 )
 
 # Cromwell uses the Life Sciences API for running pipelines.
-lifesciences_service = gcp.projects.Service(
+gcp.projects.Service(
     'lifesciences-service',
     service='lifesciences.googleapis.com',
     disable_on_destroy=False,
