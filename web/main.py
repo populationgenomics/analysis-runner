@@ -2,7 +2,7 @@
 
 import logging
 import os
-from flask import Flask, abort, request
+from flask import Flask, abort, request, Response
 import google.cloud.storage
 from cpg_utils.cloud import is_google_group_member, email_from_id_token
 
@@ -45,7 +45,14 @@ def handler(dataset=None, filename=None):
     if blob is None:
         abort(404)
 
-    return blob.download_as_text()
+    response = Response(blob.download_as_bytes())
+    response.headers['Content-Type'] = blob.content_type
+    response.headers['Content-Language'] = blob.content_language
+    response.headers['Cache-Control'] = blob.cache_control
+    response.headers['Content-Encoding'] = blob.content_encoding
+    response.headers['Content-Disposition'] = blob.content_disposition
+    response.headers['Content-Length'] = blob.size
+    return response
 
 
 if __name__ == '__main__':
