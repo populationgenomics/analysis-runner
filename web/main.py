@@ -46,12 +46,18 @@ def handler(dataset=None, filename=None):
         abort(404)
 
     response = Response(blob.download_as_bytes())
-    response.headers['Content-Type'] = blob.content_type
-    response.headers['Content-Language'] = blob.content_language
-    response.headers['Cache-Control'] = blob.cache_control
-    response.headers['Content-Encoding'] = blob.content_encoding
-    response.headers['Content-Disposition'] = blob.content_disposition
-    response.headers['Content-Length'] = blob.size
+    if blob.content_type:
+        response.headers['Content-Type'] = blob.content_type
+    if blob.content_language:
+        response.headers['Content-Language'] = blob.content_language
+    if blob.cache_control:
+        response.headers['Cache-Control'] = blob.cache_control
+    if blob.content_encoding:
+        response.headers['Content-Encoding'] = blob.content_encoding
+    if blob.content_disposition:
+        response.headers['Content-Disposition'] = blob.content_disposition
+    if blob.size:
+        response.headers['Content-Length'] = blob.size
     return response
 
 
