@@ -100,9 +100,15 @@ def add_cromwell_routes(
 
             ds_config = server_config[dataset]
             hail_token = ds_config.get(f'{access_level}Token')
-            project = ds_config.get('projectId')
             service_account_json = ds_config.get(f'{access_level}Key')
-            intermediate_dir = f'gs://cpg-{dataset}-temporary/cromwell'
+            # use the email specified by the service_account_json
+            service_account_dict = json.loads(service_account_json)
+            if 'client_email' not in service_account_dict:
+                raise web.HTTPServerError(
+                    reason="The service_account didn't contain an entry for client_email"
+                )
+            service_account_email = service_account_dict['client_email']
+            intermediate_dir = f'gs://cpg-{dataset}-{access_level}-tmp/cromwell'
 
             if not service_account_json or not intermediate_dir:
                 raise web.HTTPBadRequest(
@@ -166,6 +172,7 @@ def add_cromwell_routes(
                 commit=commit,
                 metadata_str=metadata,
                 output_dir=output_dir,
+                print_all_statements=False,
             )
             job.env('OUTPUT', output_dir)
             if cwd:
@@ -178,10 +185,11 @@ def add_cromwell_routes(
                     'zip -r tools.zip ' + ' '.join(quote(s + '/') for s in libs)
                 )
 
-            cromwell_post_url = CROMWELL_URL + '/api/workflows/v1/'
+            cromwell_post_url = CROMWELL_URL + '/api/workflows/v1'
             workflow_options = {
                 'user_service_account_json': service_account_json,
-                'google_project': project,
+                'google_compute_service_account': service_account_email,
+                'google_project': 'hail-295901',
                 'jes_gcs_root': intermediate_dir,
                 'final_workflow_outputs_dir': output_dir,
             }

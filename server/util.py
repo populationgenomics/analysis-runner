@@ -152,7 +152,14 @@ def get_analysis_runner_metadata(
 
 
 def prepare_git_job(
-    job, dataset, output_dir, access_level, repo, commit, metadata_str: str
+    job,
+    dataset,
+    output_dir,
+    access_level,
+    repo,
+    commit,
+    metadata_str: str,
+    print_all_statements=True,
 ):
     """
     Takes a hail job, and:
@@ -173,7 +180,8 @@ def prepare_git_job(
     job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
 
     # Use "set -x" to print the commands for easier debugging.
-    job.command('set -x')
+    if print_all_statements:
+        job.command('set -x')
 
     # activate the google service account
     job.command(
