@@ -610,7 +610,7 @@ def main():  # pylint: disable=too-many-locals
 
         # Allow the Cromwell service accounts to run workflows.
         gcp.projects.IAMMember(
-            'cromwell-runner-workflow-run-permissions',
+            f'cromwell-service-account-{access_level}-workflows-runner',
             role='roles/lifesciences.workflowsRunner',
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
