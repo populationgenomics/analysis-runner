@@ -2,13 +2,12 @@
 
 from typing import Optional
 import json
-import os
 from concurrent.futures import ThreadPoolExecutor
 from google.cloud import secretmanager
 import googleapiclient.discovery
 import google.api_core.exceptions
 
-PROJECT_ID = os.getenv('GCP_PROJECT')
+PROJECT_ID = 'analysis-runner'
 
 CLOUD_IDENTITY_SERVICE_NAME = 'cloudidentity.googleapis.com'
 CLOUD_IDENTITY_API_VERSION = 'v1'
