@@ -217,6 +217,30 @@ def main():  # pylint: disable=too-many-locals
 
     access_group = create_group(group_mail('access'))
 
+    # This secret is used as a fast cache for checking memberships in the above group.
+    access_group_cache_secret = gcp.secretmanager.Secret(
+        f'access-group-cache-secret',
+        secret_id=f'{dataset}-access-members-cache',
+        project=ANALYSIS_RUNNER_PROJECT,
+        replication=gcp.secretmanager.SecretReplicationArgs(
+            user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
+                replicas=[
+                    gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
+                        location='australia-southeast1',
+                    ),
+                ],
+            ),
+        ),
+    )
+
+    gcp.secretmanager.SecretIamBinding(
+        f'access-group-cache-secret-accessor',
+        project=ANALYSIS_RUNNER_PROJECT,
+        secret_id=access_group_cache_secret.id,
+        role='roles/secretmanager.secretAccessor',
+        members=[f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}'],
+    )
+
     listing_role = gcp.projects.IAMCustomRole(
         'storage-listing-role',
         description='Allows listing of storage objects',
