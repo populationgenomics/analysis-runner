@@ -33,7 +33,8 @@ def _read_secret(name: str) -> Optional[str]:
                 'name': f'{secret_manager.secret_path(PROJECT_ID, name)}/versions/latest'
             }
         )
-    except google.api_core.exceptions.FailedPrecondition as e:
+    # except google.api_core.exceptions.FailedPrecondition as e:
+    except google.api_core.exceptions.ClientError as e:
         # Fail gracefully if there's no secret version yet.
         print(f'Problem accessing secret {name}: {e}')
         return None
@@ -61,25 +62,23 @@ def _process_dataset_group(dataset: str) -> None:
             .list(parent=parent, pageToken=page_token)
             .execute()
         )
+
         for member in response['memberships']:
             members.append(member['preferredMemberKey']['id'])
-
-        print(f'member list for {group_name}: {members}')
 
         page_token = response.get('nextPageToken')
         if not page_token:
             break
 
     all_members = ','.join(members)
-    print(f'Members for {group_name}: {all_members}')
 
     # Check whether the current secret version is up-to-date.
     secret_name = f'{dataset}-access-members-cache'
     current_secret = _read_secret(secret_name)
-    print(f'Current secret for {group_name}: {current_secret}')
 
     if current_secret == all_members:
-        return  # Nothing to do.
+        print(f'Cache for {dataset} is up-to-date.')
+        return  # Nothing left to do.
 
     response = secret_manager.add_secret_version(
         request={
@@ -98,4 +97,4 @@ def access_group_cache(unused_data, unused_context):
     # concurrently. We're using processes, as google-api-python-client is not thread-safe:
     # https://googleapis.github.io/google-api-python-client/docs/thread_safety.html
     with multiprocessing.Pool(20) as pool:
-        pool.apply_async(_process_dataset_group, config)
+        pool.map(_process_dataset_group, config)
