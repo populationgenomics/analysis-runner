@@ -609,10 +609,11 @@ def main():  # pylint: disable=too-many-locals
     for kind, access_level, service_account in service_accounts:
         # To use a service account for VMs, accounts need to be allowed to act on their
         # own behalf ;).
+        project = HAIL_PROJECT if kind == 'hail' else project_id
         gcp.serviceaccount.IAMMember(
             f'{kind}-service-account-{access_level}-service-account-user',
             service_account_id=pulumi.Output.concat(
-                'projects/', HAIL_PROJECT, '/serviceAccounts/', service_account
+                'projects/', project, '/serviceAccounts/', service_account
             ),
             role='roles/iam.serviceAccountUser',
             member=pulumi.Output.concat('serviceAccount:', service_account),
@@ -642,6 +643,9 @@ def main():  # pylint: disable=too-many-locals
             role='roles/serviceusage.serviceUsageConsumer',
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
+
+        # To start a Dataproc cluster using the same service account, the account must be
+        # allowed to act on its own behalf ;).
 
         # Add Hail service accounts to Cromwell access group.
         gcp.cloudidentity.GroupMembership(
