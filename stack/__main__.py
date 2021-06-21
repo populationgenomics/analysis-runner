@@ -14,6 +14,9 @@ ANALYSIS_RUNNER_SERVICE_ACCOUNT = (
     'analysis-runner-server@analysis-runner.iam.gserviceaccount.com'
 )
 WEB_SERVER_SERVICE_ACCOUNT = 'web-server@analysis-runner.iam.gserviceaccount.com'
+ACCESS_GROUP_CACHE_SERVICE_ACCOUNT = (
+    'access-group-cache@analysis-runner.iam.gserviceaccount.com'
+)
 REFERENCE_BUCKET_NAME = 'cpg-reference'
 NOTEBOOKS_PROJECT = 'notebooks-314505'
 # cromwell-submission-access@populationgenomics.org.au
@@ -238,6 +241,22 @@ def main():  # pylint: disable=too-many-locals
         project=ANALYSIS_RUNNER_PROJECT,
         secret_id=access_group_cache_secret.id,
         role='roles/secretmanager.secretAccessor',
+        members=[f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}'],
+    )
+
+    gcp.secretmanager.SecretIamBinding(
+        f'access-group-cache-secret-version-adder',
+        project=ANALYSIS_RUNNER_PROJECT,
+        secret_id=access_group_cache_secret.id,
+        role='roles/secretmanager.secretVersionAdder',
+        members=[f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}'],
+    )
+
+    gcp.secretmanager.SecretIamBinding(
+        f'analyis-runner-access-group-cache-secret-accessor',
+        project=ANALYSIS_RUNNER_PROJECT,
+        secret_id=access_group_cache_secret.id,
+        role='roles/secretmanager.secretAccessor',
         members=[f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}'],
     )
 
@@ -339,6 +358,7 @@ def main():  # pylint: disable=too-many-locals
         member=pulumi.Output.concat('serviceAccount:', WEB_SERVER_SERVICE_ACCOUNT),
     )
 
+    # TODO(@lgruen): remove this once secrets are used for checking memberships.
     # Allow the analysis-runner to check memberships.
     gcp.cloudidentity.GroupMembership(
         'analysis-runner-restricted-member',
@@ -349,12 +369,23 @@ def main():  # pylint: disable=too-many-locals
         roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
     )
 
+    # TODO(@lgruen): remove this once secrets are used for checking memberships.
     # Allow the web server to check memberships.
     gcp.cloudidentity.GroupMembership(
         'web-server-restricted-member',
         group=access_group.id,
         preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
             id=WEB_SERVER_SERVICE_ACCOUNT
+        ),
+        roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+    )
+
+    # Allow the access group cache to list memberships.
+    gcp.cloudidentity.GroupMembership(
+        'access-group-cache-membership',
+        group=access_group.id,
+        preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
+            id=ACCESS_GROUP_CACHE_SERVICE_ACCOUNT
         ),
         roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
     )
