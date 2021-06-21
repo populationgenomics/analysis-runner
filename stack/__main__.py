@@ -644,9 +644,6 @@ def main():  # pylint: disable=too-many-locals
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
 
-        # To start a Dataproc cluster using the same service account, the account must be
-        # allowed to act on its own behalf ;).
-
         # Add Hail service accounts to Cromwell access group.
         gcp.cloudidentity.GroupMembership(
             f'hail-service-account-{access_level}-cromwell-access',
