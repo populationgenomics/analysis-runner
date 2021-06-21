@@ -236,28 +236,28 @@ def main():  # pylint: disable=too-many-locals
         ),
     )
 
-    gcp.secretmanager.SecretIamBinding(
+    gcp.secretmanager.SecretIamMember(
         f'access-group-cache-secret-accessor',
         project=ANALYSIS_RUNNER_PROJECT,
         secret_id=access_group_cache_secret.id,
         role='roles/secretmanager.secretAccessor',
-        members=[f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}'],
+        member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
     )
 
-    gcp.secretmanager.SecretIamBinding(
+    gcp.secretmanager.SecretIamMember(
         f'access-group-cache-secret-version-adder',
         project=ANALYSIS_RUNNER_PROJECT,
         secret_id=access_group_cache_secret.id,
         role='roles/secretmanager.secretVersionAdder',
-        members=[f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}'],
+        member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
     )
 
-    gcp.secretmanager.SecretIamBinding(
+    gcp.secretmanager.SecretIamMember(
         f'analyis-runner-access-group-cache-secret-accessor',
         project=ANALYSIS_RUNNER_PROJECT,
         secret_id=access_group_cache_secret.id,
         role='roles/secretmanager.secretAccessor',
-        members=[f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}'],
+        member=f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}',
     )
 
     listing_role = gcp.projects.IAMCustomRole(
@@ -702,12 +702,12 @@ def main():  # pylint: disable=too-many-locals
             ),
         )
 
-        gcp.secretmanager.SecretIamBinding(
+        gcp.secretmanager.SecretIamMember(
             f'cromwell-service-account-{access_level}-secret-accessor',
             project=ANALYSIS_RUNNER_PROJECT,
             secret_id=secret.id,
             role='roles/secretmanager.secretAccessor',
-            members=[f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}'],
+            member=f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}',
         )
 
 
