@@ -2,7 +2,7 @@
 
 from typing import Optional
 import json
-from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
 from google.cloud import secretmanager
 import googleapiclient.discovery
 import google.api_core.exceptions
@@ -43,6 +43,8 @@ def _read_secret(name: str) -> Optional[str]:
 def _process_dataset_group(dataset: str) -> None:
     group_name = f'{dataset}-access@populationgenomics.org.au'
 
+    print(f'Fetching members for {group_name}...')
+
     # See https://bit.ly/37WcB1d for the API calls.
     # Pylint can't resolve the methods in Resource objects.
     # pylint: disable=E1101
@@ -62,15 +64,19 @@ def _process_dataset_group(dataset: str) -> None:
         for member in response['memberships']:
             members.append(member['preferredMemberKey']['id'])
 
+        print(f'member list for {group_name}: {members}')
+
         page_token = response.get('nextPageToken')
         if not page_token:
             break
 
     all_members = ','.join(members)
+    print(f'Members for {group_name}: {all_members}')
 
     # Check whether the current secret version is up-to-date.
     secret_name = f'{dataset}-access-members-cache'
     current_secret = _read_secret(secret_name)
+    print(f'Current secret for {group_name}: {current_secret}')
 
     if current_secret == all_members:
         return  # Nothing to do.
@@ -89,7 +95,7 @@ def access_group_cache(unused_data, unused_context):
     """Main entry point."""
     config = json.loads(_read_secret('server-config'))
     # Given that each group takes multiple seconds to process (!), we're running them
-    # concurrently.
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        for dataset in config:
-            executor.submit(_process_dataset_group, dataset)
+    # concurrently. We're using processes, as google-api-python-client is not thread-safe:
+    # https://googleapis.github.io/google-api-python-client/docs/thread_safety.html
+    with multiprocessing.Pool(20) as pool:
+        pool.apply_async(_process_dataset_group, config)

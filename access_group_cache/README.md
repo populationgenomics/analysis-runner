@@ -11,6 +11,7 @@ gcloud functions deploy access_group_cache \
   --project=analysis-runner \
   --region=australia-southeast1 \
   --runtime=python39 \
+  --memory=1024MB \
   --trigger-topic=access-group-cache-refresh \
   --service-account=access-group-cache@analysis-runner.iam.gserviceaccount.com
 ```
