@@ -1,5 +1,6 @@
 """Pulumi stack to set up buckets and permission groups."""
 
+import base64
 import pulumi
 import pulumi_gcp as gcp
 
@@ -641,7 +642,9 @@ def main():  # pylint: disable=too-many-locals
         gcp.secretmanager.SecretVersion(
             f'cromwell-service-account-{access_level}-secret-version',
             secret=secret.id,
-            secret_data=key.private_key,
+            secret_data=key.private_key.apply(
+                lambda s: base64.b64decode(s).decode('utf-8')
+            ),
         )
 
         gcp.secretmanager.SecretIamBinding(
