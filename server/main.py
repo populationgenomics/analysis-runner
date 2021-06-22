@@ -13,7 +13,7 @@ from google.cloud import pubsub_v1
 import hailtop.batch as hb
 from hailtop.config import get_deploy_config
 
-from cpg_utils.cloud import is_google_group_member, email_from_id_token
+from cpg_utils.cloud import email_from_id_token
 
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/tmp/metadata'
@@ -95,9 +95,11 @@ async def index(request):
                 )
             )
 
-        group_name = f'{dataset}-access@populationgenomics.org.au'
-        if not is_google_group_member(email, group_name):
-            raise web.HTTPForbidden(reason=f'{email} is not a member of {group_name}')
+        group_members = _read_secret(f'{dataset}-access-members-cache').split(',')
+        if email not in group_members:
+            raise web.HTTPForbidden(
+                reason=f'{email} is not a member of the {dataset} access group'
+            )
 
         repo = params['repo']
         allowed_repos = config[dataset]['allowedRepos']
