@@ -33,7 +33,6 @@ def _read_secret(name: str) -> Optional[str]:
                 'name': f'{secret_manager.secret_path(PROJECT_ID, name)}/versions/latest'
             }
         )
-    # except google.api_core.exceptions.FailedPrecondition as e:
     except google.api_core.exceptions.ClientError as e:
         # Fail gracefully if there's no secret version yet.
         print(f'Problem accessing secret {name}: {e}')
