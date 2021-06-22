@@ -17,7 +17,7 @@ PROJECT_ID = 'analysis-runner'
 app = Flask(__name__)
 
 storage_client = google.cloud.storage.Client()
-secret_manager = google.secretmanager.SecretManagerServiceClient()
+secret_manager = google.cloud.secretmanager.SecretManagerServiceClient()
 logger = logging.getLogger('gunicorn.error')
 
 
