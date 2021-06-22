@@ -24,6 +24,7 @@ from util import (
     CROMWELL_URL,
     PUBSUB_TOPIC,
     DRIVER_IMAGE,
+    get_cromwell_key,
 )
 
 
@@ -65,8 +66,8 @@ def add_cromwell_routes(
                     workflow:
                       type: string
                       description: the relative path of the workflow (from the cwd)
-                    inputs:
-                      type: string
+                    input_json_paths:
+                      type: List[string]
                       description: the relative path to an inputs.json (from the cwd). Currently only supports one inputs.json
                     dependencies:
                       type: array
@@ -99,14 +100,19 @@ def add_cromwell_routes(
             access_level = params['accessLevel']
 
             ds_config = server_config[dataset]
+            project = ds_config.get('projectId')
             hail_token = ds_config.get(f'{access_level}Token')
-            service_account_json = ds_config.get(f'{access_level}Key')
-            # use the email specified by the service_account_json
+            service_account_json = get_cromwell_key(
+                dataset=dataset, access_level=access_level
+            )
+            # use the email specified by the service_account_json again
             service_account_dict = json.loads(service_account_json)
             if 'client_email' not in service_account_dict:
                 raise web.HTTPServerError(
                     reason="The service_account didn't contain an entry for client_email"
                 )
+            # service_account_email = f'cromwell-{access_level}@{project}.iam.gserviceaccount.com'
+            # service_account_email = f'cromwell-runner@cromwell-305305.iam.gserviceaccount.com'
             service_account_email = service_account_dict['client_email']
             intermediate_dir = f'gs://cpg-{dataset}-{access_level}-tmp/cromwell'
 
@@ -134,7 +140,8 @@ def add_cromwell_routes(
             if not wf:
                 raise web.HTTPBadRequest(reason='Invalid script parameter')
 
-            inputs_json = params['inputs']
+            input_jsons = params.get('input_json_paths', [])
+            input_dict = params.get('inputs_dict')
 
             # This metadata dictionary gets stored at the output_dir location.
             timestamp = datetime.now().astimezone().isoformat()
@@ -189,10 +196,23 @@ def add_cromwell_routes(
             workflow_options = {
                 'user_service_account_json': service_account_json,
                 'google_compute_service_account': service_account_email,
-                'google_project': 'hail-295901',
+                'google_project': project,
                 'jes_gcs_root': intermediate_dir,
                 'final_workflow_outputs_dir': output_dir,
             }
+
+            if input_dict:
+                tmp_input_json_path = '/tmp/inputs.json'
+                job.command(f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}")
+                input_jsons.append(tmp_input_json_path)
+
+            inputs_cli = []
+            for idx, value in enumerate(input_jsons):
+                key = 'workflowInputs'
+                if idx > 0:
+                    key += f'_{idx + 1}'
+
+                inputs_cli.append(f'-F "{key}=@{value}"')
 
             job.command(
                 f"""
@@ -203,7 +223,7 @@ wid=$(curl -X POST "{cromwell_post_url}" \\
     -H "accept: application/json" \\
     -H "Content-Type: multipart/form-data" \\
     -F "workflowSource=@{wf}" \\
-    {f'-F "workflowInputs=@{inputs_json}"' if inputs_json else ''} \\
+    {' '.join(inputs_cli)} \\
     -F "workflowOptions=@workflow-options.json;type=application/json" \\
     {f'-F "workflowDependencies=@{deps_path}"' if deps_path else ''})
 

@@ -43,6 +43,19 @@ def _read_secret(name: str) -> str:
 server_config = json.loads(_read_secret('server-config'))
 CROMWELL_URL = 'https://cromwell.populationgenomics.org.au'
 
+# cache the cromwell keys, we don't expect these to change
+# frequently and the server would need to be reset for other
+# server_config changes to propagate correctly.
+__cromwell_key_cache = {}
+
+
+def get_cromwell_key(dataset, access_level):
+    """Get CROMWELL key from secrets"""
+    secret_name = f'{dataset}-cromwell-{access_level}-key'
+    if secret_name not in __cromwell_key_cache:
+        __cromwell_key_cache[secret_name] = _read_secret(secret_name)
+    return __cromwell_key_cache[secret_name]
+
 
 async def _get_hail_version() -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
