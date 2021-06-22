@@ -21,9 +21,9 @@ curl --location \
             "hello.inp": "Hello, fewgenomes!"
         },
         "input_json_paths": [],
-        "workflow": "examples/cromwell/hello.wdl",
-        "dependencies": [],
-        "cwd": null,
+        "workflow": "hello.wdl",
+        "dependencies": ["tools"],
+        "cwd": "examples/cromwell",
         "description": "Hello, fewgenomes!"
     }'
 ```
