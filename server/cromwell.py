@@ -84,7 +84,7 @@ def add_cromwell_routes(
                 text/plain:
                   schema:
                     type: string
-                    example: 'batch.hail.populationgenomics.org.au/batches/{batch}/jobs/'
+                    example: 'batch.hail.populationgenomics.org.au/batches/{batch}'
               description: URL of submitted hail batch workflow
         """
         email = get_email_from_request(request)

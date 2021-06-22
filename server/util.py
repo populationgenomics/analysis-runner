@@ -9,7 +9,7 @@ from aiohttp import web, ClientSession
 from hailtop.config import get_deploy_config
 from google.cloud import secretmanager, pubsub_v1
 
-from cpg_utils.cloud import is_google_group_member, email_from_id_token
+from cpg_utils.cloud import email_from_id_token
 
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/tmp/metadata'
@@ -123,9 +123,11 @@ def check_dataset_and_group(dataset, email):
             )
         )
 
-    group_name = f'{dataset}-access@populationgenomics.org.au'
-    if not is_google_group_member(email, group_name):
-        raise web.HTTPForbidden(reason=f'{email} is not a member of {group_name}')
+    group_members = _read_secret(f'{dataset}-access-members-cache').split(',')
+    if email not in group_members:
+        raise web.HTTPForbidden(
+            reason=f'{email} is not a member of the {dataset} access group'
+        )
 
 
 # pylint: disable=too-many-arguments
