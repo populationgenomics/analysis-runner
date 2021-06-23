@@ -114,7 +114,7 @@ def add_cromwell_routes(
                     reason="The service_account didn't contain an entry for client_email"
                 )
 
-            if access_level == "test":
+            if access_level == 'test':
                 intermediate_dir = f'gs://cpg-{dataset}-test-tmp/cromwell'
             else:
                 intermediate_dir = f'gs://cpg-{dataset}-main-tmp/cromwell'
@@ -204,9 +204,7 @@ def add_cromwell_routes(
 
             if input_dict:
                 tmp_input_json_path = '/tmp/inputs.json'
-                job.command(
-                    f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}"
-                )
+                job.command(f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}")
                 input_jsons.append(tmp_input_json_path)
 
             inputs_cli = []
