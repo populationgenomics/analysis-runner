@@ -51,4 +51,5 @@ permissions below, which are not set by default. Reach out in the
 
 - _Dataproc Administrator_ (at the project level)
 - _Dataproc Worker_ (at the project level)
+- _Service Usage Consumer_ (for requester-pays buckets, e.g. to use VEP)
 - _Service Account User_ (on the account itself...!)
