@@ -122,7 +122,7 @@ async def index(request):
         return web.Response(text=f'{url}\n')
     except KeyError as e:
         logging.error(e)
-        raise web.HTTPBadRequest(reason='Missing request parameter')
+        raise web.HTTPBadRequest(reason=f'Missing request parameter: {e.args[0]}')
 
 
 add_cromwell_routes(routes)

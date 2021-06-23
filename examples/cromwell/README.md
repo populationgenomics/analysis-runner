@@ -16,7 +16,7 @@ curl --location \
         "dataset": "fewgenomes",
         "repo": "analysis-runner",
         "accessLevel": "test",
-        "commit": "c59ba3e41a66bd6a95ecc7dfcf7140e386511a49",
+        "commit": "74f91a3a246fbba261f1c2a3e06bc847c77b89cf",
         "inputs_dict": {
             "hello.inp": "Hello, fewgenomes!"
         },

@@ -182,13 +182,17 @@ def add_cromwell_routes(
                 print_all_statements=False,
             )
             job.env('OUTPUT', output_dir)
+            # we'll need to put the commands like this, because
+            # the job.command is individually scoped, ie, the cd
+            # doesn't carry across the different job.commands
+            commands = []
             if cwd:
-                job.command(f'cd {quote(cwd)}')
+                commands.append(f'cd {quote(cwd)}')
 
             deps_path = None
             if libs:
                 deps_path = 'tools.zip'
-                job.command(
+                commands.append(
                     'zip -r tools.zip ' + ' '.join(quote(s + '/') for s in libs)
                 )
 
@@ -203,7 +207,9 @@ def add_cromwell_routes(
 
             if input_dict:
                 tmp_input_json_path = '/tmp/inputs.json'
-                job.command(f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}")
+                commands.append(
+                    f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}"
+                )
                 input_jsons.append(tmp_input_json_path)
 
             inputs_cli = []
@@ -214,8 +220,10 @@ def add_cromwell_routes(
 
                 inputs_cli.append(f'-F "{key}=@{value}"')
 
+            nl = "\n"
             job.command(
                 f"""
+{nl.join(commands)}
 echo '{json.dumps(workflow_options)}' > workflow-options.json
 access_token="$(gcloud auth print-identity-token --audiences="717631777761-ec4u8pffntsekut9kef58hts126v7usl.apps.googleusercontent.com")"
 wid=$(curl -X POST "{cromwell_post_url}" \\
