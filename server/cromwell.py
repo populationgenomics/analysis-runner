@@ -17,7 +17,7 @@ from util import (
     validate_output_dir,
     check_dataset_and_group,
     check_allowed_repos,
-    server_config,
+    get_server_config,
     publisher,
     prepare_git_job,
     run_batch_job_and_print_url,
@@ -92,11 +92,12 @@ def add_cromwell_routes(
         # exception gets translated to a Bad Request error in the try block below.
         params = await request.json()
         try:
+            server_config = get_server_config()
             output_dir = validate_output_dir(params['output'])
             dataset = params['dataset']
-            check_dataset_and_group(dataset, email)
+            check_dataset_and_group(server_config, dataset, email)
             repo = params['repo']
-            check_allowed_repos(dataset, repo)
+            check_allowed_repos(server_config, dataset, repo)
             access_level = params['accessLevel']
 
             ds_config = server_config[dataset]
@@ -111,13 +112,12 @@ def add_cromwell_routes(
             if not service_account_email:
                 raise web.HTTPServerError(
                     reason="The service_account didn't contain an entry for client_email"
-                )            
-            intermediate_dir = f'gs://cpg-{dataset}-{access_level}-tmp/cromwell'
-
-            if not service_account_json or not intermediate_dir:
-                raise web.HTTPBadRequest(
-                    reason=f'Invalid access level "{access_level}"'
                 )
+
+            if access_level == "test":
+                intermediate_dir = f'gs://cpg-{dataset}-test-tmp/cromwell'
+            else:
+                intermediate_dir = f'gs://cpg-{dataset}-main-tmp/cromwell'
 
             hail_bucket = f'cpg-{dataset}-hail'
             backend = hb.ServiceBackend(
@@ -183,14 +183,13 @@ def add_cromwell_routes(
             # we'll need to put the commands like this, because
             # the job.command is individually scoped, ie, the cd
             # doesn't carry across the different job.commands
-            commands = []
             if cwd:
-                commands.append(f'cd {quote(cwd)}')
+                job.command(f'cd {quote(cwd)}')
 
             deps_path = None
             if libs:
                 deps_path = 'tools.zip'
-                commands.append(
+                job.command(
                     'zip -r tools.zip ' + ' '.join(quote(s + '/') for s in libs)
                 )
 
@@ -205,7 +204,7 @@ def add_cromwell_routes(
 
             if input_dict:
                 tmp_input_json_path = '/tmp/inputs.json'
-                commands.append(
+                job.command(
                     f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}"
                 )
                 input_jsons.append(tmp_input_json_path)
@@ -218,10 +217,8 @@ def add_cromwell_routes(
 
                 inputs_cli.append(f'-F "{key}=@{value}"')
 
-            nl = '\n'
             job.command(
                 f"""
-{nl.join(commands)}
 echo '{json.dumps(workflow_options)}' > workflow-options.json
 access_token=$(gcloud auth print-identity-token --audiences=717631777761-ec4u8pffntsekut9kef58hts126v7usl.apps.googleusercontent.com)
 wid=$(curl -X POST "{cromwell_post_url}" \\

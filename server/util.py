@@ -14,6 +14,7 @@ from cpg_utils.cloud import email_from_id_token
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/tmp/metadata'
 PUBSUB_TOPIC = 'projects/analysis-runner/topics/submissions'
+CROMWELL_URL = 'https://cromwell.populationgenomics.org.au'
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
 
@@ -40,21 +41,15 @@ def _read_secret(name: str) -> str:
     return response.payload.data.decode('UTF-8')
 
 
-server_config = json.loads(_read_secret('server-config'))
-CROMWELL_URL = 'https://cromwell.populationgenomics.org.au'
-
-# cache the cromwell keys, we don't expect these to change
-# frequently and the server would need to be reset for other
-# server_config changes to propagate correctly.
-__cromwell_key_cache = {}
+def get_server_config() -> dict:
+    """Get the server-config from the secret manager"""
+    return json.loads(_read_secret('server-config'))
 
 
 def get_cromwell_key(dataset, access_level):
     """Get CROMWELL key from secrets"""
     secret_name = f'{dataset}-cromwell-{access_level}-key'
-    if secret_name not in __cromwell_key_cache:
-        __cromwell_key_cache[secret_name] = _read_secret(secret_name)
-    return __cromwell_key_cache[secret_name]
+    return _read_secret(secret_name)
 
 
 async def _get_hail_version() -> str:
@@ -83,7 +78,7 @@ def get_email_from_request(request):
         raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
 
-def check_allowed_repos(dataset, repo):
+def check_allowed_repos(server_config, dataset, repo):
     """Check that repo is the in server_config allowedRepos for the dataset"""
     allowed_repos = server_config[dataset]['allowedRepos']
     if repo not in allowed_repos:
@@ -113,7 +108,7 @@ def validate_output_dir(output_dir: str):
     return output_dir.rstrip('/')  # Strip trailing slash.
 
 
-def check_dataset_and_group(dataset, email):
+def check_dataset_and_group(server_config, dataset, email):
     """Check that the email address is a member of the {dataset}-access@popgen group"""
     if dataset not in server_config:
         raise web.HTTPForbidden(

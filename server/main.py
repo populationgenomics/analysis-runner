@@ -17,10 +17,10 @@ from util import (
     validate_output_dir,
     check_dataset_and_group,
     check_allowed_repos,
-    server_config,
     publisher,
     prepare_git_job,
     run_batch_job_and_print_url,
+    get_server_config,
     DRIVER_IMAGE,
     PUBSUB_TOPIC,
 )
@@ -38,11 +38,12 @@ async def index(request):
     # exception gets translated to a Bad Request error in the try block below.
     params = await request.json()
     try:
+        server_config = get_server_config()
         output_dir = validate_output_dir(params['output'])
         dataset = params['dataset']
-        check_dataset_and_group(dataset, email)
+        check_dataset_and_group(server_config, dataset, email)
         repo = params['repo']
-        check_allowed_repos(dataset, repo)
+        check_allowed_repos(server_config, dataset, repo)
 
         access_level = params['accessLevel']
         hail_token = server_config[dataset].get(f'{access_level}Token')
