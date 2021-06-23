@@ -8,7 +8,7 @@ workflow hello {
   }
   call E.echo as print {
     input:
-      inp=select_first([inp, "Hello, world!"])
+      inp = select_first([inp, "Hello, world!"])
   }
   output {
     String out = print.out

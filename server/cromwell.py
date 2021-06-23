@@ -107,13 +107,11 @@ def add_cromwell_routes(
             )
             # use the email specified by the service_account_json again
             service_account_dict = json.loads(service_account_json)
-            if 'client_email' not in service_account_dict:
+            service_account_email = service_account_dict.get('client_email')
+            if not service_account_email:
                 raise web.HTTPServerError(
                     reason="The service_account didn't contain an entry for client_email"
-                )
-            # service_account_email = f'cromwell-{access_level}@{project}.iam.gserviceaccount.com'
-            # service_account_email = f'cromwell-runner@cromwell-305305.iam.gserviceaccount.com'
-            service_account_email = service_account_dict['client_email']
+                )            
             intermediate_dir = f'gs://cpg-{dataset}-{access_level}-tmp/cromwell'
 
             if not service_account_json or not intermediate_dir:
@@ -225,7 +223,7 @@ def add_cromwell_routes(
                 f"""
 {nl.join(commands)}
 echo '{json.dumps(workflow_options)}' > workflow-options.json
-access_token="$(gcloud auth print-identity-token --audiences="717631777761-ec4u8pffntsekut9kef58hts126v7usl.apps.googleusercontent.com")"
+access_token=$(gcloud auth print-identity-token --audiences=717631777761-ec4u8pffntsekut9kef58hts126v7usl.apps.googleusercontent.com)
 wid=$(curl -X POST "{cromwell_post_url}" \\
     -H "Authorization: Bearer $access_token" \\
     -H "accept: application/json" \\

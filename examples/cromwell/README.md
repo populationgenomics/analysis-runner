@@ -9,7 +9,7 @@ but you can create a POST request in the short term, for example:
 ```shell
 curl --location \
     --request POST 'https://server-a2pko7ameq-ts.a.run.app/cromwell' \
-    --header "Authorization: Bearer $(gcloud auth print-identity-token  )" \
+    --header "Authorization: Bearer $(gcloud auth print-identity-token)" \
     --header 'Content-Type: application/json' \
     --data-raw '{
         "output": "gs://cpg-fewgenomes-test/mfranklin-analysis-runner-test",
