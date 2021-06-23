@@ -220,7 +220,7 @@ def add_cromwell_routes(
 
                 inputs_cli.append(f'-F "{key}=@{value}"')
 
-            nl = "\n"
+            nl = '\n'
             job.command(
                 f"""
 {nl.join(commands)}
