@@ -47,7 +47,7 @@ def get_server_config() -> dict:
 
 
 def get_cromwell_key(dataset, access_level):
-    """Get CROMWELL key from secrets"""
+    """Get Cromwell key from secrets"""
     secret_name = f'{dataset}-cromwell-{access_level}-key'
     return _read_secret(secret_name)
 
