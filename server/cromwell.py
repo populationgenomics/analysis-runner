@@ -180,9 +180,7 @@ def add_cromwell_routes(
                 print_all_statements=False,
             )
             job.env('OUTPUT', output_dir)
-            # we'll need to put the commands like this, because
-            # the job.command is individually scoped, ie, the cd
-            # doesn't carry across the different job.commands
+
             if cwd:
                 job.command(f'cd {quote(cwd)}')
 
