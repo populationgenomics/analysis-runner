@@ -103,7 +103,7 @@ def main(
         if _cwd == '.':
             _cwd = None
 
-    _token = _get_google_auth_token()
+    _token = _get_google_identity_token()
 
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 
@@ -146,7 +146,7 @@ def confirm_choice(choice: str):
         print('Unrecognised option, please try again.')
 
 
-def _get_google_auth_token() -> str:
+def _get_google_identity_token() -> str:
     # https://stackoverflow.com/a/55804230
     # command = ['gcloud', 'auth', 'print-identity-token']
 
