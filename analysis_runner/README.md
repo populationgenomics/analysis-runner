@@ -44,12 +44,3 @@ Provides a wrapper for starting a Dataproc cluster from within Hail Batch and
 submitting a Query script to it ([example](../examples/dataproc)). This is
 particularly useful as an intermediate solution before all Hail Query features
 are supported by the `ServiceBackend`.
-
-**Note:** for this to work, the Hail Batch service accounts will need the IAM
-permissions below, which are not set by default. Reach out in the
-`#team-software` channel if you need this to be set up for your project.
-
-- _Dataproc Administrator_ (at the project level)
-- _Dataproc Worker_ (at the project level)
-- _Service Usage Consumer_ (for requester-pays buckets, e.g. to use VEP)
-- _Service Account User_ (on the account itself...!)

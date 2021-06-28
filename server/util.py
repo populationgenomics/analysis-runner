@@ -163,7 +163,6 @@ def get_analysis_runner_metadata(
 
 def prepare_git_job(
     job,
-    dataset,
     output_dir,
     access_level,
     repo,
@@ -174,7 +173,8 @@ def prepare_git_job(
     """
     Takes a hail job, and:
         * Sets the driver image
-        * Sets HAIL_BILLING_PROJECT, DRIVER_IMAGE env variables
+        * Sets DRIVER_IMAGE, ACCESS_LEVEL, and GOOGLE_APPLICATION_CREDENTIALS
+          environment variables
         * Activates the google service account
         * Clones the repository, and
             * if access_level != "test": check the desired commit is on 'main'
@@ -184,7 +184,6 @@ def prepare_git_job(
     """
     job.image(DRIVER_IMAGE)
 
-    job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
     job.env('ACCESS_LEVEL', access_level)
     job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')

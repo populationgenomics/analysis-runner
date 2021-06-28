@@ -14,7 +14,7 @@ DATAPROC_IMAGE = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.63'
 )
 GCLOUD_AUTH = 'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
-GCLOUD_PROJECT = 'gcloud config set project hail-295901'
+GCLOUD_PROJECT = 'gcloud config set project $DATASET_GCP_PROJECT'
 DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
@@ -56,7 +56,7 @@ def hail_dataproc_job(
 
     start_job_command = [
         'hailctl dataproc start',
-        f'--service-account=$(gcloud config list account --format "value(core.account)")',
+        f'--service-account=dataproc-$ACCESS_LEVEL@$DATASET_GCP_PROJECT.iam.gserviceaccount.com',
         f'--max-age={max_age}',
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',
