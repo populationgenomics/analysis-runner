@@ -10,7 +10,6 @@ CUSTOMER_ID = 'C010ys3gt'
 REGION = 'australia-southeast1'
 ANALYSIS_RUNNER_PROJECT = 'analysis-runner'
 CPG_COMMON_PROJECT = 'cpg-common'
-HAIL_PROJECT = 'hail-295901'
 ANALYSIS_RUNNER_SERVICE_ACCOUNT = (
     'analysis-runner-server@analysis-runner.iam.gserviceaccount.com'
 )
@@ -629,8 +628,14 @@ def main():  # pylint: disable=too-many-locals
         # account as the worker.
         gcp.projects.IAMMember(
             f'hail-service-account-{access_level}-dataproc-admin',
-            project=HAIL_PROJECT,
             role='roles/dataproc.admin',
+            member=pulumi.Output.concat('serviceAccount:', service_account),
+        )
+
+        # Worker permissions are necessary to submit jobs.
+        gcp.projects.IAMMember(
+            f'hail-service-account-{access_level}-dataproc-worker',
+            role='roles/dataproc.worker',
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
 
