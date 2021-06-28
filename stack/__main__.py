@@ -612,15 +612,7 @@ def main():  # pylint: disable=too-many-locals
         )
 
         gcp.projects.IAMMember(
-            f'dataproc-service-account-{access_level}-dataproc-admin',
-            project=HAIL_PROJECT,
-            role='roles/dataproc.admin',
-            member=pulumi.Output.concat('serviceAccount:', service_account),
-        )
-
-        gcp.projects.IAMMember(
             f'dataproc-service-account-{access_level}-dataproc-worker',
-            project=HAIL_PROJECT,
             role='roles/dataproc.worker',
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
@@ -628,12 +620,20 @@ def main():  # pylint: disable=too-many-locals
         # Necessary for requester-pays buckets, e.g. to use VEP.
         gcp.projects.IAMMember(
             f'dataproc-service-account-{access_level}-serviceusage-consumer',
-            project=HAIL_PROJECT,
             role='roles/serviceusage.serviceUsageConsumer',
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
 
     for access_level, service_account in service_accounts['hail']:
+        # The Hail service account creates the cluster, specifying the Dataproc service
+        # account as the worker.
+        gcp.projects.IAMMember(
+            f'hail-service-account-{access_level}-dataproc-admin',
+            project=HAIL_PROJECT,
+            role='roles/dataproc.admin',
+            member=pulumi.Output.concat('serviceAccount:', service_account),
+        )
+
         # Add Hail service accounts to Cromwell access group.
         gcp.cloudidentity.GroupMembership(
             f'hail-service-account-{access_level}-cromwell-access',
