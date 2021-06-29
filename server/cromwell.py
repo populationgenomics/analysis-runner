@@ -171,7 +171,6 @@ def add_cromwell_routes(
             job = batch.new_job(name='driver')
             job = prepare_git_job(
                 job=job,
-                dataset=dataset,
                 access_level=access_level,
                 repo=repo,
                 commit=commit,

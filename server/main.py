@@ -100,7 +100,6 @@ async def index(request):
         job = batch.new_job(name='driver')
         job = prepare_git_job(
             job=job,
-            dataset=dataset,
             access_level=access_level,
             repo=repo,
             commit=commit,
@@ -108,6 +107,8 @@ async def index(request):
             output_dir=output_dir,
         )
         job.env('HAIL_BUCKET', hail_bucket)
+        job.env('HAIL_BILLING_PROJECT', dataset)
+        job.env('DATASET_GCP_PROJECT', server_config[dataset]['projectId'])
         job.env('OUTPUT', output_dir)
         if cwd:
             job.command(f'cd {quote(cwd)}')
