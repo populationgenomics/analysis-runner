@@ -5,5 +5,5 @@ This example shows how to run a Hail query script in Dataproc using Hail Batch. 
 ```bash
 cd examples/dataproc
 
-analysis-runner --dataset fewgenomes --access-level test --output-dir "gs://cpg-fewgenomes-temporary/$(whoami)-dataproc-example" --description "dataproc example" main.py
+analysis-runner --dataset fewgenomes --access-level test --output-dir "gs://cpg-fewgenomes-test-tmp/$(whoami)-dataproc-example" --description "dataproc example" main.py
 ```
