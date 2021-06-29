@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Demonstrates the use of the dataproc module."""
 
 import os
