@@ -56,13 +56,13 @@ analysis-runner \
     --dataset <dataset> \
     --description <description> \
     --access-level <level> \
-    --output-dir <directory-within-the-bucket> \
+    --output-dir <directory-within-bucket> \
     script_to_run.py with arguments
 ```
 
 `<level>` corresponds to an [access level](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner) as defined in the storage policies.
 
-`<directory-within-the-bucket>` does _not_ contain a prefix like `gs://cpg-fewgenomes-main/`. For example, if you want your results to be stored in `gs://cpg-fewgenomes-main/1kg_pca/v2`, specify `--output-dir 1kg_pca/v2`.
+`<directory-within-bucket>` does _not_ contain a prefix like `gs://cpg-fewgenomes-main/`. For example, if you want your results to be stored in `gs://cpg-fewgenomes-main/1kg_pca/v2`, specify `--output-dir 1kg_pca/v2`.
 
 If you provide a `--repository`, you MUST supply a `--commit <SHA>`, e.g.:
 
@@ -73,7 +73,7 @@ analysis-runner \
     --dataset <dataset> \
     --description <description> \
     --access-level <level>
-    --output-dir <directory-within-the-bucket> \
+    --output-dir <directory-within-bucket> \
     script_to_run.py with arguments
 ```
 
