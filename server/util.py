@@ -170,7 +170,7 @@ def prepare_git_job(
             * if access_level != "test": check the desired commit is on 'main'
             * check out the specific commit
         * if metadata_str is provided (an already JSON-ified metadata obj), then:
-            *  copy metadata.json to the metadata bucket
+            *  copy analysis-runner.json to the metadata bucket
     """
     job.image(DRIVER_IMAGE)
 
@@ -209,9 +209,7 @@ def prepare_git_job(
         # Append metadata information, in case the same output directory gets used
         # multiple times.
         bucket_type = 'test' if access_level == 'test' else 'main'
-        metadata_path = (
-            f'gs://cpg-{dataset}-{bucket_type}-metadata/{output_dir}/metadata.json'
-        )
+        metadata_path = f'gs://cpg-{dataset}-{bucket_type}-metadata/{output_dir}/analysis-runner.json'
         job.command(
             f'gsutil cp {quote(metadata_path)} {METADATA_PREFIX}_old.json '
             f'|| touch {METADATA_PREFIX}_old.json'
