@@ -171,11 +171,12 @@ def add_cromwell_routes(
             job = batch.new_job(name='driver')
             job = prepare_git_job(
                 job=job,
+                dataset=dataset,
                 access_level=access_level,
+                output_dir=output_dir,
                 repo=repo,
                 commit=commit,
                 metadata_str=metadata,
-                output_dir=output_dir,
                 print_all_statements=False,
             )
             job.env('OUTPUT', output_dir)
@@ -196,6 +197,7 @@ def add_cromwell_routes(
                 'google_compute_service_account': service_account_email,
                 'google_project': project,
                 'jes_gcs_root': intermediate_dir,
+                # TODO: https://centrepopgen.slack.com/archives/C018KFBCR1C/p1625028597301500?thread_ts=1625016039.295800&cid=C018KFBCR1C
                 'final_workflow_outputs_dir': output_dir,
             }
 

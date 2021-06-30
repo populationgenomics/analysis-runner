@@ -12,12 +12,12 @@ analysis-runner \
   --access-level "test" \
   --dataset "tob-wgs" \
   --description "testing R" \
-  --output-dir "gs://cpg-tob-wgs-temporary/$(whoami)-test-r" \
+  --output-dir "$(whoami)-test-r" \
   script.R
 ```
 
 Check that the output GCS bucket contains the files:
 
 ```bash
-gsutil ls gs://cpg-tob-wgs-temporary/$(whoami)-test-r/
+gsutil ls gs://cpg-tob-wgs-test-tmp/$(whoami)-test-r/
 ```

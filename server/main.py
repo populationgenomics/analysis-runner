@@ -69,7 +69,7 @@ async def index(request):
         if not isinstance(script, list):
             raise web.HTTPBadRequest(reason='Script parameter expects an array')
 
-        # This metadata dictionary gets stored at the output_dir location.
+        # This metadata dictionary gets stored in the metadata bucket, at the output_dir location.
         hail_version = await _get_hail_version()
         timestamp = datetime.datetime.now().astimezone().isoformat()
         metadata = json.dumps(
@@ -100,11 +100,12 @@ async def index(request):
         job = batch.new_job(name='driver')
         job = prepare_git_job(
             job=job,
+            dataset=dataset,
             access_level=access_level,
+            output_dir=output_dir,
             repo=repo,
             commit=commit,
             metadata_str=metadata,
-            output_dir=output_dir,
         )
         job.env('HAIL_BUCKET', hail_bucket)
         job.env('HAIL_BILLING_PROJECT', dataset)

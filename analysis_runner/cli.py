@@ -245,7 +245,7 @@ def parse_args(args=None):
         '--output-dir',
         required=True,
         type=str,
-        help='The output directory of the run, MUST start with "gs://".',
+        help='The output directory within the bucket. This should not contain a prefix like "gs://cpg-fewgenomes-main/".',
     )
     parser.add_argument(
         '--repository',
@@ -264,8 +264,7 @@ def parse_args(args=None):
     parser.add_argument(
         '--description',
         required=True,
-        help='Human-readable description of the job, '
-        'logged together with the output data.',
+        help='Human-readable description of the job, logged together with the output data.',
     )
 
     parser.add_argument(

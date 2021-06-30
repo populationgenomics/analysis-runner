@@ -91,20 +91,9 @@ def check_allowed_repos(server_config, dataset, repo):
 
 
 def validate_output_dir(output_dir: str):
-    """
-    Check that output_dir:
-        * is a bucket;
-        * not the bucket root;
-        * starts with 'cpg-';
-        * then strip the trailing '/'.
-    """
-    if not output_dir.startswith('gs://cpg-'):
-        raise web.HTTPBadRequest(
-            reason='Output directory needs to start with "gs://cpg-"'
-        )
-    if output_dir.count('/') <= 2:
-        raise web.HTTPBadRequest(reason='Output directory cannot be a bucket root')
-
+    """Checks that output_dir doesn't start with 'gs://' and strips trailing slashes."""
+    if output_dir.startswith('gs://'):
+        raise web.HTTPBadRequest(reason='Output directory cannot start with "gs://"')
     return output_dir.rstrip('/')  # Strip trailing slash.
 
 
@@ -163,8 +152,9 @@ def get_analysis_runner_metadata(
 
 def prepare_git_job(
     job,
-    output_dir,
+    dataset,
     access_level,
+    output_dir,
     repo,
     commit,
     metadata_str: str,
@@ -180,7 +170,7 @@ def prepare_git_job(
             * if access_level != "test": check the desired commit is on 'main'
             * check out the specific commit
         * if metadata_str is provided (an already JSON-ified metadata obj), then:
-            *  copy metadata.json to output bucket (
+            *  copy metadata.json to the metadata bucket
     """
     job.image(DRIVER_IMAGE)
 
@@ -214,13 +204,16 @@ def prepare_git_job(
         )
     job.command(f'git checkout {quote(commit)}')
     job.command(f'git submodule update')
-    # Change the working directory (usually to make relative scripts possible).
 
     if metadata_str:
         # Append metadata information, in case the same output directory gets used
         # multiple times.
+        bucket_type = 'test' if access_level == 'test' else 'main'
+        metadata_path = (
+            f'gs://cpg-{dataset}-{bucket_type}-metadata/{output_dir}/metadata.json'
+        )
         job.command(
-            f'gsutil cp {quote(output_dir)}/metadata.json {METADATA_PREFIX}_old.json '
+            f'gsutil cp {quote(metadata_path)} {METADATA_PREFIX}_old.json '
             f'|| touch {METADATA_PREFIX}_old.json'
         )
         job.command(f'echo {quote(metadata_str)} > {METADATA_PREFIX}_new.json')
@@ -229,9 +222,7 @@ def prepare_git_job(
             f'python3 {METADATA_PREFIX}_combiner.py {METADATA_PREFIX}_old.json '
             f'{METADATA_PREFIX}_new.json > {METADATA_PREFIX}.json'
         )
-        job.command(
-            f'gsutil cp {METADATA_PREFIX}.json {quote(output_dir)}/metadata.json'
-        )
+        job.command(f'gsutil cp {METADATA_PREFIX}.json {quote(metadata_path)}')
 
     return job
 

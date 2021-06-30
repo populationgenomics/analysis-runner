@@ -55,12 +55,22 @@ def hail_dataproc_job(
     start_job.command(GCLOUD_PROJECT)
     start_job.command(DATAPROC_REGION)
 
+    # The spark-env property can be used to set environment variables in jobs that run
+    # on the Dataproc cluster. We propagate some currently set environment variables
+    # this way.  TODO: fetch env, assert, add to spark-env property
+    spark_env = []
+    for env_var in 'DATASET', 'ACCESS_LEVEL', 'OUTPUT':
+        value = os.getenv('env_var')
+        assert value
+        spark_env.append(f'spark-env:{env_var}={value}')
+
     start_job_command = [
         'hailctl dataproc start',
         f'--service-account=dataproc-{os.getenv("ACCESS_LEVEL")}@{os.getenv("DATASET_GCP_PROJECT")}.iam.gserviceaccount.com',
         f'--max-age={max_age}',
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',
+        f'--properties="{",".join(spark_env)}"',
     ]
     if worker_boot_disk_size:
         start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')

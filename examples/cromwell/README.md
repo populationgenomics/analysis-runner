@@ -12,7 +12,7 @@ curl --location \
     --header "Authorization: Bearer $(gcloud auth print-identity-token)" \
     --header 'Content-Type: application/json' \
     --data-raw '{
-        "output": "gs://cpg-fewgenomes-test/mfranklin-analysis-runner-test",
+        "output": "mfranklin-analysis-runner-test",
         "dataset": "fewgenomes",
         "repo": "analysis-runner",
         "accessLevel": "test",
