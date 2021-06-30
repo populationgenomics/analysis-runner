@@ -163,7 +163,7 @@ def prepare_git_job(
     """
     Takes a hail job, and:
         * Sets the driver image
-        * Sets DRIVER_IMAGE, ACCESS_LEVEL, and GOOGLE_APPLICATION_CREDENTIALS
+        * Sets DRIVER_IMAGE, DATASET, ACCESS_LEVEL, and GOOGLE_APPLICATION_CREDENTIALS
           environment variables
         * Activates the google service account
         * Clones the repository, and
@@ -175,6 +175,7 @@ def prepare_git_job(
     job.image(DRIVER_IMAGE)
 
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
+    job.env('DATASET', dataset)
     job.env('ACCESS_LEVEL', access_level)
     job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
 
