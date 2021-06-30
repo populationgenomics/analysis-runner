@@ -116,8 +116,10 @@ def add_cromwell_routes(
 
             if access_level == 'test':
                 intermediate_dir = f'gs://cpg-{dataset}-test-tmp/cromwell'
+                final_dir = f'gs://cpg-{dataset}-test/{output_dir}'
             else:
                 intermediate_dir = f'gs://cpg-{dataset}-main-tmp/cromwell'
+                final_dir = f'gs://cpg-{dataset}-main/{output_dir}'
 
             hail_bucket = f'cpg-{dataset}-hail'
             backend = hb.ServiceBackend(
@@ -197,8 +199,7 @@ def add_cromwell_routes(
                 'google_compute_service_account': service_account_email,
                 'google_project': project,
                 'jes_gcs_root': intermediate_dir,
-                # TODO: https://centrepopgen.slack.com/archives/C018KFBCR1C/p1625028597301500?thread_ts=1625016039.295800&cid=C018KFBCR1C
-                'final_workflow_outputs_dir': output_dir,
+                'final_workflow_outputs_dir': final_dir,
             }
 
             if input_dict:

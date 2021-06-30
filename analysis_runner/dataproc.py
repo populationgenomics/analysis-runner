@@ -57,7 +57,7 @@ def hail_dataproc_job(
 
     # The spark-env property can be used to set environment variables in jobs that run
     # on the Dataproc cluster. We propagate some currently set environment variables
-    # this way.  TODO: fetch env, assert, add to spark-env property
+    # this way.
     spark_env = []
     for env_var in 'DATASET', 'ACCESS_LEVEL', 'OUTPUT':
         value = os.getenv('env_var')
