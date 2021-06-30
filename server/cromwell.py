@@ -116,8 +116,10 @@ def add_cromwell_routes(
 
             if access_level == 'test':
                 intermediate_dir = f'gs://cpg-{dataset}-test-tmp/cromwell'
+                workflow_output_dir = f'gs://cpg-{dataset}-test/{output_dir}'
             else:
                 intermediate_dir = f'gs://cpg-{dataset}-main-tmp/cromwell'
+                workflow_output_dir = f'gs://cpg-{dataset}-main/{output_dir}'
 
             hail_bucket = f'cpg-{dataset}-hail'
             backend = hb.ServiceBackend(
@@ -171,11 +173,12 @@ def add_cromwell_routes(
             job = batch.new_job(name='driver')
             job = prepare_git_job(
                 job=job,
+                dataset=dataset,
                 access_level=access_level,
+                output_dir=output_dir,
                 repo=repo,
                 commit=commit,
                 metadata_str=metadata,
-                output_dir=output_dir,
                 print_all_statements=False,
             )
             job.env('OUTPUT', output_dir)
@@ -196,7 +199,7 @@ def add_cromwell_routes(
                 'google_compute_service_account': service_account_email,
                 'google_project': project,
                 'jes_gcs_root': intermediate_dir,
-                'final_workflow_outputs_dir': output_dir,
+                'final_workflow_outputs_dir': workflow_output_dir,
             }
 
             if input_dict:

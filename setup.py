@@ -10,12 +10,19 @@ import setuptools
 
 PKG = 'analysis-runner'
 
+
+def read_file(filename: str) -> str:
+    """Returns the full contents of the given file."""
+    with open(filename) as f:
+        return f.read()
+
+
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='1.9.0',
+    version='2.0.0',
     description='Analysis runner to help make analysis results reproducible',
-    long_description=open('README.md').read(),
+    long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
     url=f'https://github.com/populationgenomics/{PKG}',
     license='MIT',

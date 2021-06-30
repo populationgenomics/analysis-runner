@@ -24,10 +24,14 @@ account for each dataset (e.g. "tob-wgs", "fewgenomes") and access level
 [storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner)),
 which helps with bucket permission management and billing budgets.
 
+Note that you can use the analysis-runner to start arbitrary jobs, e.g. R scripts. They're just launched in the Hail Batch environment, but you can use any Docker image you like.
+
+The analysis-runner is also integrated with our Cromwell server to run WDL based workflows.
+
 ## CLI
 
-CLI helps request the analysis-runner to start pipelines based on a GitHub
-repository, commit, and command to run. To install it, use mamba:
+The analysis-runner CLI can be used to start pipelines based on a GitHub repository,
+commit, and command to run. To install it, use mamba:
 
 ```bash
 mamba install -c cpg -c conda-forge analysis-runner
@@ -52,11 +56,13 @@ analysis-runner \
     --dataset <dataset> \
     --description <description> \
     --access-level <level> \
-    --output-dir gs://<bucket-path> \
+    --output-dir <directory-within-bucket> \
     script_to_run.py with arguments
 ```
 
 `<level>` corresponds to an [access level](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner) as defined in the storage policies.
+
+`<directory-within-bucket>` does _not_ contain a prefix like `gs://cpg-fewgenomes-main/`. For example, if you want your results to be stored in `gs://cpg-fewgenomes-main/1kg_pca/v2`, specify `--output-dir 1kg_pca/v2`.
 
 If you provide a `--repository`, you MUST supply a `--commit <SHA>`, e.g.:
 
@@ -67,7 +73,7 @@ analysis-runner \
     --dataset <dataset> \
     --description <description> \
     --access-level <level>
-    --output-dir gs://<bucket-path> \
+    --output-dir <directory-within-bucket> \
     script_to_run.py with arguments
 ```
 

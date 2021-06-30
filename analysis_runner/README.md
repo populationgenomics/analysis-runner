@@ -2,36 +2,7 @@
 
 ## CLI
 
-There are two ways to run the analysis-runner CLI:
-
-- **Omitting** the `--repository` parameter: uses the repository of the current directory. The repository name will be retrieved from
-  the git remote URL, while the commit of HEAD is used (if the `--commit`
-  parameter is omitted). The script path is made relative to the root of the git
-  repository. For example:
-
-```bash
-# cwd is the git directory root
-cd path/to/script
-analysis-runner \
-    --dataset <dataset> \
-    --description "Description of the run" \
-    --output-dir gs://<bucket> \
-    main.py and some arguments # becomes path/to/script/main.py and some arguments
-```
-
-- **Providing** the `--repository` parameter: you must specify the complete relative path from the git root directory (determining this relative to the git repository is disabled), and provide a commit hash too. For
-  example:
-
-```bash
-# You must specify relative path from git root to script
-analysis-runner \
-    --dataset <dataset> \
-    --description "Description of the run" \
-    --output-dir gs://<bucket> \
-    --repository <repository> \
-    --commit <hash> \
-    path/to/script/main.py and some arguments
-```
+See [these instructions](https://github.com/populationgenomics/analysis-runner#cli) for how to run the CLI.
 
 ## Library
 
