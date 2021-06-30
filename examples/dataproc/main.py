@@ -17,7 +17,7 @@ dataproc.hail_dataproc_job(
     'query.py',
     max_age='1h',
     packages=['click', 'selenium'],
-    init=['gs://cpg-reference/hail_dataproc/install_phantomjs.sh'],
+    init=['gs://cpg-reference/hail_dataproc/install_common.sh'],
     job_name='example',
 )
 
