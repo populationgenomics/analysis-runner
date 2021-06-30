@@ -24,10 +24,14 @@ account for each dataset (e.g. "tob-wgs", "fewgenomes") and access level
 [storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner)),
 which helps with bucket permission management and billing budgets.
 
+Note that you can use the analysis-runner to start arbitrary jobs, e.g. R scripts. They're just launched in the Hail Batch environment, but you can use any Docker image you like.
+
+The analysis-runner is also integrated with our Cromwell server to run WDL based workflows.
+
 ## CLI
 
-CLI helps request the analysis-runner to start pipelines based on a GitHub
-repository, commit, and command to run. To install it, use mamba:
+The analysis-runner CLI can be used to start pipelines based on a GitHub repository,
+commit, and command to run. To install it, use mamba:
 
 ```bash
 mamba install -c cpg -c conda-forge analysis-runner
