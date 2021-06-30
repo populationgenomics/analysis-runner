@@ -60,8 +60,8 @@ def hail_dataproc_job(
     # this way.
     spark_env = []
     for env_var in 'DATASET', 'ACCESS_LEVEL', 'OUTPUT':
-        value = os.getenv('env_var')
-        assert value
+        value = os.getenv(env_var)
+        assert value, f'environment variable "{env_var}" is not set'
         spark_env.append(f'spark-env:{env_var}={value}')
 
     start_job_command = [
