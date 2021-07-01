@@ -13,7 +13,6 @@ def bucket_path(path: str, bucket_category: Optional[str] = None) -> str:
 
     Examples
     --------
-
     Assuming that the analysis-runner has been invoked with
     `--dataset fewgenomes --access-level test --output 1kg_pca/v42`:
 
@@ -61,7 +60,6 @@ def output_path(path_suffix: str, bucket_category: Optional[str] = None) -> str:
 
     Examples
     --------
-
     Assuming that the analysis-runner has been invoked with
     `--dataset fewgenomes --access-level test --output 1kg_pca/v42`:
 
