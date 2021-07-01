@@ -140,7 +140,7 @@ def add_cromwell_routes(
             if not wf:
                 raise web.HTTPBadRequest(reason='Invalid script parameter')
 
-            input_jsons = params.get('input_json_paths', [])
+            input_jsons = params.get('input_json_paths') or []
             input_dict = params.get('inputs_dict')
 
             # This metadata dictionary gets stored at the output_dir location.

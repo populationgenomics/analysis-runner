@@ -4,279 +4,54 @@
 CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
-import os
-import re
+from typing import Dict, Tuple, Callable
+
+import sys
 import argparse
-import logging
-from shutil import which
 
-import requests
-import google.auth
-import google.auth.transport.requests
-
-from analysis_runner import _version
-from analysis_runner.git import (
-    get_git_default_remote,
-    get_git_commit_ref_of_current_repository,
-    get_repo_name_from_remote,
-    get_relative_path_from_git_root,
-)
-
-logger = logging.getLogger('analysis_runner')
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
-
-
-BRANCH = 'main'
-
-SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
+from analysis_runner._version import __version__
+from analysis_runner.analysisrunner import add_analysis_runner_args, run_analysis_runner
+from analysis_runner.cromwell import add_cromwell_args, run_cromwell
 
 
 def main_from_args(args=None):
-    """
-    Parse args (if args is None, argparse automatically uses sys.argv) and run main
-    """
-    args = parse_args(args=args)
-    return main(**vars(args))
-
-
-def main(
-    dataset,
-    output_dir,
-    script,
-    description,
-    access_level,
-    commit=None,
-    repository=None,
-):
-    """
-    Main function that drives the CLI.
-    """
-
-    if repository is not None and commit is None:
-        raise Exception(
-            "You must supply the '--commit <SHA>' parameter "
-            "when specifying the '--repository'"
-        )
-
-    _perform_version_check()
-
-    if access_level == 'full':
-        if not confirm_choice(
-            'Full access increases the risk of accidental data loss. Continue?',
-        ):
-            raise SystemExit()
-
-    _repository = repository
-    _commit_ref = commit
-    _script = list(script)
-    _cwd = None
-
-    # false-y value catches empty list / tuple as well
-    if not _script:
-        _script = ['main.py']
-
-    # we can find the script, and it's a relative path (not absolute)
-    if os.path.exists(_script[0]) and not _script[0].startswith('/'):
-        _perform_shebang_check(_script[0])
-        # if it's just the path name, eg: you call
-        #   analysis-runner my_file.py
-        # need to pre-pend "./" to execute
-        if os.path.basename(_script[0]) == _script[0]:
-            _script[0] = './' + _script[0]
-    elif not which(_script[0]):
-        # the first el of _script is not executable
-        # (at least on this computer)
-        if not confirm_choice(
-            f"The program '{_script[0]}' was not executable \n"
-            f'(or a script could not be found) on this computer. \n'
-            f'Please confirm to continue.'
-        ):
-            raise SystemExit()
-
-    if repository is None:
-        _repository = get_repo_name_from_remote(get_git_default_remote())
-        if _commit_ref is None:
-            _commit_ref = get_git_commit_ref_of_current_repository()
-
-        _cwd = get_relative_path_from_git_root()
-        if _cwd == '.':
-            _cwd = None
-
-    _token = _get_google_identity_token()
-
-    logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
-
-    response = requests.post(
-        SERVER_ENDPOINT,
-        json={
-            'dataset': dataset,
-            'output': output_dir,
-            'repo': _repository,
-            'accessLevel': access_level,
-            'commit': _commit_ref,
-            'script': _script,
-            'description': description,
-            'cwd': _cwd,
-        },
-        headers={'Authorization': f'Bearer {_token}'},
-    )
-    try:
-        response.raise_for_status()
-        logger.info(f'Request submitted successfully: {response.text}')
-    except requests.HTTPError as e:
-        logger.critical(
-            f'Request failed with status {response.status_code}: {str(e)}\n'
-            f'Full response: {response.text}',
-        )
-
-
-def confirm_choice(choice: str):
-    """
-    Confirm 'choice' with user input: y/n
-    """
-    choice += ' (y/n): '
-    while True:
-        confirmation = str(input(choice)).lower()
-        if confirmation in ('yes', 'y'):
-            return True
-        if confirmation in ('no', 'n'):
-            return False
-
-        print('Unrecognised option, please try again.')
-
-
-def _get_google_identity_token() -> str:
-    # https://stackoverflow.com/a/55804230
-    # command = ['gcloud', 'auth', 'print-identity-token']
-
-    creds, _ = google.auth.default()
-
-    auth_req = google.auth.transport.requests.Request()
-    creds.refresh(auth_req)
-    return creds.id_token
-
-
-def _perform_shebang_check(script):
-    """
-    Returns None if script has shebang, otherwise raises Exception
-    """
-    with open(script) as f:
-        potential_shebang = f.readline()
-        if potential_shebang.startswith('#!'):
-            return
-
-        suggestion_shebang = ''
-        if script.endswith('.py'):
-            suggestion_shebang = '#!/usr/bin/env python3'
-        elif script.endswith('.sh'):
-            suggestion_shebang = '#!/usr/bin/env bash'
-        elif script.lower().endswith('.r') or script.lower().endswith('.rscript'):
-            suggestion_shebang = '#!/usr/bin/env Rscript'
-
-        message = f'Couldn\'t find shebang at start of "{script}"'
-        if suggestion_shebang:
-            message += (
-                f', consider inserting "{suggestion_shebang}" at the top of this file'
-            )
-        raise Exception(message)
-
-
-def _perform_version_check():
-
-    current_version = _version.__version__
-
-    # with this URL, we're looking for a line with format:
-    #   __version__ = '<version>'
-    # match it with regex: r"__version__ = '(.+)'$"
-    version_url = (
-        'https://raw.githubusercontent.com/populationgenomics/'
-        'analysis-runner/main/analysis_runner/_version.py'
-    )
-    try:
-        resp = requests.get(version_url)
-        resp.raise_for_status()
-        data = resp.text
-    except requests.HTTPError as e:
-        logger.debug(
-            f'An error occurred when fetching version '
-            f'information about the analysis-runner: {e}'
-        )
-        return
-    for line in data.splitlines(keepends=False):
-        if not line.startswith('__version__ = '):
-            continue
-
-        latest_version = re.match(f"__version__ = '(.+)'$", line).groups()[0]
-        if current_version != latest_version:
-            message = (
-                f'Your version of analysis-runner is out of date: '
-                f'{current_version} != {latest_version} (current vs latest).\n'
-                f'Your analysis will still be submitted, but may not work as expected.'
-                f' You can update the analysis-runner by running '
-                f'"conda install -c cpg analysis-runner={latest_version}".'
-            )
-            logger.warning(message)
-        return
-
-
-def parse_args(args=None):
     """
     Parse args using argparse
     (if args is None, argparse automatically uses `sys.argv`)
     """
     parser = argparse.ArgumentParser()
     # https://docs.python.org/dev/library/argparse.html#action
+
     parser.add_argument(
         '-v',
         '--version',
         action='version',
-        version=f'analysis-runner v{_version.__version__}',
-    )
-    parser.add_argument(
-        '--dataset',
-        required=True,
-        type=str,
-        help='The dataset name, which determines which analysis-runner '
-        'server to send the request to.',
-    )
-    parser.add_argument(
-        '-o',
-        '--output-dir',
-        required=True,
-        type=str,
-        help='The output directory within the bucket. This should not contain a prefix like "gs://cpg-fewgenomes-main/".',
-    )
-    parser.add_argument(
-        '--repository',
-        '--repo',
-        help='The URI of the repository to run, must be approved by the appropriate '
-        'server. Default behavior is to find the repository of the current working '
-        'directory with `git remote get-url origin`.',
-    )
-    parser.add_argument(
-        '--commit',
-        help='The commit HASH or TAG of a commit to run, the default behavior is to '
-        'use the current commit of the local repository, however the literal value '
-        '"HEAD" is not allowed.',
+        version=f'analysis-runner v{__version__}',
     )
 
+    default_mode = 'analysis-runner'
+    modes: Dict[str, Tuple[Callable[[], argparse.ArgumentParser], Callable]] = {
+        'analysis-runner': (add_analysis_runner_args, run_analysis_runner),
+        'cromwell': (add_cromwell_args, run_cromwell),
+    }
+
+    # sub-argparser don't work with a default mode, so add a
     parser.add_argument(
-        '--description',
-        required=True,
-        help='Human-readable description of the job, logged together with the output data.',
+        'mode',
+        choices=list(modes.keys()),
+        default=default_mode,
+        nargs='?',
+        help='Which mode of the analysis-runner to use',
     )
 
-    parser.add_argument(
-        '--access-level',
-        choices=(['test', 'standard', 'full']),
-        default='test',
-        help='Which permissions to grant when running the job.',
-    )
+    args = args or sys.argv[1:]
 
-    parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
+    mode = default_mode
+    if len(args) > 0 and args[0] in modes:
+        mode = args.pop(0)
 
-    return parser.parse_args(args)
+    mode_argparser_f, run_mode = modes[mode]
+    run_mode(**vars(mode_argparser_f().parse_args(args)))
 
 
 if __name__ == '__main__':
