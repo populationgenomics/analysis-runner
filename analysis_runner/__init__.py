@@ -32,7 +32,8 @@ def bucket_path(path: str, bucket_category: Optional[str] = None) -> str:
     path : str
         A path to append to the bucket.
     bucket_category : str, optional
-        A category like "upload", "tmp", "web". If omitted, defaults to the "main" and "test" buckets based on the access level. See
+        A category like "upload", "tmp", "web". If omitted, defaults to the "main" and
+        "test" buckets based on the access level. See
         https://github.com/populationgenomics/team-docs/tree/main/storage_policies
         for a full list of categories and their use cases.
 
@@ -79,7 +80,8 @@ def output_path(path_suffix: str, bucket_category: Optional[str] = None) -> str:
     path_suffix : str
         A suffix to append to the bucket + output directory.
     bucket_category : str, optional
-        A category like "upload", "tmp", "web". If omitted, defaults to the "main" and "test" buckets based on the access level. See
+        A category like "upload", "tmp", "web". If omitted, defaults to the "main" and
+        "test" buckets based on the access level. See
         https://github.com/populationgenomics/team-docs/tree/main/storage_policies
         for a full list of categories and their use cases.
 
