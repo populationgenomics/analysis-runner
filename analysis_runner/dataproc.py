@@ -37,6 +37,7 @@ def hail_dataproc_job(
     requester_pays_allow_all: bool = False,
     depends_on: Optional[List[hb.batch.job.Job]] = None,
     job_name: Optional[str] = None,
+    scopes: Optional[List[str]] = None,
 ) -> hb.batch.job.Job:
     """Returns a Batch job which starts a Dataproc cluster, submits a Hail
     Query script to it, and stops the cluster. See the `hailctl` tool for
@@ -86,6 +87,8 @@ def hail_dataproc_job(
         start_job_command.append(f'--vep={vep}')
     if requester_pays_allow_all:
         start_job_command.append(f'--requester-pays-allow-all')
+    if scopes:
+        start_job_command.append(f'--scopes={",".join(scopes)}')
     start_job_command.append(cluster_name)
 
     start_job.command(' '.join(start_job_command))
