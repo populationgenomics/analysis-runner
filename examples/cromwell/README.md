@@ -6,7 +6,7 @@ through the analysis-runner.
 The implementation for the analysis-runner CLI is still in progress,
 but you can create a POST request in the short term.
 
-## Hello, world!
+## Hello, world
 
 ```shell
 curl --location \
