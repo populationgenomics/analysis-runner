@@ -14,8 +14,10 @@ RUN apt update && \
     # - 0.2.64 has a gcsfs version issue.
     # - 0.2.65 and above suffer from random __C3799RGContainer_GRCh38 crashes.
     git checkout 0.2.63 && \
-    # Add the service-account parameter to hailctl, which was added after 0.2.63.
+    # Add the `--service-account` parameter to `hailctl dataproc start`, which was added after 0.2.63.
     git cherry-pick -n ecd8292889b02c0bdc803d0462f4a37f30392fba && \
+    # Add the `--scopes` parameter to `hailctl dataproc start`, which was added after 0.2.63.
+    git cherry-pick -n 5659445fd5bca8a15f902f4e41dd8ba19a34757d && \
     # Install locally, avoiding the need for a pip package.
     # DEPLOY_REMOTE avoids a dev suffix being appended to dataproc initialization paths.
     make install DEPLOY_REMOTE=1 && \
