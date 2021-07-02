@@ -44,10 +44,11 @@ def bucket_path(path: str, bucket_category: Optional[str] = None) -> str:
     access_level = os.getenv('ACCESS_LEVEL')
     assert dataset and access_level
 
+    namespace = 'test' if access_level == 'test' else 'main'
     if bucket_category is None:
-        bucket_category = 'test' if access_level == 'test' else 'main'
+        bucket_category = namespace
     elif bucket_category not in ('archive', 'upload'):
-        bucket_category = f'{access_level}-{bucket_category}'
+        bucket_category = f'{namespace}-{bucket_category}'
 
     return os.path.join('gs://', f'cpg-{dataset}-{bucket_category}', path)
 
