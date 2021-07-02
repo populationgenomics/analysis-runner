@@ -38,6 +38,10 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     return parser
 
 
+def run_analysis_runner_from_args(args):
+    return run_analysis_runner(**vars(args))
+
+
 def run_analysis_runner(
     dataset,
     output_dir,

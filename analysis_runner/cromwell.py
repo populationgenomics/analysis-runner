@@ -4,6 +4,7 @@ Cromwell CLI
 # pylint: disable=too-many-arguments,too-many-return-statements
 
 import argparse
+import subprocess
 from typing import List, Dict, Optional
 
 import requests
@@ -22,12 +23,28 @@ from analysis_runner.git import (
     get_repo_name_from_remote,
     get_relative_path_from_git_root,
 )
+from analysis_runner.cromwell_model import WorkflowMetadataModel
 
 
 def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
     """Create / add arguments for cromwell argparser"""
     if not parser:
-        parser = argparse.ArgumentParser('cromwell subparser')
+        parser = argparse.ArgumentParser('cromwell analysis-runner')
+
+    subparsers = parser.add_subparsers(dest='cromwell_mode')
+    add_cromwell_submit_args_to(subparsers.add_parser('submit'))
+    add_cromwell_status_args(subparsers.add_parser('status'))
+
+    return parser
+
+
+def add_cromwell_status_args(parser: argparse.ArgumentParser):
+    parser.add_argument('workflow_id')
+
+    return parser
+
+
+def add_cromwell_submit_args_to(parser):
 
     add_general_args(parser)
 
@@ -61,6 +78,18 @@ def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
 
     return parser
 
+def run_cromwell_from_args(args):
+    cromwell_modes = {
+        'submit': run_cromwell,
+        'status': check_cromwell_status
+    }
+
+    kwargs = vars(args)
+    cromwell_mode = kwargs.pop('cromwell_mode')
+    if cromwell_mode not in cromwell_modes:
+        raise NotImplementedError(cromwell_mode)
+
+    return cromwell_modes[cromwell_mode](**kwargs)
 
 def run_cromwell(
     dataset,
@@ -138,6 +167,23 @@ def run_cromwell(
             f'Request failed with status {response.status_code}: {str(e)}\n'
             f'Full response: {response.text}',
         )
+
+
+def check_cromwell_status(workflow_id):
+    print('workflow_id', workflow_id)
+    host = 'http://localhost:5000'
+    host = 'https://cromwell.populationgenomics.org.au'
+    url = host + f'/api/workflows/v1/{workflow_id}/metadata?expandSubWorkflows=true'
+    token = subprocess.check_output([
+        'gcloud', 'auth', 'print-identity-token'
+    ])
+    response = requests.get(url, headers={
+        'Authorization': f'Bearer {token}'
+    })
+    response.raise_for_status()
+    d = response.json()
+    model = WorkflowMetadataModel.parse(d)
+    print(model.display())
 
 
 def try_parse_value(value: Optional[str]):
