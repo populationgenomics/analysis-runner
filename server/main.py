@@ -136,3 +136,7 @@ async def init_func():
     app = web.Application()
     app.add_routes(routes)
     return app
+
+
+if __name__ == '__main__':
+    web.run_app(init_func())
