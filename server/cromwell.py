@@ -5,8 +5,11 @@ Exports 'add_cromwell_routes', to add the following route to a flask API:
 """
 import json
 import logging
+import subprocess
 from datetime import datetime
 from shlex import quote
+
+import requests
 from aiohttp import web
 
 import hailtop.batch as hb
@@ -238,3 +241,35 @@ echo "Submitted workflow with ID $wid"
         except KeyError as e:
             logging.error(e)
             raise web.HTTPBadRequest(reason='Missing request parameter: ' + e.args[0])
+
+    @routes.get('/cromwell/{workflow_id}/metadata')
+    async def get_cromwell_metadata(request):
+        try:
+            workflow_id = request.match_info['workflow_id']
+            cromwell_metadata_url = (
+                CROMWELL_URL + f'/api/workflows/v1/{workflow_id}/metadata'
+            )
+
+            token = (
+                subprocess.check_output(
+                    [
+                        'gcloud',
+                        'auth',
+                        'print-identity-token',
+                        '--audiences=717631777761-ec4u8pffntsekut9kef58hts126v7usl.apps.googleusercontent.com',
+                    ]
+                )
+                .decode()
+                .strip()
+            )
+            headers = {'Authorization': 'Bearer ' + str(token)}
+            req = requests.get(cromwell_metadata_url, headers=headers)
+            if not req.ok:
+                raise web.HTTPInternalServerError(
+                    reason=req.content.decode() or req.reason
+                )
+            return web.json_response(req.json())
+        except web.HTTPError:
+            raise
+        except Exception as e:
+            raise web.HTTPInternalServerError(reason=str(e)) from e

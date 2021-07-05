@@ -7,7 +7,8 @@ RUN micromamba install --prefix $MAMBA_ROOT_PREFIX -c cpg -c conda-forge \
     google-api-python-client==2.10.0 \
     google-cloud-secret-manager==2.2.0 \
     google-cloud-pubsub==2.3.0 \
-    gunicorn && \
+    gunicorn \
+    requests && \
     rm -r /root/micromamba/pkgs
 
 # Allow statements and log messages to immediately appear in the Knative logs.

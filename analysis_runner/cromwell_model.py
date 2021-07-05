@@ -1,3 +1,6 @@
+# flake8: noqa
+# pylint: skip-file
+
 from textwrap import indent
 from typing import List
 import datetime
@@ -8,22 +11,22 @@ from tabulate import tabulate
 class WorkflowMetadataModel:
     def __init__(
         self,
-        workflowName,
-        workflowProcessingEvents,
-        metadataSource,
-        actualWorkflowLanguageVersion,
-        submittedFiles,
-        calls: List['CallMetadata'],
-        outputs,
-        workflowRoot,
-        actualWorkflowLanguage,
-        id,
-        inputs,
-        labels,
-        submission,
-        status,
-        end,
-        start,
+        workflowName=None,
+        workflowProcessingEvents=None,
+        metadataSource=None,
+        actualWorkflowLanguageVersion=None,
+        submittedFiles=None,
+        calls: List['CallMetadata'] = None,
+        outputs=None,
+        workflowRoot=None,
+        actualWorkflowLanguage=None,
+        id=None,
+        inputs=None,
+        labels=None,
+        submission=None,
+        status=None,
+        end=None,
+        start=None,
     ):
         self.workflowName = workflowName
         self.workflowProcessingEvents = workflowProcessingEvents
@@ -59,7 +62,7 @@ class WorkflowMetadataModel:
         duration_seconds = get_seconds_duration_between(self.start, self.end)
         duration_str = get_readable_duration(duration_seconds)
 
-        KVS = [
+        headers = [
             ('Workflow ID', self.id),
             ('Status', self.status),
             ('Start', self.start),
@@ -67,8 +70,8 @@ class WorkflowMetadataModel:
             ('Duration', duration_str),
         ]
 
-        calls = "".join("\n" + indent(c.display(), '  ') for c in self.calls)
-        header = tabulate(KVS)
+        calls = ''.join('\n' + indent(c.display(), '  ') for c in self.calls)
+        header = tabulate(headers)
         return f"""
 {header}
 Jobs:
@@ -77,6 +80,8 @@ Jobs:
 
 
 class CallMetadata:
+    """Python model for cromwell CallMetadata"""
+
     def __init__(
         self,
         name,
@@ -100,7 +105,10 @@ class CallMetadata:
         attempt=None,
         executionEvents=None,
         start=None,
+        preemptible=None,
+        jes=None,
         calls=None,
+        **kwargs,
     ):
         self.name = name
         self.executionStatus = executionStatus
@@ -123,7 +131,13 @@ class CallMetadata:
         self.attempt = attempt
         self.executionEvents = executionEvents
         self.start = start
+        self.preemptible = preemptible
         self.calls = calls
+        self.jes = jes
+
+        # safety
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
 
     @staticmethod
     def parse(d):
@@ -157,6 +171,7 @@ class CallMetadata:
         extras_str = "".join("\n" + indent(e, '  ') for e in extras)
         return f'[{symbol}] {name} ({duration_str}){extras_str}'
 
+
 def symbol_for_cromwell_status(status: str):
     status = status.lower()
     if status == 'done':
@@ -164,6 +179,7 @@ def symbol_for_cromwell_status(status: str):
 
     print(f'Unrecognised cromwell status: {status}')
     return f"? ({status})"
+
 
 def get_seconds_duration_between(start, end):
     s, e = None, None

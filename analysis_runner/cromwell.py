@@ -4,7 +4,6 @@ Cromwell CLI
 # pylint: disable=too-many-arguments,too-many-return-statements
 
 import argparse
-import subprocess
 from typing import List, Dict, Optional
 
 import requests
@@ -39,12 +38,17 @@ def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
 
 
 def add_cromwell_status_args(parser: argparse.ArgumentParser):
+    """Add cli args for checking status of Cromwell workflow"""
     parser.add_argument('workflow_id')
 
     return parser
 
 
 def add_cromwell_submit_args_to(parser):
+    """
+    Add cli args for submitting WDL workflow to cromwell,
+    via the analysis runner
+    """
 
     add_general_args(parser)
 
@@ -78,11 +82,10 @@ def add_cromwell_submit_args_to(parser):
 
     return parser
 
+
 def run_cromwell_from_args(args):
-    cromwell_modes = {
-        'submit': run_cromwell,
-        'status': check_cromwell_status
-    }
+    """Run cromwell CLI mode from argparse.args"""
+    cromwell_modes = {'submit': run_cromwell, 'status': check_cromwell_status}
 
     kwargs = vars(args)
     cromwell_mode = kwargs.pop('cromwell_mode')
@@ -90,6 +93,7 @@ def run_cromwell_from_args(args):
         raise NotImplementedError(cromwell_mode)
 
     return cromwell_modes[cromwell_mode](**kwargs)
+
 
 def run_cromwell(
     dataset,
@@ -170,16 +174,14 @@ def run_cromwell(
 
 
 def check_cromwell_status(workflow_id):
-    print('workflow_id', workflow_id)
-    host = 'http://localhost:5000'
-    host = 'https://cromwell.populationgenomics.org.au'
-    url = host + f'/api/workflows/v1/{workflow_id}/metadata?expandSubWorkflows=true'
-    token = subprocess.check_output([
-        'gcloud', 'auth', 'print-identity-token'
-    ])
-    response = requests.get(url, headers={
-        'Authorization': f'Bearer {token}'
-    })
+    """Check cromwell status with workflow_id"""
+
+    # host = SERVER_ENDPOINT
+    host = 'https://server-test-a2pko7ameq-ts.a.run.app'
+    url = host + f'/cromwell/{workflow_id}/metadata'
+    response = requests.get(
+        url, headers={'Authorization': f'Bearer {_get_google_identity_token()}'}
+    )
     response.raise_for_status()
     d = response.json()
     model = WorkflowMetadataModel.parse(d)

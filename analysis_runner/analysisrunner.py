@@ -39,6 +39,7 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
 
 
 def run_analysis_runner_from_args(args):
+    """Run analysis runner from argparse.parse_arguments"""
     return run_analysis_runner(**vars(args))
 
 

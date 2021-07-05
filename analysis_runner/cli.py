@@ -10,7 +10,10 @@ import sys
 import argparse
 
 from analysis_runner._version import __version__
-from analysis_runner.analysisrunner import add_analysis_runner_args, run_analysis_runner_from_args
+from analysis_runner.analysisrunner import (
+    add_analysis_runner_args,
+    run_analysis_runner_from_args,
+)
 from analysis_runner.cromwell import add_cromwell_args, run_cromwell_from_args
 
 
