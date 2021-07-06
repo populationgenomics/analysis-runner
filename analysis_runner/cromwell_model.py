@@ -9,11 +9,15 @@ from tabulate import tabulate
 
 
 class ExecutionStatus(Enum):
-    succeeded = 'succeeded'
-    done = 'done'
-    in_progress = 'inprogress'
-    failed = 'failed'
     preparing = 'preparing'
+    in_progress = 'inprogress'
+    running = 'running'
+    done = 'done'
+    succeeded = 'succeeded'
+    failed = 'failed'
+
+    def __str__(self):
+        return self.value
 
     @property
     def _symbols(self):
@@ -25,6 +29,14 @@ class ExecutionStatus(Enum):
 
     def symbol(self):
         return self._symbols.get(self, '~')
+
+    def is_finished(self):
+        _finished_states = {
+            ExecutionStatus.done,
+            ExecutionStatus.succeeded,
+            ExecutionStatus.failed,
+        }
+        return self in _finished_states
 
 
 class WorkflowMetadataModel:
@@ -198,7 +210,7 @@ class CallMetadata:
         )
 
         extras = []
-        is_done = self.executionStatus == ExecutionStatus.done
+        is_done = self.executionStatus.is_finished()
         if (is_done or expand_completed) and self.calls:
             for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start):
                 extras.append(
@@ -221,7 +233,7 @@ class CallMetadata:
 
         name = self.name
 
-        if self.shardIndex is not None:
+        if self.shardIndex is not None and int(self.shardIndex) >= 0:
             name += f' (shard-{self.shardIndex})'
 
         if self.attempt is not None and self.attempt > 1:
@@ -246,7 +258,10 @@ def prepare_inner_calls_string(
         start, finish = calls[0].start, calls[-1].end
         name += f' ({get_readable_duration(get_seconds_duration_between_cromwell_dates(start, finish))})'
 
-    if expand_completed or collapsed_status != ExecutionStatus.done:
+    if expand_completed or collapsed_status not in [
+        ExecutionStatus.done,
+        ExecutionStatus.succeeded,
+    ]:
         inner_calls = "\n" + indent(
             '\n'.join(c.display(expand_completed=expand_completed) for c in calls),
             '    ',
@@ -259,7 +274,11 @@ def collapse_status_of_calls(calls: List['CallMetadata']):
     collapsed = set(c.executionStatus for c in calls)
     if any(
         status in collapsed
-        for status in [ExecutionStatus.preparing, ExecutionStatus.in_progress]
+        for status in [
+            ExecutionStatus.preparing,
+            ExecutionStatus.in_progress,
+            ExecutionStatus.running,
+        ]
     ):
         return ExecutionStatus.in_progress
     if ExecutionStatus.failed in collapsed:
@@ -274,9 +293,13 @@ def collapse_status_of_calls(calls: List['CallMetadata']):
 def get_seconds_duration_between_cromwell_dates(start, end):
     s, e = None, None
     if start:
-        s = datetime.datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%f%z")
+        s = datetime.datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%f%z").replace(
+            tzinfo=None
+        )
     if end:
-        e = datetime.datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%f%z")
+        e = datetime.datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%f%z").replace(
+            tzinfo=None
+        )
 
     return int(((e or datetime.datetime.utcnow()) - s).total_seconds())
 
