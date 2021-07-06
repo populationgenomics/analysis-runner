@@ -38,17 +38,9 @@ def main_from_args(args=None):
         'cromwell': (add_cromwell_args, run_cromwell_from_args),
     }
 
-    # sub-argparser don't work with a default mode, so add a
-    parser.add_argument(
-        'mode',
-        choices=list(modes.keys()),
-        default=default_mode,
-        nargs='?',
-        help='Which mode of the analysis-runner to use',
-    )
-
     args = args or sys.argv[1:]
 
+    # sub-argparser don't work with a default mode, so check mode manually
     mode = default_mode
     if len(args) > 0 and args[0] in modes:
         mode = args.pop(0)
