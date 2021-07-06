@@ -247,7 +247,8 @@ echo "Submitted workflow with ID $wid"
         try:
             workflow_id = request.match_info['workflow_id']
             cromwell_metadata_url = (
-                CROMWELL_URL + f'/api/workflows/v1/{workflow_id}/metadata'
+                CROMWELL_URL
+                + f'/api/workflows/v1/{workflow_id}/metadata?expandSubWorkflows=true'
             )
 
             token = (
