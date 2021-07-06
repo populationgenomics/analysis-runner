@@ -41,6 +41,8 @@ def add_cromwell_status_args(parser: argparse.ArgumentParser):
     """Add cli args for checking status of Cromwell workflow"""
     parser.add_argument('workflow_id')
 
+    parser.add_argument('-l', '--expand-completed', default=False, action='store_true')
+
     return parser
 
 
@@ -173,19 +175,18 @@ def run_cromwell(
         )
 
 
-def check_cromwell_status(workflow_id):
+def check_cromwell_status(workflow_id, expand_completed=False):
     """Check cromwell status with workflow_id"""
 
-    # host = SERVER_ENDPOINT
-    host = 'https://server-test-a2pko7ameq-ts.a.run.app'
-    url = host + f'/cromwell/{workflow_id}/metadata'
+    url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
+
     response = requests.get(
         url, headers={'Authorization': f'Bearer {_get_google_identity_token()}'}
     )
     response.raise_for_status()
     d = response.json()
     model = WorkflowMetadataModel.parse(d)
-    print(model.display())
+    print(model.display(expand_completed=expand_completed))
 
 
 def try_parse_value(value: Optional[str]):
