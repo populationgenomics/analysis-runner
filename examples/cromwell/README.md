@@ -11,6 +11,7 @@ but you can create a POST request in the short term.
 ```shell
 pushd examples/cromwell
 analysis-runner \
+    --dataset fewgenomes \
     --output mfranklin-analysis-runner-test \
     --access-level test \
     --description 'Hello, fewgenomes!'
