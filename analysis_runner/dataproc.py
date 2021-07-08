@@ -34,7 +34,7 @@ def hail_dataproc_job(
     pyfiles: Optional[List[str]] = None,
     init: Optional[List[str]] = None,
     vep: Optional[str] = None,
-    requester_pays_allow_all: bool = False,
+    requester_pays_allow_all: bool = True,
     depends_on: Optional[List[hb.batch.job.Job]] = None,
     job_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,

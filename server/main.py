@@ -95,7 +95,10 @@ async def index(request):
         user_name = email.split('@')[0]
         batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
 
-        batch = hb.Batch(backend=backend, name=batch_name)
+        dataset_gcp_project = server_config[dataset]['projectId']
+        batch = hb.Batch(
+            backend=backend, name=batch_name, requester_pays_project=dataset_gcp_project
+        )
 
         job = batch.new_job(name='driver')
         job = prepare_git_job(
@@ -109,7 +112,7 @@ async def index(request):
         )
         job.env('HAIL_BUCKET', hail_bucket)
         job.env('HAIL_BILLING_PROJECT', dataset)
-        job.env('DATASET_GCP_PROJECT', server_config[dataset]['projectId'])
+        job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
         job.env('OUTPUT', output_dir)
         if cwd:
             job.command(f'cd {quote(cwd)}')
