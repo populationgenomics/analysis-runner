@@ -256,6 +256,9 @@ def parse_additional_args(args: List[str]) -> Dict[str, any]:
     >>> parse_additional_args(['--keyword', 'value', '--keyword'])
     {'keyword': ['value']}
 
+    >>> parse_additional_args(['--keyword', 'value1', 'value2', '--keyword'])
+    {'keyword': [['value1', 'value2']}
+
         * Keyword with multiple values, followed by same keyword with multiple values results in nested lists
 
     >>> parse_additional_args(['--keyword', 'val1_a', 'val1_b', '--keyword', 'val2_a', 'val2_b'])
