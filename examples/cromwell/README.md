@@ -47,6 +47,7 @@ popd
 ```shell
 pushd examples/cromwell
 analysis-runner \
+    --dataset fewgenomes \
     --output pdiakumis/analysis-runner-test \
     --access-level test \
     --description 'md5sum on a GVCF index'
