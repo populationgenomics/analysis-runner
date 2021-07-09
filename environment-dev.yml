@@ -21,6 +21,7 @@ dependencies:
   - python=3.7
   - bump2version
   - requests
+  - tabulate
   - pip
   - pip:
     - airtable-python-wrapper==0.15.1
