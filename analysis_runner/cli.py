@@ -40,10 +40,35 @@ def main_from_args(args=None):
 
     args = args or sys.argv[1:]
 
-    # sub-argparser don't work with a default mode, so check mode manually
-    mode = default_mode
-    if len(args) > 0 and args[0] in modes:
-        mode = args.pop(0)
+    if len(args) == 0:
+        args = ['--help']
+
+    mode = args[0]
+
+    if mode in ('-h', '--help', 'help'):
+        # display help text
+        cs_modekeys = ','.join(modes)
+        print(
+            f"""
+usage: analysis-runner [-h] [-v] [{{{cs_modekeys}] ...
+
+optional positional arguments:
+  [{{{cs_modekeys},version,help}}]
+    DEFAULT = analysis-runner
+
+optional arguments:
+  -h, --help       show this help message and exit
+  -v, --version    display the version and exit
+"""
+        )
+        return
+    if mode in ('-v', '--version', 'version'):
+        print(f'analysis-runner v{__version__}')
+        return
+
+    if mode not in modes:
+        mode = default_mode
+        args.pop(0)
 
     mode_argparser_f, run_mode = modes[mode]
     run_mode(mode_argparser_f().parse_args(args))
