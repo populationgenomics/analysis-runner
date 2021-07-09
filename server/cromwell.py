@@ -171,7 +171,9 @@ def add_cromwell_routes(
             user_name = email.split('@')[0]
             batch_name = f'{user_name} {repo}:{commit}/cromwell/{wf}'
 
-            batch = hb.Batch(backend=backend, name=batch_name)
+            batch = hb.Batch(
+                backend=backend, name=batch_name, requester_pays_project=project
+            )
 
             job = batch.new_job(name='driver')
             job = prepare_git_job(
