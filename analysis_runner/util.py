@@ -78,12 +78,16 @@ def confirm_choice(choice: str):
         print('Unrecognised option, please try again.')
 
 
-def _get_google_identity_token() -> str:
+def get_google_identity_token() -> str:
+    """
+    Get google identity token, equivalent of calling:
+        ['gcloud', 'auth', 'print-identity-token']
+    """
     import google.auth
     import google.auth.transport.requests
 
     # https://stackoverflow.com/a/55804230
-    # command = ['gcloud', 'auth', 'print-identity-token']
+    # command =
 
     creds, _ = google.auth.default()
 
