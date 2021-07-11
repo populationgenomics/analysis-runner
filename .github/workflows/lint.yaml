@@ -21,3 +21,8 @@ jobs:
       run: |
         conda activate test-env
         pre-commit run --all-files
+
+    - name: Run-tests
+      run: |
+        conda activate test-env
+        python -m unittest test/test_analysis_runner.py
