@@ -72,6 +72,7 @@ def hail_dataproc_job(
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
+        f'--labels job-name={job_name_prefix}',
     ]
     if worker_boot_disk_size:
         start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')
