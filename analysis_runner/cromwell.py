@@ -13,7 +13,7 @@ from analysis_runner.util import (
     add_general_args,
     _perform_version_check,
     confirm_choice,
-    _get_google_identity_token,
+    get_google_identity_token,
     SERVER_ENDPOINT,
 )
 from analysis_runner.git import (
@@ -163,7 +163,7 @@ def run_cromwell(
             'input_json_paths': inputs or [],
             'dependencies': imports or [],
         },
-        headers={'Authorization': f'Bearer {_get_google_identity_token()}'},
+        headers={'Authorization': f'Bearer {get_google_identity_token()}'},
     )
     try:
         response.raise_for_status()
@@ -181,7 +181,7 @@ def check_cromwell_status(workflow_id, expand_completed=False):
     url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
 
     response = requests.get(
-        url, headers={'Authorization': f'Bearer {_get_google_identity_token()}'}
+        url, headers={'Authorization': f'Bearer {get_google_identity_token()}'}
     )
     response.raise_for_status()
     d = response.json()

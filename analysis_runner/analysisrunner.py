@@ -19,9 +19,9 @@ from analysis_runner.util import (
     add_general_args,
     _perform_version_check,
     confirm_choice,
-    _get_google_identity_token,
     SERVER_ENDPOINT,
     logger,
+    get_google_identity_token,
 )
 
 
@@ -106,7 +106,7 @@ def run_analysis_runner(
         if _cwd == '.':
             _cwd = None
 
-    _token = _get_google_identity_token()
+    _token = get_google_identity_token()
 
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 

@@ -25,6 +25,12 @@ jobs:
       - name: Setup build env
         run: conda install pip conda-build anaconda-client
 
+      - name: Run-tests
+        run: |
+          conda env create --name test-env -f environment-dev.yml
+          conda activate test-env
+          python -m unittest test/test_analysis_runner.py
+
       - name: Build package
         run: conda build conda/$(basename $GITHUB_REPOSITORY)
 

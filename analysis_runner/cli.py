@@ -68,7 +68,8 @@ optional arguments:
 
     if mode not in modes:
         mode = default_mode
-        args.pop(0)
+    else:
+        args = args[1:]
 
     mode_argparser_f, run_mode = modes[mode]
     run_mode(mode_argparser_f().parse_args(args))
