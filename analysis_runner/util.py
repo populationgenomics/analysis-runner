@@ -87,10 +87,7 @@ def get_google_identity_token() -> str:
     import google.auth.transport.requests
 
     # https://stackoverflow.com/a/55804230
-    # command =
-
     creds, _ = google.auth.default()
-
     auth_req = google.auth.transport.requests.Request()
     creds.refresh(auth_req)
     return creds.id_token

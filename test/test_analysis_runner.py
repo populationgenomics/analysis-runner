@@ -50,7 +50,6 @@ def apply_mock_behaviour(
     *, mock_post: MagicMock = None, mock_identity_token: MagicMock = None
 ):
     if mock_post:
-
         mock_post.return_value = MockResponse(text='<mocked-url>')
 
     if mock_identity_token:
