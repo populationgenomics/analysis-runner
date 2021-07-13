@@ -10,12 +10,12 @@ from tabulate import tabulate
 
 class ExecutionStatus(Enum):
     preparing = 'preparing'
+    starting = 'starting'
     in_progress = 'inprogress'
     running = 'running'
     done = 'done'
     succeeded = 'succeeded'
     failed = 'failed'
-    starting = 'starting'
     retryablefailure = 'retryablefailure'
 
     def __str__(self):
@@ -42,6 +42,7 @@ class ExecutionStatus(Enum):
             ExecutionStatus.done,
             ExecutionStatus.succeeded,
             ExecutionStatus.failed,
+            ExecutionStatus.retryablefailure,
         }
         return self in _finished_states
 
@@ -225,7 +226,8 @@ class CallMetadata:
 
         extras = []
         is_done = self.executionStatus.is_finished()
-        if (not is_done or expand_completed) and self.calls:
+        has_succeded = self.executionStatus == ExecutionStatus.succeeded
+        if (not has_succeded or expand_completed) and self.calls:
             for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start):
                 extras.append(
                     indent(
@@ -243,14 +245,14 @@ class CallMetadata:
             if self.callCaching and self.callCaching.get('hit'):
                 extras.append(f'Call caching: true')
 
-        if self.executionStatus == ExecutionStatus.failed:
+        if not self.calls and self.executionStatus == ExecutionStatus.failed:
             extras.append(f'stdout: {self.stdout}')
             extras.append(f'stderr: {self.stderr}')
             extras.append(f'rc: {self.returnCode}')
-            if self.failures:
-                caused_by = ", ".join(
-                    unwrap_caused_by(f['causedBy']) for f in self.failures
-                )
+
+        if self.failures:
+            caused_by = unwrap_caused_by(self.failures)
+            if caused_by:
                 extras.append(f'error: {caused_by}')
 
         name = self.name
@@ -266,14 +268,14 @@ class CallMetadata:
         return f'[{symbol}] {name} ({duration_str}){extras_str}'
 
 
-def unwrap_caused_by(caused_bys: List):
+def unwrap_caused_by(failures: List):
 
     inner_failures = []
-    for failure in caused_bys:
+    for failure in failures:
         m = failure.get('message', '')
         caused_by = failure.get('causedBy')
         if caused_by:
-            m += ", caused by: " + " | ".join(unwrap_caused_by(caused_by))
+            m += f', caused by: {unwrap_caused_by(caused_by)}'
         if m:
             inner_failures.append(m)
 
