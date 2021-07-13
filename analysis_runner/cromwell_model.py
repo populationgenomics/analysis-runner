@@ -167,6 +167,7 @@ class CallMetadata:
         start=None,
         preemptible=None,
         jes=None,
+        failures=None,
         calls: Optional[Dict[str, List['CallMetadata']]] = None,
         **kwargs,
     ):
@@ -196,6 +197,7 @@ class CallMetadata:
         self.preemptible = preemptible
         self.calls = calls
         self.jes = jes
+        self.failures = failures
 
         # safety
         for k, v in kwargs.items():
@@ -245,6 +247,11 @@ class CallMetadata:
             extras.append(f'stdout: {self.stdout}')
             extras.append(f'stderr: {self.stderr}')
             extras.append(f'rc: {self.returnCode}')
+            if self.failures:
+                caused_by = ", ".join(
+                    unwrap_caused_by(f['causedBy']) for f in self.failures
+                )
+                extras.append(f'error: {caused_by}')
 
         name = self.name
 
@@ -257,6 +264,20 @@ class CallMetadata:
         symbol = self.executionStatus.symbol()
         extras_str = "".join("\n" + indent(e, '    ') for e in extras)
         return f'[{symbol}] {name} ({duration_str}){extras_str}'
+
+
+def unwrap_caused_by(caused_bys: List):
+
+    inner_failures = []
+    for failure in caused_bys:
+        m = failure.get('message', '')
+        caused_by = failure.get('causedBy')
+        if caused_by:
+            m += ", caused by: " + " | ".join(unwrap_caused_by(caused_by))
+        if m:
+            inner_failures.append(m)
+
+    return " & ".join(inner_failures)
 
 
 def prepare_inner_calls_string(

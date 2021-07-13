@@ -160,7 +160,7 @@ End          2021-07-09T09:48:00.000Z
 Duration     1m:0s
 -----------  ------------------------
 Jobs:
-  [~] print (1m:0s)
+  [#] print (1m:0s)
 """
 
         main_from_args(args)
