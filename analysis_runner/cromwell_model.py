@@ -15,6 +15,8 @@ class ExecutionStatus(Enum):
     done = 'done'
     succeeded = 'succeeded'
     failed = 'failed'
+    starting = 'starting'
+    retryablefailure = 'retryablefailure'
 
     def __str__(self):
         return self.value
@@ -22,13 +24,18 @@ class ExecutionStatus(Enum):
     @property
     def _symbols(self):
         return {
-            ExecutionStatus.done: '#',
+            ExecutionStatus.starting: '...',
+            ExecutionStatus.preparing: '...',
             ExecutionStatus.in_progress: '~',
+            ExecutionStatus.running: '~',
+            ExecutionStatus.done: '#',
+            ExecutionStatus.succeeded: '#',
             ExecutionStatus.failed: '!',
+            ExecutionStatus.retryablefailure: '~!',
         }
 
     def symbol(self):
-        return self._symbols.get(self, '~')
+        return self._symbols.get(self, '?')
 
     def is_finished(self):
         _finished_states = {
@@ -58,6 +65,7 @@ class WorkflowMetadataModel:
         status=None,
         end=None,
         start=None,
+        **kwargs,
     ):
         self.workflowName = workflowName
         self.workflowProcessingEvents = workflowProcessingEvents
@@ -77,6 +85,10 @@ class WorkflowMetadataModel:
         )
         self.end = end
         self.start = start
+
+        # safety
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
 
     @staticmethod
     def parse(d):
@@ -166,7 +178,7 @@ class CallMetadata:
         self.backendStatus = backendStatus
         self.compressedDockerSize = compressedDockerSize
         self.commandLine = commandLine
-        self.shardIndex = shardIndex
+        self.shardIndex = int(shardIndex) if shardIndex else None
         self.outputs = outputs
         self.runtimeAttributes = runtimeAttributes
         self.callCaching = callCaching
@@ -200,7 +212,7 @@ class CallMetadata:
                 name = name.split(".")[-1]
                 calls[name] = sorted(
                     [CallMetadata.parse({'name': name, **call}) for call in sublist],
-                    key=lambda c: f'{c.shardIndex or 0}-{c.start}',
+                    key=lambda c: (c.shardIndex or 0, c.start),
                 )
         return CallMetadata(calls=calls, **new_d)
 
@@ -211,7 +223,7 @@ class CallMetadata:
 
         extras = []
         is_done = self.executionStatus.is_finished()
-        if (is_done or expand_completed) and self.calls:
+        if (not is_done or expand_completed) and self.calls:
             for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start):
                 extras.append(
                     indent(
@@ -225,6 +237,9 @@ class CallMetadata:
         if not is_done:
             if self.jobId:
                 extras.append(f'JobID: {self.jobId}')
+        else:
+            if self.callCaching and self.callCaching.get('hit'):
+                extras.append(f'Call caching: true')
 
         if self.executionStatus == ExecutionStatus.failed:
             extras.append(f'stdout: {self.stdout}')
@@ -233,7 +248,7 @@ class CallMetadata:
 
         name = self.name
 
-        if self.shardIndex is not None and int(self.shardIndex) >= 0:
+        if self.shardIndex is not None and self.shardIndex >= 0:
             name += f' (shard-{self.shardIndex})'
 
         if self.attempt is not None and self.attempt > 1:
