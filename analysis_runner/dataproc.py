@@ -1,8 +1,9 @@
 """Helper functions to run Hail Query scripts on Dataproc from Hail Batch."""
 
 import os
+import json
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Dict
 import hailtop.batch as hb
 from analysis_runner.git import (
     get_git_default_remote,
@@ -28,6 +29,7 @@ def hail_dataproc_job(
     max_age: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
+    labels: Dict[str],
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
@@ -45,6 +47,10 @@ def hail_dataproc_job(
     dependencies for the new job."""
 
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
+
+    # Format labels
+    labels_string = re.sub('"|{|}| ', "", json.dumps(labels))
+    labels_formatted = re.sub(":", "=", labels_string)
 
     job_name_prefix = f'{job_name}: ' if job_name else ''
     start_job = batch.new_job(name=f'{job_name_prefix}start Dataproc cluster')
@@ -72,7 +78,7 @@ def hail_dataproc_job(
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
-        f'--labels job-name={job_name_prefix}',
+        f'--labels {labels_formatted}',
     ]
     if worker_boot_disk_size:
         start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')
