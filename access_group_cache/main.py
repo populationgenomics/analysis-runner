@@ -110,7 +110,7 @@ async def _get_dataset_access_group_members(
     group_names = [
         f'{dataset}-access@populationgenomics.org.au' for dataset in datasets
     ]
-    results = asyncio.gather(
+    results = await asyncio.gather(
         _transitive_group_members(access_token, group_name)
         for group_name in group_names
     )
