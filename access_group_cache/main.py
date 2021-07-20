@@ -107,12 +107,15 @@ async def _get_dataset_access_group_members(
 ) -> Dict[str, List[str]]:
     access_token = await _get_service_account_access_token()
 
-    result = {}
-    for dataset in datasets:
-        group_name = f'{dataset}-access@populationgenomics.org.au'
-        result[dataset] = await _transitive_group_members(access_token, group_name)
+    group_names = [
+        f'{dataset}-access@populationgenomics.org.au' for dataset in datasets
+    ]
+    results = asyncio.gather(
+        _transitive_group_members(access_token, group_name)
+        for group_name in group_names
+    )
 
-    return result
+    return dict(zip(datasets, results))
 
 
 def access_group_cache(unused_data, unused_context):
