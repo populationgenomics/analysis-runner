@@ -68,24 +68,37 @@ async def _groups_memberships_list(access_token: str, group_parent: str) -> List
 
 
 async def _transitive_group_members(access_token: str, group_name: str) -> List[str]:
-    queue = [group_name]
+    groups = [group_name]
     seen = set()
     result = []
 
-    while queue:
-        current = queue.pop()
-        if current in seen:
-            continue  # Break cycles
-        seen.add(current)
+    while groups:
+        group_parents_aws = []
+        for group in groups:
+            if group in seen:
+                continue  # Break cycles
+            seen.add(group)
 
-        group_parent = await _groups_lookup(access_token, current)
-        if not group_parent:
-            # Group couldn't be resolved, which usually means it's an individual.
-            result.append(current)
-            continue
+            group_parents_aws.append(_groups_lookup(access_token, group))
 
-        # It's a group, so add its members for the next round.
-        queue.extend(await _groups_memberships_list(access_token, group_parent))
+        group_parents = await asyncio.gather(*group_parents_aws)
+
+        memberships_aws = []
+        for group, group_parent in zip(groups, group_parents):
+            if group_parent:
+                # It's a group, so add its members for the next round.
+                memberships_aws.append(
+                    _groups_memberships_list(access_token, group_parent)
+                )
+            else:
+                # Group couldn't be resolved, which usually means it's an individual.
+                result.append(group)
+
+        memberships = await asyncio.gather(*memberships_aws)
+
+        group_names = []
+        for members in memberships:
+            group_names.append(members)
 
     return result
 
@@ -111,8 +124,10 @@ async def _get_dataset_access_group_members(
         f'{dataset}-access@populationgenomics.org.au' for dataset in datasets
     ]
     results = await asyncio.gather(
-        _transitive_group_members(access_token, group_name)
-        for group_name in group_names
+        *(
+            _transitive_group_members(access_token, group_name)
+            for group_name in group_names
+        )
     )
 
     return dict(zip(datasets, results))
