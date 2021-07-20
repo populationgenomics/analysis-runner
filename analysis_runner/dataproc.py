@@ -50,8 +50,7 @@ def hail_dataproc_job(
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
 
     # Format labels
-    labels_string = re.sub('"|{|}| ', '', json.dumps(labels))
-    labels_formatted = re.sub(':', '=', labels_string)
+    labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
 
     job_name_prefix = f'{job_name}: ' if job_name else ''
     start_job = batch.new_job(name=f'{job_name_prefix}start Dataproc cluster')
