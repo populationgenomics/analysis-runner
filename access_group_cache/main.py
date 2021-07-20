@@ -121,9 +121,9 @@ async def _get_dataset_access_group_members(
 ) -> Dict[str, List[str]]:
     access_token = await _get_service_account_access_token()
 
-    group_names = [
+    group_names = (
         f'{dataset}-access@populationgenomics.org.au' for dataset in datasets
-    ]
+    )
     results = await asyncio.gather(
         *(
             _transitive_group_members(access_token, group_name)
@@ -145,10 +145,6 @@ def access_group_cache(unused_data, unused_context):
 
     for dataset in config:
         secret_value = ','.join(sorted(group_members[dataset]))
-
-        # TODO
-        print(f'{dataset}: {secret_value}')
-        continue
 
         # Check whether the current secret version is up-to-date.
         secret_name = f'{dataset}-access-members-cache'
