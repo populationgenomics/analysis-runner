@@ -2,6 +2,7 @@
 
 import os
 import json
+import re
 import uuid
 from typing import Optional, List, Dict
 import hailtop.batch as hb
