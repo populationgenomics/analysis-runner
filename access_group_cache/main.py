@@ -70,21 +70,22 @@ async def _groups_memberships_list(access_token: str, group_parent: str) -> List
 async def _transitive_group_members(access_token: str, group_name: str) -> List[str]:
     groups = [group_name]
     seen = set()
-    result = []
+    result = set()
 
     while groups:
-        group_parents_aws = []
+        remaining_groups = []
         for group in groups:
             if group in seen:
-                continue  # Break cycles
+                continue  # Break cycles.
             seen.add(group)
+            remaining_groups.append(group)
 
-            group_parents_aws.append(_groups_lookup(access_token, group))
-
-        group_parents = await asyncio.gather(*group_parents_aws)
+        group_parents = await asyncio.gather(
+            *(_groups_lookup(access_token, group) for group in remaining_groups)
+        )
 
         memberships_aws = []
-        for group, group_parent in zip(groups, group_parents):
+        for group, group_parent in zip(remaining_groups, group_parents):
             if group_parent:
                 # It's a group, so add its members for the next round.
                 memberships_aws.append(
@@ -92,7 +93,7 @@ async def _transitive_group_members(access_token: str, group_name: str) -> List[
                 )
             else:
                 # Group couldn't be resolved, which usually means it's an individual.
-                result.append(group)
+                result.add(group)
 
         memberships = await asyncio.gather(*memberships_aws)
 
@@ -100,7 +101,7 @@ async def _transitive_group_members(access_token: str, group_name: str) -> List[
         for members in memberships:
             groups.extend(members)
 
-    return result
+    return list(result)
 
 
 async def _get_service_account_access_token() -> str:
