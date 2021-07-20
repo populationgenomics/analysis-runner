@@ -96,9 +96,9 @@ async def _transitive_group_members(access_token: str, group_name: str) -> List[
 
         memberships = await asyncio.gather(*memberships_aws)
 
-        group_names = []
+        groups = []
         for members in memberships:
-            group_names.append(members)
+            groups.append(members)
 
     return result
 
