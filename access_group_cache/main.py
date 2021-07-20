@@ -58,7 +58,7 @@ async def _groups_memberships_list(access_token: str, group_parent: str) -> List
                 content = await resp.text()
                 decoded = json.loads(content)
                 for member in decoded['memberships']:
-                    result.append(member)
+                    result.append(member['preferredMemberKey']['id'])
 
                 page_token = decoded.get('nextPageToken')
                 if not page_token:
