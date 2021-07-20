@@ -1,2 +1,2 @@
-google-api-python-client
+aiohttp
 google-cloud-secret-manager

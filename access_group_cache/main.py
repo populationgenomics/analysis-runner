@@ -1,26 +1,14 @@
 """Stores group membership information as secrets, for faster lookups."""
 
-from typing import Optional
+import asyncio
 import json
-import multiprocessing
+import urllib
+from typing import Dict, List, Optional
+import aiohttp
 from google.cloud import secretmanager
-import googleapiclient.discovery
 import google.api_core.exceptions
 
 PROJECT_ID = 'analysis-runner'
-
-CLOUD_IDENTITY_SERVICE_NAME = 'cloudidentity.googleapis.com'
-CLOUD_IDENTITY_API_VERSION = 'v1'
-DISCOVERY_URL = (
-    f'https://{CLOUD_IDENTITY_SERVICE_NAME}/$discovery/rest?'
-    f'version={CLOUD_IDENTITY_API_VERSION}'
-)
-
-cloud_identity_service = googleapiclient.discovery.build(
-    CLOUD_IDENTITY_SERVICE_NAME,
-    CLOUD_IDENTITY_API_VERSION,
-    discoveryServiceUrl=DISCOVERY_URL,
-)
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 
@@ -40,60 +28,122 @@ def _read_secret(name: str) -> Optional[str]:
     return response.payload.data.decode('UTF-8')
 
 
-def _process_dataset_group(dataset: str) -> None:
-    group_name = f'{dataset}-access@populationgenomics.org.au'
+async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
+    async with aiohttp.ClientSession() as session:
+        # https://cloud.google.com/identity/docs/reference/rest/v1/groups/lookup
+        async with session.get(
+            f'https://cloudidentity.googleapis.com/v1/groups:lookup?'
+            f'groupKey.id={urllib.parse.quote(group_name)}',
+            headers={'Authorization': f'Bearer {access_token}'},
+        ) as resp:
+            if resp.status != 200:
+                return None
 
-    print(f'Fetching members for {group_name}...')
+            content = await resp.text()
+            return json.loads(content)['name']
 
-    # See https://bit.ly/37WcB1d for the API calls.
-    # Pylint can't resolve the methods in Resource objects.
-    # pylint: disable=E1101
-    parent = (
-        cloud_identity_service.groups().lookup(groupKey_id=group_name).execute()['name']
-    )
 
-    members = []
-    page_token = None
-    while True:
-        response = (
-            cloud_identity_service.groups()
-            .memberships()
-            .list(parent=parent, pageToken=page_token)
-            .execute()
-        )
+async def _groups_memberships_list(access_token: str, group_parent: str) -> List[str]:
+    result = []
 
-        for member in response['memberships']:
-            members.append(member['preferredMemberKey']['id'])
+    async with aiohttp.ClientSession() as session:
+        page_token = None
+        while True:
+            # https://cloud.google.com/identity/docs/reference/rest/v1/groups/lookup
+            async with session.get(
+                f'https://cloudidentity.googleapis.com/v1/{group_parent}/memberships?'
+                f'pageToken={page_token or ""}',
+                headers={'Authorization': f'Bearer {access_token}'},
+            ) as resp:
+                content = await resp.text()
+                decoded = json.loads(content)
+                for member in decoded['memberships']:
+                    result.append(member)
 
-        page_token = response.get('nextPageToken')
-        if not page_token:
-            break
+                page_token = decoded.get('nextPageToken')
+                if not page_token:
+                    break
 
-    all_members = ','.join(members)
+    return result
 
-    # Check whether the current secret version is up-to-date.
-    secret_name = f'{dataset}-access-members-cache'
-    current_secret = _read_secret(secret_name)
 
-    if current_secret == all_members:
-        print(f'Cache for {dataset} is up-to-date.')
-        return  # Nothing left to do.
+async def _transitive_group_members(access_token: str, group_name: str) -> List[str]:
+    queue = [group_name]
+    seen = set()
+    result = []
 
-    response = secret_manager.add_secret_version(
-        request={
-            'parent': secret_manager.secret_path(PROJECT_ID, secret_name),
-            'payload': {'data': all_members.encode('UTF-8')},
-        }
-    )
+    while queue:
+        current = queue.pop()
+        if current in seen:
+            continue  # Break cycles
+        seen.add(current)
 
-    print(f'Added secret version: {response.name}')
+        group_parent = await _groups_lookup(access_token, current)
+        if not group_parent:
+            # Group couldn't be resolved, which usually means it's an individual.
+            result.append(current)
+            continue
+
+        # It's a group, so add its members for the next round.
+        queue.extend(await _groups_memberships_list(access_token, group_parent))
+
+    return result
+
+
+async def _get_service_account_access_token() -> str:
+    # https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances#applications
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            'http://metadata.google.internal/computeMetadata/v1/instance/'
+            'service-accounts/default/token',
+            headers={'Metadata-Flavor': 'Google'},
+        ) as resp:
+            content = await resp.text()
+            return json.loads(content)['access_token']
+
+
+async def _get_dataset_access_group_members(
+    datasets: List[str],
+) -> Dict[str, List[str]]:
+    access_token = await _get_service_account_access_token()
+
+    result = {}
+    for dataset in datasets:
+        group_name = f'{dataset}-access@populationgenomics.org.au'
+        result[dataset] = await _transitive_group_members(access_token, group_name)
+
+    return result
 
 
 def access_group_cache(unused_data, unused_context):
-    """Main entry point."""
+    """Cloud Function entry point."""
+
     config = json.loads(_read_secret('server-config'))
-    # Given that each group takes multiple seconds to process (!), we're running them
-    # concurrently. We're using processes, as google-api-python-client is not thread-safe:
-    # https://googleapis.github.io/google-api-python-client/docs/thread_safety.html
-    with multiprocessing.Pool(20) as pool:
-        pool.map(_process_dataset_group, config)
+
+    # Google Groups API queries are ridiculously slow, on the order of a few hundred ms
+    # per query. That's why we use async processing here to keep processing times low.
+    group_members = asyncio.run(_get_dataset_access_group_members(config.keys()))
+
+    for dataset in config:
+        secret_value = ','.join(sorted(group_members[dataset]))
+
+        # TODO
+        print(f'{dataset}: {secret_value}')
+        continue
+
+        # Check whether the current secret version is up-to-date.
+        secret_name = f'{dataset}-access-members-cache'
+        current_secret = _read_secret(secret_name)
+
+        if current_secret == secret_value:
+            print(f'Cache for {dataset} is up-to-date.')
+            continue  # Nothing left to do.
+
+        response = secret_manager.add_secret_version(
+            request={
+                'parent': secret_manager.secret_path(PROJECT_ID, secret_name),
+                'payload': {'data': secret_value.encode('UTF-8')},
+            }
+        )
+
+        print(f'Added secret version: {response.name}')
