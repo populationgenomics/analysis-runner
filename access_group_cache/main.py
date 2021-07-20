@@ -98,7 +98,7 @@ async def _transitive_group_members(access_token: str, group_name: str) -> List[
 
         groups = []
         for members in memberships:
-            groups.append(members)
+            groups.extend(members)
 
     return result
 
