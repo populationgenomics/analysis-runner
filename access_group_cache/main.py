@@ -5,27 +5,9 @@ import json
 import urllib
 from typing import Dict, List, Optional
 import aiohttp
-from google.cloud import secretmanager
-import google.api_core.exceptions
+import cpg_utils
 
 PROJECT_ID = 'analysis-runner'
-
-secret_manager = secretmanager.SecretManagerServiceClient()
-
-
-def _read_secret(name: str) -> Optional[str]:
-    """Reads the latest version of the given secret from Google's Secret Manager."""
-    try:
-        response = secret_manager.access_secret_version(
-            request={
-                'name': f'{secret_manager.secret_path(PROJECT_ID, name)}/versions/latest'
-            }
-        )
-    except google.api_core.exceptions.ClientError as e:
-        # Fail gracefully if there's no secret version yet.
-        print(f'Problem accessing secret {name}: {e}')
-        return None
-    return response.payload.data.decode('UTF-8')
 
 
 async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
@@ -137,7 +119,7 @@ async def _get_dataset_access_group_members(
 def access_group_cache(unused_data, unused_context):
     """Cloud Function entry point."""
 
-    config = json.loads(_read_secret('server-config'))
+    config = json.loads(cpg_utils.read_secret(PROJECT_ID, 'server-config'))
 
     # Google Groups API queries are ridiculously slow, on the order of a few hundred ms
     # per query. That's why we use async processing here to keep processing times low.
@@ -148,17 +130,10 @@ def access_group_cache(unused_data, unused_context):
 
         # Check whether the current secret version is up-to-date.
         secret_name = f'{dataset}-access-members-cache'
-        current_secret = _read_secret(secret_name)
+        current_secret = cpg_utils.read_secret(PROJECT_ID, secret_name)
 
         if current_secret == secret_value:
-            print(f'Cache for {dataset} is up-to-date.')
-            continue  # Nothing left to do.
-
-        response = secret_manager.add_secret_version(
-            request={
-                'parent': secret_manager.secret_path(PROJECT_ID, secret_name),
-                'payload': {'data': secret_value.encode('UTF-8')},
-            }
-        )
-
-        print(f'Added secret version: {response.name}')
+            print(f'Secret {secret_name} is up-to-date')
+        else:
+            cpg_utils.write_secret(PROJECT_ID, secret_name, secret_value)
+            print(f'Updated secret {secret_name}')

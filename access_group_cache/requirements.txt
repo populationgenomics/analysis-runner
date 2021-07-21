@@ -1,2 +1,2 @@
 aiohttp
-google-cloud-secret-manager
+cpg_utils
