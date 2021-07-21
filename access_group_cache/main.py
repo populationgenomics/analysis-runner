@@ -107,9 +107,11 @@ async def _get_dataset_access_group_members(
 ) -> Dict[str, List[str]]:
     access_token = await _get_service_account_access_token()
 
-    group_names = (
-        f'{dataset}-access@populationgenomics.org.au' for dataset in datasets
-    )
+    group_names = []
+    for dataset in datasets:
+        group_names.append(f'{dataset}-access@populationgenomics.org.au')
+        group_names.append(f'{dataset}-web-access@populationgenomics.org.au')
+
     results = await asyncio.gather(
         *(
             _transitive_group_members(access_token, group_name)
