@@ -3,11 +3,15 @@
 import asyncio
 import json
 import urllib
+import os
 from typing import Dict, List, Optional
 import aiohttp
 import cpg_utils
+from flask import Flask
 
 PROJECT_ID = 'analysis-runner'
+
+app = Flask(__name__)
 
 
 async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
@@ -116,10 +120,11 @@ async def _get_dataset_access_group_members(
     return dict(zip(datasets, results))
 
 
-def access_group_cache(unused_data, unused_context):
-    """Cloud Function entry point."""
+@app.route('/', methods=['POST'])
+def index():
+    """Cloud Run entry point."""
 
-    config = json.loads(cpg_utils.read_secret(PROJECT_ID, 'server-config'))
+    config = json.loads(cpg_utils.cloud.read_secret(PROJECT_ID, 'server-config'))
 
     # Google Groups API queries are ridiculously slow, on the order of a few hundred ms
     # per query. That's why we use async processing here to keep processing times low.
@@ -130,10 +135,16 @@ def access_group_cache(unused_data, unused_context):
 
         # Check whether the current secret version is up-to-date.
         secret_name = f'{dataset}-access-members-cache'
-        current_secret = cpg_utils.read_secret(PROJECT_ID, secret_name)
+        current_secret = cpg_utils.cloud.read_secret(PROJECT_ID, secret_name)
 
         if current_secret == secret_value:
             print(f'Secret {secret_name} is up-to-date')
         else:
-            cpg_utils.write_secret(PROJECT_ID, secret_name, secret_value)
+            cpg_utils.cloud.write_secret(PROJECT_ID, secret_name, secret_value)
             print(f'Updated secret {secret_name}')
+
+    return ('', 204)
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
