@@ -9,6 +9,7 @@ To deploy, run:
 ```bash
 gcloud beta run deploy access-group-cache \
   --source . \
+  --platform=managed \
   --project=analysis-runner \
   --region=australia-southeast1 \
   --no-allow-unauthenticated \

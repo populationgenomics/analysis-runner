@@ -4,7 +4,7 @@ import asyncio
 import json
 import urllib
 import os
-from typing import Dict, List, Optional
+from typing import List, Optional
 import aiohttp
 import cpg_utils.cloud
 from flask import Flask
@@ -87,7 +87,7 @@ async def _transitive_group_members(access_token: str, group_name: str) -> List[
         for members in memberships:
             groups.extend(members)
 
-    return list(result)
+    return sorted(list(result))
 
 
 async def _get_service_account_access_token() -> str:
@@ -102,22 +102,15 @@ async def _get_service_account_access_token() -> str:
             return json.loads(content)['access_token']
 
 
-async def _get_dataset_access_group_members(
-    datasets: List[str],
-) -> Dict[str, List[str]]:
+async def _get_group_members(group_names: List[str]) -> List[List[str]]:
     access_token = await _get_service_account_access_token()
 
-    group_names = (
-        f'{dataset}-access@populationgenomics.org.au' for dataset in datasets
-    )
-    results = await asyncio.gather(
+    return await asyncio.gather(
         *(
             _transitive_group_members(access_token, group_name)
             for group_name in group_names
         )
     )
-
-    return dict(zip(datasets, results))
 
 
 @app.route('/', methods=['POST'])
@@ -126,15 +119,22 @@ def index():
 
     config = json.loads(cpg_utils.cloud.read_secret(PROJECT_ID, 'server-config'))
 
+    groups = []
+    for dataset in config:
+        groups.append(f'{dataset}-access')
+        groups.append(f'{dataset}-web-access')
+
     # Google Groups API queries are ridiculously slow, on the order of a few hundred ms
     # per query. That's why we use async processing here to keep processing times low.
-    group_members = asyncio.run(_get_dataset_access_group_members(config.keys()))
+    all_group_members = asyncio.run(
+        _get_group_members([f'{group}@populationgenomics.org.au' for group in groups])
+    )
 
-    for dataset in config:
-        secret_value = ','.join(sorted(group_members[dataset]))
+    for group, group_members in zip(groups, all_group_members):
+        secret_value = ','.join(group_members)
 
         # Check whether the current secret version is up-to-date.
-        secret_name = f'{dataset}-access-members-cache'
+        secret_name = f'{group}-members-cache'
         current_secret = cpg_utils.cloud.read_secret(PROJECT_ID, secret_name)
 
         if current_secret == secret_value:
