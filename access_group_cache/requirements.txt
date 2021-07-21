@@ -1,2 +1,0 @@
-aiohttp
-google-cloud-secret-manager
