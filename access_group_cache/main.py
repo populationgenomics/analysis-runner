@@ -6,7 +6,7 @@ import urllib
 import os
 from typing import Dict, List, Optional
 import aiohttp
-import cpg_utils
+import cpg_utils.cloud
 from flask import Flask
 
 PROJECT_ID = 'analysis-runner'
