@@ -28,6 +28,7 @@ def hail_dataproc_job(
     max_age: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
+    worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
@@ -73,6 +74,8 @@ def hail_dataproc_job(
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
     ]
+    if worker_machine_type:
+        start_job_command.append(f'--worker-machine-type={worker_machine_type}')
     if worker_boot_disk_size:
         start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')
     if secondary_worker_boot_disk_size:
