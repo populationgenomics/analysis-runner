@@ -791,8 +791,8 @@ def main():  # pylint: disable=too-many-locals
     for access_level, service_account in service_accounts['hail']:
         # Give access to sample-metadata cloud run service
         gcp.cloudrun.IamMember(
-            f'samplemetadata-service-account-{access_level}-accessor',
-            location='australia-southeast1',
+            f'sample-metadata-service-account-{access_level}-accessor',
+            location=REGION,
             project=SAMPLE_METADATA_PROJECT,
             service='sample-metadata-api',
             role='roles/run.invoker',
