@@ -791,7 +791,7 @@ def main():  # pylint: disable=too-many-locals
     for kind, access_level, service_account in service_accounts_gen():
         # Give hail / dataproc / cromwell access to sample-metadata cloud run service
         gcp.cloudrun.IamMember(
-            f'sample-metadata-service-account-{kind}-{access_level}-accessor',
+            f'sample-metadata-service-account-{kind}-{access_level}-invoker',
             location=REGION,
             project=SAMPLE_METADATA_PROJECT,
             service='sample-metadata-api',
