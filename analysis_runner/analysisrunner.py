@@ -51,6 +51,7 @@ def run_analysis_runner(
     access_level,
     commit=None,
     repository=None,
+    cwd=None,
 ):
     """
     Main function that drives the CLI.
@@ -73,7 +74,7 @@ def run_analysis_runner(
     _repository = repository
     _commit_ref = commit
     _script = list(script)
-    _cwd = None
+    _cwd = cwd
 
     # false-y value catches empty list / tuple as well
     if not _script:
@@ -102,9 +103,11 @@ def run_analysis_runner(
         if _commit_ref is None:
             _commit_ref = get_git_commit_ref_of_current_repository()
 
-        _cwd = get_relative_path_from_git_root()
-        if _cwd == '.':
-            _cwd = None
+        if _cwd is None:
+            _cwd = get_relative_path_from_git_root()
+
+    if _cwd == '.':
+        _cwd = None
 
     _token = get_google_identity_token()
 

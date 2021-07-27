@@ -109,6 +109,7 @@ def run_cromwell(
     dynamic_inputs: List[str] = None,
     commit=None,
     repository=None,
+    cwd=None,
 ):
     """
     Prepare parameters for cromwell analysis-runner job
@@ -129,16 +130,18 @@ def run_cromwell(
 
     _repository = repository
     _commit_ref = commit
-    _cwd = None
+    _cwd = cwd
 
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
         if _commit_ref is None:
             _commit_ref = get_git_commit_ref_of_current_repository()
 
-        _cwd = get_relative_path_from_git_root()
-        if _cwd == '.':
-            _cwd = None
+        if _cwd is None:
+            _cwd = get_relative_path_from_git_root()
+
+    if _cwd == '.':
+        _cwd = None
 
     _inputs_dict = None
     if dynamic_inputs:
