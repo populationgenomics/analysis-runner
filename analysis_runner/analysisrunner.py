@@ -80,19 +80,21 @@ def run_analysis_runner(
     if not _script:
         _script = ['main.py']
 
+    executable_path = os.path.join(_cwd or '', _script[0])
+
     # we can find the script, and it's a relative path (not absolute)
-    if os.path.exists(_script[0]) and not _script[0].startswith('/'):
-        _perform_shebang_check(_script[0])
+    if os.path.exists(executable_path) and not executable_path.startswith('/'):
+        _perform_shebang_check(executable_path)
         # if it's just the path name, eg: you call
         #   analysis-runner my_file.py
         # need to pre-pend "./" to execute
         if os.path.basename(_script[0]) == _script[0]:
             _script[0] = './' + _script[0]
-    elif not which(_script[0]):
+    elif not which(executable_path):
         # the first el of _script is not executable
         # (at least on this computer)
         if not confirm_choice(
-            f"The program '{_script[0]}' was not executable \n"
+            f"The program '{executable_path}' was not executable \n"
             f'(or a script could not be found) on this computer. \n'
             f'Please confirm to continue.'
         ):
