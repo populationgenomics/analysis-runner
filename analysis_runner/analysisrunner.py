@@ -90,7 +90,7 @@ def run_analysis_runner(
         # need to pre-pend "./" to execute
         if os.path.basename(_script[0]) == _script[0]:
             _script[0] = './' + _script[0]
-    elif not which(executable_path):
+    elif not (which(_script[0]) or which(executable_path)):
         # the first el of _script is not executable
         # (at least on this computer)
         if not confirm_choice(
