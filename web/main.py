@@ -40,7 +40,7 @@ def handler(dataset=None, filename=None):
         abort(403)
 
     try:
-        secret_name = f'{dataset}-access-members-cache'
+        secret_name = f'{dataset}-web-access-members-cache'
         secret_path = secret_manager.secret_path(PROJECT_ID, secret_name)
         response = secret_manager.access_secret_version(
             request={'name': f'{secret_path}/versions/latest'}

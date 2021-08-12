@@ -22,6 +22,7 @@ NOTEBOOKS_PROJECT = 'notebooks-314505'
 # cromwell-submission-access@populationgenomics.org.au
 CROMWELL_ACCESS_GROUP_ID = 'groups/03cqmetx2922fyu'
 CROMWELL_RUNNER_ACCOUNT = 'cromwell-runner@cromwell-305305.iam.gserviceaccount.com'
+SAMPLE_METADATA_PROJECT = 'sample-metadata'
 
 
 def main():  # pylint: disable=too-many-locals
@@ -112,22 +113,27 @@ def main():  # pylint: disable=too-many-locals
         ),
     )
 
-    upload_account = gcp.serviceaccount.Account(
-        'upload-service-account',
-        account_id='upload',
-        display_name='upload',
+    main_upload_account = gcp.serviceaccount.Account(
+        'main-upload-service-account',
+        account_id='main-upload',
+        display_name='main-upload',
         opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
     )
 
-    upload_bucket = create_bucket(
-        bucket_name('upload'), lifecycle_rules=[undelete_rule]
+    main_upload_bucket = create_bucket(
+        bucket_name('main-upload'), lifecycle_rules=[undelete_rule]
     )
 
+    test_upload_bucket = create_bucket(
+        bucket_name('test-upload'), lifecycle_rules=[undelete_rule]
+    )
+
+    # Grant admin permissions as composite uploads need to delete temporary files.
     bucket_member(
-        'upload-service-account-upload-bucket-creator',
-        bucket=upload_bucket.name,
-        role='roles/storage.objectCreator',
-        member=pulumi.Output.concat('serviceAccount:', upload_account.email),
+        'main-upload-service-account-main-upload-bucket-creator',
+        bucket=main_upload_bucket.name,
+        role='roles/storage.admin',
+        member=pulumi.Output.concat('serviceAccount:', main_upload_account.email),
     )
 
     archive_bucket = create_bucket(
@@ -217,11 +223,27 @@ def main():  # pylint: disable=too-many-locals
         )
 
     access_group = create_group(group_mail('access'))
+    web_access_group = create_group(group_mail('web-access'))
 
-    # This secret is used as a fast cache for checking memberships in the above group.
+    # These secrets are used as a fast cache for checking memberships in the above groups.
     access_group_cache_secret = gcp.secretmanager.Secret(
         f'access-group-cache-secret',
         secret_id=f'{dataset}-access-members-cache',
+        project=ANALYSIS_RUNNER_PROJECT,
+        replication=gcp.secretmanager.SecretReplicationArgs(
+            user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
+                replicas=[
+                    gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
+                        location='australia-southeast1',
+                    ),
+                ],
+            ),
+        ),
+    )
+
+    web_access_group_cache_secret = gcp.secretmanager.Secret(
+        f'web-access-group-cache-secret',
+        secret_id=f'{dataset}-web-access-members-cache',
         project=ANALYSIS_RUNNER_PROJECT,
         replication=gcp.secretmanager.SecretReplicationArgs(
             user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
@@ -243,10 +265,26 @@ def main():  # pylint: disable=too-many-locals
     )
 
     gcp.secretmanager.SecretIamMember(
-        f'access-group-cache-secret-version-adder',
+        f'access-group-cache-secret-version-manager',
         project=ANALYSIS_RUNNER_PROJECT,
         secret_id=access_group_cache_secret.id,
-        role='roles/secretmanager.secretVersionAdder',
+        role='roles/secretmanager.secretVersionManager',
+        member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
+    )
+
+    gcp.secretmanager.SecretIamMember(
+        f'web-access-group-cache-secret-accessor',
+        project=ANALYSIS_RUNNER_PROJECT,
+        secret_id=web_access_group_cache_secret.id,
+        role='roles/secretmanager.secretAccessor',
+        member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
+    )
+
+    gcp.secretmanager.SecretIamMember(
+        f'web-access-group-cache-secret-version-manager',
+        project=ANALYSIS_RUNNER_PROJECT,
+        secret_id=web_access_group_cache_secret.id,
+        role='roles/secretmanager.secretVersionManager',
         member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
     )
 
@@ -259,9 +297,9 @@ def main():  # pylint: disable=too-many-locals
     )
 
     gcp.secretmanager.SecretIamMember(
-        f'web-server-access-group-cache-secret-accessor',
+        f'web-server-web-access-group-cache-secret-accessor',
         project=ANALYSIS_RUNNER_PROJECT,
-        secret_id=access_group_cache_secret.id,
+        secret_id=web_access_group_cache_secret.id,
         role='roles/secretmanager.secretAccessor',
         member=f'serviceAccount:{WEB_SERVER_SERVICE_ACCOUNT}',
     )
@@ -285,10 +323,24 @@ def main():  # pylint: disable=too-many-locals
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
+    # Grant visibility to Dataproc utilization metrics etc.
+    gcp.projects.IAMMember(
+        'project-monitoring-viewer',
+        role='roles/monitoring.viewer',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
+    )
+
     add_bucket_permissions(
         'access-group-test-bucket-admin',
         access_group,
         test_bucket,
+        'roles/storage.admin',
+    )
+
+    add_bucket_permissions(
+        'access-group-test-upload-bucket-admin',
+        access_group,
+        test_upload_bucket,
         'roles/storage.admin',
     )
 
@@ -311,6 +363,13 @@ def main():  # pylint: disable=too-many-locals
         access_group,
         test_web_bucket,
         'roles/storage.admin',
+    )
+
+    add_bucket_permissions(
+        'access-group-main-upload-bucket-viewer',
+        access_group,
+        main_upload_bucket,
+        'roles/storage.objectViewer',
     )
 
     add_bucket_permissions(
@@ -379,6 +438,26 @@ def main():  # pylint: disable=too-many-locals
             id=ACCESS_GROUP_CACHE_SERVICE_ACCOUNT
         ),
         roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+    )
+
+    gcp.cloudidentity.GroupMembership(
+        'web-access-group-cache-membership',
+        group=web_access_group.id,
+        preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
+            id=ACCESS_GROUP_CACHE_SERVICE_ACCOUNT
+        ),
+        roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+    )
+
+    # All members of the access group have web access automatically.
+    gcp.cloudidentity.GroupMembership(
+        'web-access-group-access-group-membership',
+        group=web_access_group.id,
+        preferred_member_key=access_group.group_key,
+        roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
     )
 
     for kind, access_level, service_account in service_accounts_gen():
@@ -392,6 +471,18 @@ def main():  # pylint: disable=too-many-locals
                 location=REGION,
                 repository='images',
                 role='roles/artifactregistry.reader',
+                member=pulumi.Output.concat('serviceAccount:', service_account),
+            )
+
+        # Allow non-test service accounts to write images to the "cpg-common" Artifact
+        # Registry repository.
+        if access_level != 'test':
+            gcp.artifactregistry.RepositoryIamMember(
+                f'{kind}-service-account-{access_level}-images-writer-in-cpg-common',
+                project=CPG_COMMON_PROJECT,
+                location=REGION,
+                repository='images',
+                role='roles/artifactregistry.writer',
                 member=pulumi.Output.concat('serviceAccount:', service_account),
             )
 
@@ -422,16 +513,42 @@ def main():  # pylint: disable=too-many-locals
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
 
+    # For view + create permissions, we conceptually should only have to grant the
+    # roles/storage.objectViewer and roles/storage.objectCreator roles. However, Hail /
+    # Spark access GCS buckets in a way that also requires storage.buckets.get permissions,
+    # which is typically only included in the legacy roles. We therefore create a custom
+    # role here.
+    view_create_role = gcp.projects.IAMCustomRole(
+        'storage-view-create-role',
+        description='Allows viewing and creation of storage objects',
+        permissions=[
+            'storage.objects.list',
+            'storage.objects.get',
+            'storage.objects.create',
+            'storage.buckets.get',
+        ],
+        role_id='storageObjectViewCreate',
+        title='Storage Object Viewer + Creator',
+        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+    )
+
     # Permissions increase by access level:
     # - test: view / create on any "test" bucket
     # - standard: view / create on any "test" or "main" bucket
     # - full: view / create / delete anywhere
-
     for kind, access_level, service_account in service_accounts_gen():
         # test bucket
         bucket_member(
             f'{kind}-service-account-{access_level}-test-bucket-admin',
             bucket=test_bucket.name,
+            role='roles/storage.admin',
+            member=pulumi.Output.concat('serviceAccount:', service_account),
+        )
+
+        # test-upload bucket
+        bucket_member(
+            f'{kind}-service-account-{access_level}-test-upload-bucket-admin',
+            bucket=test_upload_bucket.name,
             role='roles/storage.admin',
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
@@ -460,32 +577,20 @@ def main():  # pylint: disable=too-many-locals
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
 
-    # For view + create permissions, we conceptually should only have to grant the
-    # roles/storage.objectViewer and roles/storage.objectCreator roles. However, Hail /
-    # Spark access GCS buckets in a way that also requires storage.buckets.get permissions,
-    # which is typically only included in the legacy roles. We therefore create a custom
-    # role here.
-    view_create_role = gcp.projects.IAMCustomRole(
-        'storage-view-create-role',
-        description='Allows viewing and creation of storage objects',
-        permissions=[
-            'storage.objects.list',
-            'storage.objects.get',
-            'storage.objects.create',
-            'storage.buckets.get',
-        ],
-        role_id='storageObjectViewCreate',
-        title='Storage Object Viewer + Creator',
-        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
-    )
-
-    for kind, access_level, service_account in service_accounts_gen():
         if access_level == 'standard':
             # main bucket
             bucket_member(
                 f'{kind}-service-account-standard-main-bucket-view-create',
                 bucket=main_bucket.name,
                 role=view_create_role.name,
+                member=pulumi.Output.concat('serviceAccount:', service_account),
+            )
+
+            # main-upload bucket
+            bucket_member(
+                f'{kind}-service-account-standard-main-upload-bucket-viewer',
+                bucket=main_upload_bucket.name,
+                role='roles/storage.objectViewer',
                 member=pulumi.Output.concat('serviceAccount:', service_account),
             )
 
@@ -522,6 +627,14 @@ def main():  # pylint: disable=too-many-locals
                 member=pulumi.Output.concat('serviceAccount:', service_account),
             )
 
+            # main-upload bucket
+            bucket_member(
+                f'{kind}-service-account-full-main-upload-bucket-admin',
+                bucket=main_upload_bucket.name,
+                role='roles/storage.admin',
+                member=pulumi.Output.concat('serviceAccount:', service_account),
+            )
+
             # main-tmp bucket
             bucket_member(
                 f'{kind}-service-account-full-main-tmp-bucket-admin',
@@ -546,14 +659,6 @@ def main():  # pylint: disable=too-many-locals
                 member=pulumi.Output.concat('serviceAccount:', service_account),
             )
 
-            # upload bucket
-            bucket_member(
-                f'{kind}-service-account-full-upload-bucket-admin',
-                bucket=upload_bucket.name,
-                role='roles/storage.admin',
-                member=pulumi.Output.concat('serviceAccount:', service_account),
-            )
-
             # archive bucket
             bucket_member(
                 f'{kind}-service-account-full-archive-bucket-admin',
@@ -568,6 +673,21 @@ def main():  # pylint: disable=too-many-locals
                     f'{kind}-service-account-full-release-bucket-admin',
                     bucket=release_bucket.name,
                     role='roles/storage.admin',
+                    member=pulumi.Output.concat('serviceAccount:', service_account),
+                )
+
+        # Allow read access to the test / main bucket for datasets we depend on.
+        for dependency in config.get_object('depends_on') or ():
+            dependency_bucket_types = (
+                ('test', 'test-upload')
+                if access_level == 'test'
+                else ('main', 'main-upload')
+            )
+            for bucket_type in dependency_bucket_types:
+                bucket_member(
+                    f'{kind}-service-account-{access_level}-{dependency}-{bucket_type}-bucket-viewer',
+                    bucket=f'cpg-{dependency}-{bucket_type}',
+                    role='roles/storage.objectViewer',
                     member=pulumi.Output.concat('serviceAccount:', service_account),
                 )
 
@@ -602,6 +722,7 @@ def main():  # pylint: disable=too-many-locals
             id=notebook_account.email
         ),
         roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
     )
 
     def find_service_account(kind: str, access_level: str) -> Optional[str]:
@@ -654,6 +775,7 @@ def main():  # pylint: disable=too-many-locals
                 id=service_account,
             ),
             roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
         )
 
     for access_level, service_account in service_accounts['cromwell']:
@@ -722,6 +844,17 @@ def main():  # pylint: disable=too-many-locals
             secret_id=secret.id,
             role='roles/secretmanager.secretAccessor',
             member=f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}',
+        )
+
+    for kind, access_level, service_account in service_accounts_gen():
+        # Give hail / dataproc / cromwell access to sample-metadata cloud run service
+        gcp.cloudrun.IamMember(
+            f'sample-metadata-service-account-{kind}-{access_level}-invoker',
+            location=REGION,
+            project=SAMPLE_METADATA_PROJECT,
+            service='sample-metadata-api',
+            role='roles/run.invoker',
+            member=pulumi.Output.concat('serviceAccount:', service_account),
         )
 
 

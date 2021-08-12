@@ -62,6 +62,14 @@ def add_general_args(parser):
         help='Which permissions to grant when running the job.',
     )
 
+    parser.add_argument(
+        '--cwd',
+        required=False,
+        help='Supply the (relative) working directory to use, the analysis-runner will '
+        '"cd <cwd>" before running any execution. If the "--cwd" and "--repository" '
+        'arguments are not supplied, the relative path to the git root will be determined',
+    )
+
 
 def confirm_choice(choice: str):
     """

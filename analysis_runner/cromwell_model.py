@@ -10,11 +10,13 @@ from tabulate import tabulate
 
 class ExecutionStatus(Enum):
     preparing = 'preparing'
+    starting = 'starting'
     in_progress = 'inprogress'
     running = 'running'
     done = 'done'
     succeeded = 'succeeded'
     failed = 'failed'
+    retryablefailure = 'retryablefailure'
 
     def __str__(self):
         return self.value
@@ -22,19 +24,25 @@ class ExecutionStatus(Enum):
     @property
     def _symbols(self):
         return {
-            ExecutionStatus.done: '#',
+            ExecutionStatus.starting: '...',
+            ExecutionStatus.preparing: '...',
             ExecutionStatus.in_progress: '~',
+            ExecutionStatus.running: '~',
+            ExecutionStatus.done: '#',
+            ExecutionStatus.succeeded: '#',
             ExecutionStatus.failed: '!',
+            ExecutionStatus.retryablefailure: '~!',
         }
 
     def symbol(self):
-        return self._symbols.get(self, '~')
+        return self._symbols.get(self, '?')
 
     def is_finished(self):
         _finished_states = {
             ExecutionStatus.done,
             ExecutionStatus.succeeded,
             ExecutionStatus.failed,
+            ExecutionStatus.retryablefailure,
         }
         return self in _finished_states
 
@@ -58,6 +66,7 @@ class WorkflowMetadataModel:
         status=None,
         end=None,
         start=None,
+        **kwargs,
     ):
         self.workflowName = workflowName
         self.workflowProcessingEvents = workflowProcessingEvents
@@ -77,6 +86,10 @@ class WorkflowMetadataModel:
         )
         self.end = end
         self.start = start
+
+        # safety
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
 
     @staticmethod
     def parse(d):
@@ -155,6 +168,7 @@ class CallMetadata:
         start=None,
         preemptible=None,
         jes=None,
+        failures=None,
         calls: Optional[Dict[str, List['CallMetadata']]] = None,
         **kwargs,
     ):
@@ -166,7 +180,7 @@ class CallMetadata:
         self.backendStatus = backendStatus
         self.compressedDockerSize = compressedDockerSize
         self.commandLine = commandLine
-        self.shardIndex = shardIndex
+        self.shardIndex = int(shardIndex) if shardIndex else None
         self.outputs = outputs
         self.runtimeAttributes = runtimeAttributes
         self.callCaching = callCaching
@@ -184,6 +198,7 @@ class CallMetadata:
         self.preemptible = preemptible
         self.calls = calls
         self.jes = jes
+        self.failures = failures
 
         # safety
         for k, v in kwargs.items():
@@ -200,7 +215,7 @@ class CallMetadata:
                 name = name.split(".")[-1]
                 calls[name] = sorted(
                     [CallMetadata.parse({'name': name, **call}) for call in sublist],
-                    key=lambda c: f'{c.shardIndex or 0}-{c.start}',
+                    key=lambda c: (c.shardIndex or 0, c.start),
                 )
         return CallMetadata(calls=calls, **new_d)
 
@@ -211,7 +226,8 @@ class CallMetadata:
 
         extras = []
         is_done = self.executionStatus.is_finished()
-        if (is_done or expand_completed) and self.calls:
+        has_succeded = self.executionStatus == ExecutionStatus.succeeded
+        if (not has_succeded or expand_completed) and self.calls:
             for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start):
                 extras.append(
                     indent(
@@ -225,15 +241,23 @@ class CallMetadata:
         if not is_done:
             if self.jobId:
                 extras.append(f'JobID: {self.jobId}')
+        else:
+            if self.callCaching and self.callCaching.get('hit'):
+                extras.append(f'Call caching: true')
 
-        if self.executionStatus == ExecutionStatus.failed:
+        if not self.calls and self.executionStatus == ExecutionStatus.failed:
             extras.append(f'stdout: {self.stdout}')
             extras.append(f'stderr: {self.stderr}')
             extras.append(f'rc: {self.returnCode}')
 
+        if self.failures:
+            caused_by = unwrap_caused_by(self.failures)
+            if caused_by:
+                extras.append(f'error: {caused_by}')
+
         name = self.name
 
-        if self.shardIndex is not None and int(self.shardIndex) >= 0:
+        if self.shardIndex is not None and self.shardIndex >= 0:
             name += f' (shard-{self.shardIndex})'
 
         if self.attempt is not None and self.attempt > 1:
@@ -242,6 +266,20 @@ class CallMetadata:
         symbol = self.executionStatus.symbol()
         extras_str = "".join("\n" + indent(e, '    ') for e in extras)
         return f'[{symbol}] {name} ({duration_str}){extras_str}'
+
+
+def unwrap_caused_by(failures: List):
+
+    inner_failures = []
+    for failure in failures:
+        m = failure.get('message', '')
+        caused_by = failure.get('causedBy')
+        if caused_by:
+            m += f', caused by: {unwrap_caused_by(caused_by)}'
+        if m:
+            inner_failures.append(m)
+
+    return " & ".join(inner_failures)
 
 
 def prepare_inner_calls_string(

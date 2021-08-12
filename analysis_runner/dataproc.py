@@ -14,7 +14,7 @@ from analysis_runner.git import (
 )
 
 DATAPROC_IMAGE = (
-    'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.63'
+    'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.73'
 )
 GCLOUD_AUTH = 'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
 GCLOUD_PROJECT = f'gcloud config set project {os.getenv("DATASET_GCP_PROJECT")}'
@@ -31,6 +31,7 @@ def hail_dataproc_job(
     num_workers: int = 2,
     num_secondary_workers: int = 0,
     labels: Optional[Dict[str, str]] = {'compute_category': 'dataproc'},
+    worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
@@ -80,6 +81,8 @@ def hail_dataproc_job(
         f'--properties="{",".join(spark_env)}"',
         f'--labels {labels_formatted}',
     ]
+    if worker_machine_type:
+        start_job_command.append(f'--worker-machine-type={worker_machine_type}')
     if worker_boot_disk_size:
         start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')
     if secondary_worker_boot_disk_size:
