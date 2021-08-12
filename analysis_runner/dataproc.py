@@ -1,8 +1,6 @@
 """Helper functions to run Hail Query scripts on Dataproc from Hail Batch."""
 
 import os
-import json
-import re
 import uuid
 from typing import Optional, List, Dict
 import hailtop.batch as hb
@@ -30,7 +28,6 @@ def hail_dataproc_job(
     max_age: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
-    labels: Optional[Dict[str, str]] = {'compute_category': 'dataproc'},
     worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
@@ -42,6 +39,7 @@ def hail_dataproc_job(
     depends_on: Optional[List[hb.batch.job.Job]] = None,
     job_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,
+    labels: Optional[Dict[str, str]] = None,
 ) -> hb.batch.job.Job:
     """Returns a Batch job which starts a Dataproc cluster, submits a Hail
     Query script to it, and stops the cluster. See the `hailctl` tool for
@@ -49,6 +47,9 @@ def hail_dataproc_job(
     dependencies for the new job."""
 
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
+
+    # Add default labels to passed labels.
+    labels.update({'compute_category': 'dataproc'})
 
     # Format labels
     labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
