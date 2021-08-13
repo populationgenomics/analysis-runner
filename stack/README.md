@@ -67,8 +67,4 @@ can be brought up using Pulumi.
 
 ## Updating all stacks
 
-After any configuration change, you should apply the changes across all datasets. However, make sure that any changes will also be reflected in the `main` branch, as when the state in the repository differs from what's deployed in production, debugging becomes extremely difficult.
-
-```bash
-for f in Pulumi.*.yaml; do DATASET=$(echo $f | cut -d . -f 2) && echo "=== $DATASET ===" && PULUMI_CONFIG_PASSPHRASE= pulumi stack select $DATASET && PULUMI_CONFIG_PASSPHRASE= pulumi up -y; done
-```
+After any configuration change, you should apply the changes across all datasets, e.g. using [`update_all_stacks.sh`](update_all_stacks.sh). However, make sure that any changes will also be reflected in the `main` branch, as when the state in the repository differs from what's deployed in production, debugging becomes extremely difficult.
