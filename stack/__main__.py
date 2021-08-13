@@ -691,11 +691,14 @@ def main():  # pylint: disable=too-many-locals
                     member=pulumi.Output.concat('serviceAccount:', service_account),
                 )
 
-                # Spark accesses GCS buckets in a way that also requires
-                # storage.buckets.get permissions. This is granted in the listing_role,
-                # but we'd need to assign the role from the project that the bucket is
-                # under. Since that's tricky to find out, we use the legacyBucketReader
-                # role instead.
+                # Spark accesses GCS buckets in a way that requires the
+                # storage.buckets.get permission. Unfortunately there are no predefined
+                # non-legacy roles that grant this permission. Usually we'd define a
+                # custom role for this (like listing_role), but the role needs to be in
+                # the bucket resource hierarchy. We don't know the project that a bucket
+                # from a dependent dataset is in, so the role becomes difficult to
+                # specify. Until we can specify custom roles at the organization level,
+                # we work around this issue by using a predefined legacy role.
                 bucket_member(
                     f'{kind}-service-account-{access_level}-{dependency}-{bucket_type}-bucket-legacy-reader',
                     bucket=f'cpg-{dependency}-{bucket_type}',
