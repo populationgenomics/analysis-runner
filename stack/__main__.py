@@ -691,7 +691,7 @@ def main():  # pylint: disable=too-many-locals
                     member=pulumi.Output.concat('serviceAccount:', service_account),
                 )
 
-                # Spark access GCS buckets in a way that also requires
+                # Spark accesses GCS buckets in a way that also requires
                 # storage.buckets.get permissions. This is granted in the listing_role,
                 # but we'd need to assign the role from the project that the bucket is
                 # under. Since that's tricky to find out, we use the legacyBucketReader
