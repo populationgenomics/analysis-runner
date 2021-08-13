@@ -684,6 +684,15 @@ def main():  # pylint: disable=too-many-locals
                 else ('main', 'main-upload')
             )
             for bucket_type in dependency_bucket_types:
+                # Listing allows storage.buckets.get.
+                bucket_member(
+                    f'{kind}-service-account-{access_level}-{dependency}-{bucket_type}-bucket-lister',
+                    bucket=f'cpg-{dependency}-{bucket_type}',
+                    role=listing_role,
+                    member=pulumi.Output.concat('serviceAccount:', service_account),
+                )
+
+                # Viewing allows storage.objects.get.
                 bucket_member(
                     f'{kind}-service-account-{access_level}-{dependency}-{bucket_type}-bucket-viewer',
                     bucket=f'cpg-{dependency}-{bucket_type}',
