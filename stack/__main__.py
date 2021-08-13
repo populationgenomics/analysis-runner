@@ -684,19 +684,22 @@ def main():  # pylint: disable=too-many-locals
                 else ('main', 'main-upload')
             )
             for bucket_type in dependency_bucket_types:
-                # Listing allows storage.buckets.get.
-                bucket_member(
-                    f'{kind}-service-account-{access_level}-{dependency}-{bucket_type}-bucket-lister',
-                    bucket=f'cpg-{dependency}-{bucket_type}',
-                    role=listing_role,
-                    member=pulumi.Output.concat('serviceAccount:', service_account),
-                )
-
-                # Viewing allows storage.objects.get.
                 bucket_member(
                     f'{kind}-service-account-{access_level}-{dependency}-{bucket_type}-bucket-viewer',
                     bucket=f'cpg-{dependency}-{bucket_type}',
                     role='roles/storage.objectViewer',
+                    member=pulumi.Output.concat('serviceAccount:', service_account),
+                )
+
+                # Spark access GCS buckets in a way that also requires
+                # storage.buckets.get permissions. This is granted in the listing_role,
+                # but we'd need to assign the role from the project that the bucket is
+                # under. Since that's tricky to find out, we use the legacyBucketReader
+                # role instead.
+                bucket_member(
+                    f'{kind}-service-account-{access_level}-{dependency}-{bucket_type}-bucket-legacy-reader',
+                    bucket=f'cpg-{dependency}-{bucket_type}',
+                    role='roles/storage.legacyBucketReader',
                     member=pulumi.Output.concat('serviceAccount:', service_account),
                 )
 
