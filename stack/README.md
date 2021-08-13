@@ -64,3 +64,11 @@ can be brought up using Pulumi.
    ```
 
 1. Add users to the `<dataset>-access@populationgenomics.org.au` Google Group to enable access through the analysis-runner. To be able to see Hail Batch logs for analysis-runner invocations, users also need to be added to the `dataset` Hail Batch billing project.
+
+## Updating all stacks
+
+After any configuration change, you should apply the changes across all datasets. However, make sure that any changes will also be reflected in the `main` branch: if the state in the repository differs from what's deployed in production, debugging becomes extremely difficult.
+
+```bash
+for f in Pulumi.*.yaml; do STACK=$(echo $f | cut -d . -f 2) && echo "=== $STACK ===" && PULUMI_CONFIG_PASSPHRASE= pulumi stack select $STACK && PULUMI_CONFIG_PASSPHRASE= pulumi up -y; done
+```
