@@ -93,7 +93,8 @@ def validate_output_dir(output_dir: str):
 
 def check_dataset_and_group(server_config, dataset, email):
     """Check that the email address is a member of the {dataset}-access@popgen group"""
-    if dataset not in server_config:
+    dataset_config = server_config.get(dataset)
+    if not dataset_config:
         raise web.HTTPForbidden(
             reason=(
                 f'Dataset "{dataset}" is not part of: '
@@ -102,7 +103,7 @@ def check_dataset_and_group(server_config, dataset, email):
         )
 
     group_members = read_secret(
-        ANALYSIS_RUNNER_PROJECT_ID, f'{dataset}-access-members-cache'
+        dataset_config['projectId'], f'{dataset}-access-members-cache'
     ).split(',')
     if email not in group_members:
         raise web.HTTPForbidden(
