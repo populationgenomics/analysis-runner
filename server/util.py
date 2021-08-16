@@ -9,11 +9,12 @@ from aiohttp import web, ClientSession
 from hailtop.config import get_deploy_config
 from google.cloud import secretmanager, pubsub_v1
 
-from cpg_utils.cloud import email_from_id_token
+from cpg_utils.cloud import email_from_id_token, read_secret
 
+ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/tmp/metadata'
-PUBSUB_TOPIC = 'projects/analysis-runner/topics/submissions'
+PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
 CROMWELL_URL = 'https://cromwell.populationgenomics.org.au'
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
@@ -34,22 +35,15 @@ secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
 
 
-def _read_secret(name: str) -> str:
-    """Reads the latest version of the given secret from Google's Secret Manager."""
-    secret_name = f'projects/analysis-runner/secrets/{name}/versions/latest'
-    response = secret_manager.access_secret_version(request={'name': secret_name})
-    return response.payload.data.decode('UTF-8')
-
-
 def get_server_config() -> dict:
     """Get the server-config from the secret manager"""
-    return json.loads(_read_secret('server-config'))
+    return json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
 
 
 def get_cromwell_key(dataset, access_level):
     """Get Cromwell key from secrets"""
     secret_name = f'{dataset}-cromwell-{access_level}-key'
-    return _read_secret(secret_name)
+    return read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
 
 
 async def _get_hail_version() -> str:
@@ -107,7 +101,9 @@ def check_dataset_and_group(server_config, dataset, email):
             )
         )
 
-    group_members = _read_secret(f'{dataset}-access-members-cache').split(',')
+    group_members = read_secret(
+        ANALYSIS_RUNNER_PROJECT_ID, f'{dataset}-access-members-cache'
+    ).split(',')
     if email not in group_members:
         raise web.HTTPForbidden(
             reason=f'{email} is not a member of the {dataset} access group'
