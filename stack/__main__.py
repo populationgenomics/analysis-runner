@@ -296,7 +296,7 @@ def main():  # pylint: disable=too-many-locals
         member=f'serviceAccount:{WEB_SERVER_SERVICE_ACCOUNT}',
     )
 
-    # TODO(@lgruen): remove these legacy objects once services have switched over the
+    # TODO(@lgruen): remove these legacy objects once services have switched over to the
     # new secrets.
     legacy_access_group_cache_secret = (  # pylint: disable=invalid-name
         gcp.secretmanager.Secret(
