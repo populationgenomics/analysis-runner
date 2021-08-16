@@ -226,46 +226,50 @@ def main():  # pylint: disable=too-many-locals
     web_access_group = create_group(group_mail('web-access'))
 
     # These secrets are used as a fast cache for checking memberships in the above groups.
-    access_group_cache_secret = gcp.secretmanager.Secret(
-        'legacy-access-group-cache-secret',
-        secret_id=f'{dataset}-access-members-cache',
-        project=ANALYSIS_RUNNER_PROJECT,
-        replication=gcp.secretmanager.SecretReplicationArgs(
-            user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
-                replicas=[
-                    gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
-                        location='australia-southeast1',
-                    ),
-                ],
+    legacy_access_group_cache_secret = (  # pylint: disable=invalid-name
+        gcp.secretmanager.Secret(
+            'legacy-access-group-cache-secret',
+            secret_id=f'{dataset}-access-members-cache',
+            project=ANALYSIS_RUNNER_PROJECT,
+            replication=gcp.secretmanager.SecretReplicationArgs(
+                user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
+                    replicas=[
+                        gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
+                            location='australia-southeast1',
+                        ),
+                    ],
+                ),
             ),
-        ),
-        opts=pulumi.resource.ResourceOptions(
-            aliases=[pulumi.resource.Alias(name='access-group-cache-secret')]
-        ),
+            opts=pulumi.resource.ResourceOptions(
+                aliases=[pulumi.resource.Alias(name='access-group-cache-secret')]
+            ),
+        )
     )
 
-    web_access_group_cache_secret = gcp.secretmanager.Secret(
-        'legacy-web-access-group-cache-secret',
-        secret_id=f'{dataset}-web-access-members-cache',
-        project=ANALYSIS_RUNNER_PROJECT,
-        replication=gcp.secretmanager.SecretReplicationArgs(
-            user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
-                replicas=[
-                    gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
-                        location='australia-southeast1',
-                    ),
-                ],
+    legacy_web_access_group_cache_secret = (  # pylint: disable=invalid-name
+        gcp.secretmanager.Secret(
+            'legacy-web-access-group-cache-secret',
+            secret_id=f'{dataset}-web-access-members-cache',
+            project=ANALYSIS_RUNNER_PROJECT,
+            replication=gcp.secretmanager.SecretReplicationArgs(
+                user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
+                    replicas=[
+                        gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
+                            location='australia-southeast1',
+                        ),
+                    ],
+                ),
             ),
-        ),
-        opts=pulumi.resource.ResourceOptions(
-            aliases=[pulumi.resource.Alias(name='web-access-group-cache-secret')]
-        ),
+            opts=pulumi.resource.ResourceOptions(
+                aliases=[pulumi.resource.Alias(name='web-access-group-cache-secret')]
+            ),
+        )
     )
 
     gcp.secretmanager.SecretIamMember(
         'legacy-access-group-cache-secret-accessor',
         project=ANALYSIS_RUNNER_PROJECT,
-        secret_id=access_group_cache_secret.id,
+        secret_id=legacy_access_group_cache_secret.id,
         role='roles/secretmanager.secretAccessor',
         member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
         opts=pulumi.resource.ResourceOptions(
@@ -276,7 +280,7 @@ def main():  # pylint: disable=too-many-locals
     gcp.secretmanager.SecretIamMember(
         'legacy-access-group-cache-secret-version-manager',
         project=ANALYSIS_RUNNER_PROJECT,
-        secret_id=access_group_cache_secret.id,
+        secret_id=legacy_access_group_cache_secret.id,
         role='roles/secretmanager.secretVersionManager',
         member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
         opts=pulumi.resource.ResourceOptions(
@@ -289,7 +293,7 @@ def main():  # pylint: disable=too-many-locals
     gcp.secretmanager.SecretIamMember(
         'legacy-web-access-group-cache-secret-accessor',
         project=ANALYSIS_RUNNER_PROJECT,
-        secret_id=web_access_group_cache_secret.id,
+        secret_id=legacy_web_access_group_cache_secret.id,
         role='roles/secretmanager.secretAccessor',
         member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
         opts=pulumi.resource.ResourceOptions(
@@ -302,7 +306,7 @@ def main():  # pylint: disable=too-many-locals
     gcp.secretmanager.SecretIamMember(
         'legacy-web-access-group-cache-secret-version-manager',
         project=ANALYSIS_RUNNER_PROJECT,
-        secret_id=web_access_group_cache_secret.id,
+        secret_id=legacy_web_access_group_cache_secret.id,
         role='roles/secretmanager.secretVersionManager',
         member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
         opts=pulumi.resource.ResourceOptions(
@@ -317,7 +321,7 @@ def main():  # pylint: disable=too-many-locals
     gcp.secretmanager.SecretIamMember(
         'legacy-analyis-runner-access-group-cache-secret-accessor',
         project=ANALYSIS_RUNNER_PROJECT,
-        secret_id=access_group_cache_secret.id,
+        secret_id=legacy_access_group_cache_secret.id,
         role='roles/secretmanager.secretAccessor',
         member=f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}',
         opts=pulumi.resource.ResourceOptions(
@@ -332,7 +336,7 @@ def main():  # pylint: disable=too-many-locals
     gcp.secretmanager.SecretIamMember(
         'legacy-web-server-web-access-group-cache-secret-accessor',
         project=ANALYSIS_RUNNER_PROJECT,
-        secret_id=web_access_group_cache_secret.id,
+        secret_id=legacy_web_access_group_cache_secret.id,
         role='roles/secretmanager.secretAccessor',
         member=f'serviceAccount:{WEB_SERVER_SERVICE_ACCOUNT}',
         opts=pulumi.resource.ResourceOptions(
