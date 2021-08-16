@@ -19,7 +19,6 @@ dataproc.hail_dataproc_job(
     packages=['click', 'selenium'],
     init=['gs://cpg-reference/hail_dataproc/install_common.sh'],
     job_name='example',
-    labels={'compute_category': 'dataproc', 'stage': 'example_usage'},
 )
 
 batch.run()

@@ -48,10 +48,7 @@ def hail_dataproc_job(
 
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
 
-    # Add default labels to passed labels.
     labels.update({'compute_category': 'dataproc'})
-
-    # Format labels
     labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
 
     job_name_prefix = f'{job_name}: ' if job_name else ''
