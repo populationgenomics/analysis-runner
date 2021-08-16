@@ -21,4 +21,5 @@ dataproc.hail_dataproc_job(
     job_name='example',
 )
 
-batch.run()
+# Don't wait, which avoids resubmissions if this job gets preempted.
+batch.run(wait=False)
