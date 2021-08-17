@@ -2,7 +2,7 @@
 
 import os
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Dict
 import hailtop.batch as hb
 from analysis_runner.git import (
     get_git_default_remote,
@@ -39,6 +39,7 @@ def hail_dataproc_job(
     depends_on: Optional[List[hb.batch.job.Job]] = None,
     job_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,
+    labels: Optional[Dict[str, str]] = None,
 ) -> hb.batch.job.Job:
     """Returns a Batch job which starts a Dataproc cluster, submits a Hail
     Query script to it, and stops the cluster. See the `hailctl` tool for
@@ -46,6 +47,11 @@ def hail_dataproc_job(
     dependencies for the new job."""
 
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
+
+    if labels is None:
+        labels = {}
+    labels.update({'compute_category': 'dataproc'})
+    labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
 
     job_name_prefix = f'{job_name}: ' if job_name else ''
     start_job = batch.new_job(name=f'{job_name_prefix}start Dataproc cluster')
@@ -73,6 +79,7 @@ def hail_dataproc_job(
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
+        f'--labels {labels_formatted}',
     ]
     if worker_machine_type:
         start_job_command.append(f'--worker-machine-type={worker_machine_type}')
