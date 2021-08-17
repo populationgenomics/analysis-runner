@@ -11,6 +11,14 @@ can be brought up using Pulumi.
    - See this [issue](https://github.com/hashicorp/terraform-provider-google/issues/7477)
      regarding the use of the `user_project_override` and `billing_project`
      options below.
+     
+   - Set the following variables, they'll be useful below:
+     
+     ```shell
+     export PROJECT=<gcp-project>
+     export DATSET=<dataset>
+     ```
+
    - Ensure you're in the Hail project, and get the cluster endpoint:
      
      ```shell
