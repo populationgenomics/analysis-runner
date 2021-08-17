@@ -75,7 +75,8 @@ can be brought up using Pulumi.
    python3 -m venv venv
    source venv/bin/activate
    pip3 install -r requirements.txt
-   PULUMI_CONFIG_PASSPHRASE= pulumi up  # empty passphrase
+   PULUMI_CONFIG_PASSPHRASE=  # empty passphrase
+   pulumi up
    ```
 
 1. Add users to the `<dataset>-access@populationgenomics.org.au` Google Group to enable access through the analysis-runner. To be able to see Hail Batch logs for analysis-runner invocations, users also need to be added to the `<dataset>` Hail Batch billing project.
