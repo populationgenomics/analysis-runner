@@ -48,6 +48,8 @@ def hail_dataproc_job(
 
     cluster_name = f'dataproc-{uuid.uuid4().hex}'
 
+    if labels is None:
+        labels = {}
     labels.update({'compute_category': 'dataproc'})
     labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
 
