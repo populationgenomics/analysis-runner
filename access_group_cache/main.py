@@ -124,7 +124,8 @@ def index():
     groups = []
     dataset_by_group = {}
     for dataset in config:
-        for group in f'{dataset}-access', f'{dataset}-web-access':
+        for group_type in 'access', 'web-access', 'test', 'standard', 'full':
+            group = f'{dataset}-{group_type}'
             groups.append(group)
             dataset_by_group[group] = dataset
 
