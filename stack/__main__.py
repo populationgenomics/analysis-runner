@@ -277,17 +277,6 @@ def main():  # pylint: disable=too-many-locals
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
         )
 
-    def add_bucket_permissions(
-        name: str, group: gcp.cloudidentity.Group, bucket: gcp.storage.Bucket, role: str
-    ) -> gcp.storage.BucketIAMMember:
-        """Returns GCS bucket permissions for the given group."""
-        return bucket_member(
-            name,
-            bucket=bucket.name,
-            role=role,
-            member=pulumi.Output.concat('group:', group.group_key.id),
-        )
-
     access_group = create_group(group_mail(dataset, 'access'))
     web_access_group = create_group(group_mail(dataset, 'web-access'))
 
@@ -366,60 +355,60 @@ def main():  # pylint: disable=too-many-locals
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    add_bucket_permissions(
+    bucket_member(
         'access-group-test-bucket-admin',
-        access_group,
-        test_bucket,
-        'roles/storage.admin',
+        bucket=test_bucket.name,
+        role='roles/storage.admin',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    add_bucket_permissions(
+    bucket_member(
         'access-group-test-upload-bucket-admin',
-        access_group,
-        test_upload_bucket,
-        'roles/storage.admin',
+        bucket=test_upload_bucket.name,
+        role='roles/storage.admin',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    add_bucket_permissions(
+    bucket_member(
         'access-group-test-tmp-bucket-admin',
-        access_group,
-        test_tmp_bucket,
-        'roles/storage.admin',
+        bucket=test_tmp_bucket.name,
+        role='roles/storage.admin',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    add_bucket_permissions(
+    bucket_member(
         'access-group-test-metadata-bucket-admin',
-        access_group,
-        test_metadata_bucket,
-        'roles/storage.admin',
+        bucket=test_metadata_bucket.name,
+        role='roles/storage.admin',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    add_bucket_permissions(
+    bucket_member(
         'access-group-test-web-bucket-admin',
-        access_group,
-        test_web_bucket,
-        'roles/storage.admin',
+        bucket=test_web_bucket.name,
+        role='roles/storage.admin',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    add_bucket_permissions(
+    bucket_member(
         'access-group-main-upload-bucket-viewer',
-        access_group,
-        main_upload_bucket,
-        viewer_role_id,
+        bucket=main_upload_bucket.name,
+        role=viewer_role_id,
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    add_bucket_permissions(
+    bucket_member(
         'access-group-main-metadata-bucket-viewer',
-        access_group,
-        main_metadata_bucket,
-        viewer_role_id,
+        bucket=main_metadata_bucket.name,
+        role=viewer_role_id,
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    add_bucket_permissions(
+    bucket_member(
         'access-group-main-web-bucket-viewer',
-        access_group,
-        main_web_bucket,
-        viewer_role_id,
+        bucket=main_web_bucket.name,
+        role=viewer_role_id,
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
     if enable_release:
@@ -429,20 +418,20 @@ def main():  # pylint: disable=too-many-locals
             requester_pays=True,
         )
 
-        add_bucket_permissions(
+        bucket_member(
             'access-group-release-bucket-viewer',
-            access_group,
-            release_bucket,
-            viewer_role_id,
+            bucket=release_bucket.name,
+            role=viewer_role_id,
+            member=pulumi.Output.concat('group:', access_group.group_key.id),
         )
 
         release_access_group = create_group(group_mail(dataset, 'release-access'))
 
-        add_bucket_permissions(
+        bucket_member(
             'release-access-group-release-bucket-viewer',
-            release_access_group,
-            release_bucket,
-            viewer_role_id,
+            bucket=release_bucket.name,
+            role=viewer_role_id,
+            member=pulumi.Output.concat('group:', release_access_group.group_key.id),
         )
 
     bucket_member(
