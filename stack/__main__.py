@@ -507,7 +507,7 @@ def main():  # pylint: disable=too-many-locals
                 location=REGION,
                 repository='images',
                 role='roles/artifactregistry.reader',
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
         # Allow non-test service accounts to write images to the "cpg-common" Artifact
@@ -519,7 +519,7 @@ def main():  # pylint: disable=too-many-locals
                 location=REGION,
                 repository='images',
                 role='roles/artifactregistry.writer',
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
         # Read access to reference data.
@@ -527,14 +527,14 @@ def main():  # pylint: disable=too-many-locals
             f'{access_level}-reference-bucket-viewer',
             bucket=REFERENCE_BUCKET_NAME,
             role=viewer_role_id,
-            member=pulumi.Output.concat('group:', group.id),
+            member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
         # Allow the usage of requester-pays buckets.
         gcp.projects.IAMMember(
             f'{access_level}-serviceusage-consumer',
             role='roles/serviceusage.serviceUsageConsumer',
-            member=pulumi.Output.concat('group:', group.id),
+            member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
     # The bucket used for Hail Batch pipelines.
@@ -559,7 +559,7 @@ def main():  # pylint: disable=too-many-locals
             f'{access_level}-test-bucket-admin',
             bucket=test_bucket.name,
             role='roles/storage.admin',
-            member=pulumi.Output.concat('group:', group.id),
+            member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
         # test-upload bucket
@@ -567,7 +567,7 @@ def main():  # pylint: disable=too-many-locals
             f'{access_level}-test-upload-bucket-admin',
             bucket=test_upload_bucket.name,
             role='roles/storage.admin',
-            member=pulumi.Output.concat('group:', group.id),
+            member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
         # test-tmp bucket
@@ -575,7 +575,7 @@ def main():  # pylint: disable=too-many-locals
             f'{access_level}-test-tmp-bucket-admin',
             bucket=test_tmp_bucket.name,
             role='roles/storage.admin',
-            member=pulumi.Output.concat('group:', group.id),
+            member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
         # test-metadata bucket
@@ -583,7 +583,7 @@ def main():  # pylint: disable=too-many-locals
             f'{access_level}-test-metadata-bucket-admin',
             bucket=test_metadata_bucket.name,
             role='roles/storage.admin',
-            member=pulumi.Output.concat('group:', group.id),
+            member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
         # test-web bucket
@@ -591,7 +591,7 @@ def main():  # pylint: disable=too-many-locals
             f'{access_level}-test-web-bucket-admin',
             bucket=test_web_bucket.name,
             role='roles/storage.admin',
-            member=pulumi.Output.concat('group:', group.id),
+            member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
         if access_level == 'standard':
@@ -600,7 +600,7 @@ def main():  # pylint: disable=too-many-locals
                 f'standard-main-bucket-view-create',
                 bucket=main_bucket.name,
                 role=viewer_creator_role_id,
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # main-upload bucket
@@ -608,7 +608,7 @@ def main():  # pylint: disable=too-many-locals
                 f'standard-main-upload-bucket-viewer',
                 bucket=main_upload_bucket.name,
                 role=viewer_role_id,
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # main-tmp bucket
@@ -616,7 +616,7 @@ def main():  # pylint: disable=too-many-locals
                 f'standard-main-tmp-bucket-view-create',
                 bucket=main_tmp_bucket.name,
                 role=viewer_creator_role_id,
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # main-metadata bucket
@@ -624,7 +624,7 @@ def main():  # pylint: disable=too-many-locals
                 f'standard-main-metadata-bucket-view-create',
                 bucket=main_metadata_bucket.name,
                 role=viewer_creator_role_id,
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # main-web bucket
@@ -632,7 +632,7 @@ def main():  # pylint: disable=too-many-locals
                 f'standard-main-web-bucket-view-create',
                 bucket=main_web_bucket.name,
                 role=viewer_creator_role_id,
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
         if access_level == 'full':
@@ -641,7 +641,7 @@ def main():  # pylint: disable=too-many-locals
                 f'full-main-bucket-admin',
                 bucket=main_bucket.name,
                 role='roles/storage.admin',
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # main-upload bucket
@@ -649,7 +649,7 @@ def main():  # pylint: disable=too-many-locals
                 f'full-main-upload-bucket-admin',
                 bucket=main_upload_bucket.name,
                 role='roles/storage.admin',
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # main-tmp bucket
@@ -657,7 +657,7 @@ def main():  # pylint: disable=too-many-locals
                 f'full-main-tmp-bucket-admin',
                 bucket=main_tmp_bucket.name,
                 role='roles/storage.admin',
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # main-metadata bucket
@@ -665,7 +665,7 @@ def main():  # pylint: disable=too-many-locals
                 f'full-main-metadata-bucket-admin',
                 bucket=main_metadata_bucket.name,
                 role='roles/storage.admin',
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # main-web bucket
@@ -673,7 +673,7 @@ def main():  # pylint: disable=too-many-locals
                 f'full-main-web-bucket-admin',
                 bucket=main_web_bucket.name,
                 role='roles/storage.admin',
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # archive bucket
@@ -681,7 +681,7 @@ def main():  # pylint: disable=too-many-locals
                 f'full-archive-bucket-admin',
                 bucket=archive_bucket.name,
                 role='roles/storage.admin',
-                member=pulumi.Output.concat('group:', group.id),
+                member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
             # release bucket
@@ -690,7 +690,7 @@ def main():  # pylint: disable=too-many-locals
                     f'full-release-bucket-admin',
                     bucket=release_bucket.name,
                     role='roles/storage.admin',
-                    member=pulumi.Output.concat('group:', group.id),
+                    member=pulumi.Output.concat('group:', group.group_key.id),
                 )
 
     # Notebook permissions
@@ -856,7 +856,7 @@ def main():  # pylint: disable=too-many-locals
             project=SAMPLE_METADATA_PROJECT,
             service='sample-metadata-api',
             role='roles/run.invoker',
-            member=pulumi.Output.concat('group:', group.id),
+            member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
 
