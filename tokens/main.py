@@ -11,10 +11,16 @@ from google.cloud import secretmanager
 ALLOWED_REPOS = {
     'acute-care': [],
     'ancestry': ['ancestry'],
-    'fewgenomes': ['analysis-runner', 'fewgenomes', 'joint-calling', 'sv-workflows'],
+    'fewgenomes': [
+        'analysis-runner',
+        'fewgenomes',
+        'joint-calling',
+        'sv-workflows',
+        'gatk-sv',
+    ],
     'seqr': ['hail-elasticsearch-pipelines'],
     'thousand-genomes': [],
-    'tob-wgs': ['ancestry', 'joint-calling', 'tob-wgs', 'sv-workflows'],
+    'tob-wgs': ['ancestry', 'joint-calling', 'tob-wgs', 'sv-workflows', 'gatk-sv'],
 }
 
 GCP_PROJECT = 'analysis-runner'
