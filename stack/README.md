@@ -15,8 +15,8 @@ can be brought up using Pulumi.
    - Set the following variables, they'll be useful below:
 
      ```shell
-     export PROJECT=<gcp-project>
-     export DATSET=<dataset>
+     export PROJECT=<gcp-project-id>
+     export DATASET=<dataset>
      ```
 
    - Ensure you're in the Hail project, and get the cluster endpoint:
@@ -75,7 +75,7 @@ can be brought up using Pulumi.
    python3 -m venv venv
    source venv/bin/activate
    pip3 install -r requirements.txt
-   PULUMI_CONFIG_PASSPHRASE=  # empty passphrase
+   export PULUMI_CONFIG_PASSPHRASE=  # empty passphrase
    pulumi up
    ```
 
