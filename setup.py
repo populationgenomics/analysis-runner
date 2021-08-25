@@ -13,7 +13,7 @@ PKG = 'analysis-runner'
 
 def read_file(filename: str) -> str:
     """Returns the full contents of the given file."""
-    with open(filename) as f:
+    with open(filename, encoding='utf-8') as f:
         return f.read()
 
 
