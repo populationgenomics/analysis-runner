@@ -143,7 +143,7 @@ def _perform_shebang_check(script):
     """
     Returns None if script has shebang, otherwise raises Exception
     """
-    with open(script) as f:
+    with open(script, encoding='utf-8') as f:
         potential_shebang = f.readline()
         if potential_shebang.startswith('#!'):
             return

@@ -7,17 +7,16 @@ the specified output GCS bucket.
 ```bash
 cd examples/r
 
+dataset="fewgenomes"
+outdir="$(whoami)-test-r-1"
 # make sure you've installed https://anaconda.org/cpg/analysis-runner
 analysis-runner \
   --access-level "test" \
-  --dataset "tob-wgs" \
+  --dataset ${dataset} \
   --description "testing R" \
-  --output-dir "$(whoami)-test-r" \
+  --output-dir ${outdir} \
   script.R
-```
 
-Check that the output GCS bucket contains the files:
-
-```bash
-gsutil ls gs://cpg-tob-wgs-test-tmp/$(whoami)-test-r/
+# Check that the output GCS bucket contains the files:
+gsutil ls gs://cpg-${dataset}-test-tmp/${outdir}
 ```
