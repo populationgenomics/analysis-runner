@@ -247,7 +247,6 @@ def main():  # pylint: disable=too-many-locals
         )
 
     def add_access_group_cache_as_secret_member(secret, resource_prefix: str):
-
         gcp.secretmanager.SecretIamMember(
             f'{resource_prefix}-group-cache-secret-accessor',
             secret_id=secret.id,
