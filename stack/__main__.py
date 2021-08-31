@@ -331,13 +331,72 @@ def main():  # pylint: disable=too-many-locals
         member=f'serviceAccount:{WEB_SERVER_SERVICE_ACCOUNT}',
     )
 
-    for group_prefix in ACCESS_LEVELS:
-        gcp.secretmanager.SecretIamMember(
-            f'sample-metadata-api-{group_prefix}-access-group-cache-secret-accessor',
-            secret_id=access_group_cache_secrets[group_prefix].id,
-            role='roles/secretmanager.secretAccessor',
-            member=f'serviceAccount:{SAMPLE_METADATA_API_SERVICE_ACCOUNT}',
-        )
+    # Sample metadata access
+    #   - 4 secrets, production-read, production-write, development-read, development-write
+    sm_groups = {}
+    for env in ('production', 'test'):
+        for rs in ('read', 'write'):
+            key = f'sample-metadata-{env}-{rs}'
+            secret_id = f'{dataset}-{key}-members-cache'
+
+            group = create_group(group_mail(dataset, key))
+            sm_groups[f'{env}-{rs}'] = group
+
+            gcp.cloudidentity.GroupMembership(
+                f'sample-metadata-group-cache-{env}-{rs}-access-level-group-membership',
+                group=group.id,
+                preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
+                    id=SAMPLE_METADATA_API_SERVICE_ACCOUNT
+                ),
+                roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+                opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+            )
+
+            gcp.secretmanager.Secret(
+                f'{key}-group-cache-secret',
+                secret_id=secret_id,
+                replication=gcp.secretmanager.SecretReplicationArgs(
+                    user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
+                        replicas=[
+                            gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
+                                location='australia-southeast1',
+                            ),
+                        ],
+                    ),
+                ),
+                opts=pulumi.resource.ResourceOptions(depends_on=[secretmanager]),
+            )
+
+            gcp.secretmanager.SecretIamMember(
+                f'sample-metadata-api-{env}-{rs}-access-group-cache-secret-accessor',
+                secret_id=secret_id,
+                role='roles/secretmanager.secretAccessor',
+                member=f'serviceAccount:{SAMPLE_METADATA_API_SERVICE_ACCOUNT}',
+            )
+
+    sm_access_levels = [
+        ('person', access_group, ('production-read', 'test-read', 'test-write')),
+        ('test', access_level_groups['test'], ('test-read', 'test-write')),
+        (
+            'standard',
+            access_level_groups['standard'],
+            ('production-read', 'production-write'),
+        ),
+        ('full', access_level_groups['full'], sm_groups.keys()),
+    ]
+
+    # give humans (access_group) access to:
+    for name, access_level_group, kinds in sm_access_levels:
+        for kind in kinds:
+            gcp.cloudidentity.GroupMembership(
+                f'sample-metadata-{kind}-{name}-access-level-group-membership',
+                group=sm_groups[kind],
+                preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
+                    id=access_level_group
+                ),
+                roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+                opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+            )
 
     gcp.projects.IAMMember(
         'project-buckets-lister',
