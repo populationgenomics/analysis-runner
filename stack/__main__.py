@@ -30,7 +30,9 @@ SAMPLE_METADATA_API_SERVICE_ACCOUNT = (
 ACCESS_LEVELS = ('test', 'standard', 'full')
 
 SampleMetadataAccessorMembership = namedtuple(
-    'SampleMetadataAccessorMembership', ['name', 'service_account', 'permissions']
+    # the member_key for a group might be group.group_key.id
+    'SampleMetadataAccessorMembership',
+    ['name', 'member_key', 'permissions'],
 )
 
 
@@ -227,6 +229,39 @@ def main():  # pylint: disable=too-many-locals
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
         )
 
+    def create_secret(resource_name: str, secret_id: str, **kwargs):
+        return gcp.secretmanager.Secret(
+            resource_name,
+            secret_id=secret_id,
+            replication=gcp.secretmanager.SecretReplicationArgs(
+                user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
+                    replicas=[
+                        gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
+                            location='australia-southeast1',
+                        ),
+                    ],
+                ),
+            ),
+            opts=pulumi.resource.ResourceOptions(depends_on=[secretmanager]),
+            **kwargs,
+        )
+
+    def add_access_group_cache_as_secret_member(secret, resource_prefix: str):
+
+        gcp.secretmanager.SecretIamMember(
+            f'{resource_prefix}-group-cache-secret-accessor',
+            secret_id=secret.id,
+            role='roles/secretmanager.secretAccessor',
+            member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
+        )
+
+        gcp.secretmanager.SecretIamMember(
+            f'{resource_prefix}-group-cache-secret-version-manager',
+            secret_id=secret.id,
+            role='roles/secretmanager.secretVersionManager',
+            member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
+        )
+
     # Create groups for each access level.
     access_level_groups = {}
     for access_level in ACCESS_LEVELS:
@@ -290,36 +325,14 @@ def main():  # pylint: disable=too-many-locals
     # These secrets are used as a fast cache for checking memberships in the above groups.
     access_group_cache_secrets = {}
     for group_prefix in ('access', 'web-access') + ACCESS_LEVELS:
-        secret = gcp.secretmanager.Secret(
+        access_secret = create_secret(
             f'{group_prefix}-group-cache-secret',
             secret_id=f'{dataset}-{group_prefix}-members-cache',
-            replication=gcp.secretmanager.SecretReplicationArgs(
-                user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
-                    replicas=[
-                        gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
-                            location='australia-southeast1',
-                        ),
-                    ],
-                ),
-            ),
-            opts=pulumi.resource.ResourceOptions(depends_on=[secretmanager]),
         )
 
-        gcp.secretmanager.SecretIamMember(
-            f'{group_prefix}-group-cache-secret-accessor',
-            secret_id=secret.id,
-            role='roles/secretmanager.secretAccessor',
-            member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
-        )
+        add_access_group_cache_as_secret_member(access_secret, group_prefix)
 
-        gcp.secretmanager.SecretIamMember(
-            f'{group_prefix}-group-cache-secret-version-manager',
-            secret_id=secret.id,
-            role='roles/secretmanager.secretVersionManager',
-            member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
-        )
-
-        access_group_cache_secrets[group_prefix] = secret
+        access_group_cache_secrets[group_prefix] = access_secret
 
     gcp.secretmanager.SecretIamMember(
         'analyis-runner-access-group-cache-secret-accessor',
@@ -341,7 +354,6 @@ def main():  # pylint: disable=too-many-locals
     for env in ('main', 'test'):
         for rs in ('read', 'write'):
             key = f'sample-metadata-{env}-{rs}'
-            secret_id = f'{dataset}-{key}-members-cache'
 
             group = create_group(group_mail(dataset, key))
             sm_groups[f'{env}-{rs}'] = group
@@ -356,61 +368,39 @@ def main():  # pylint: disable=too-many-locals
                 opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
             )
 
-            gcp.secretmanager.Secret(
+            secret = create_secret(
                 f'{key}-group-cache-secret',
-                secret_id=secret_id,
-                replication=gcp.secretmanager.SecretReplicationArgs(
-                    user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
-                        replicas=[
-                            gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
-                                location='australia-southeast1',
-                            ),
-                        ],
-                    ),
-                ),
-                opts=pulumi.resource.ResourceOptions(depends_on=[secretmanager]),
+                secret_id=f'{dataset}-{key}-members-cache',
             )
+            add_access_group_cache_as_secret_member(secret, resource_prefix=key)
 
             gcp.secretmanager.SecretIamMember(
                 f'{key}-api-secret-accessor',
-                secret_id=secret_id,
+                secret_id=secret.id,
                 role='roles/secretmanager.secretAccessor',
                 member=f'serviceAccount:{SAMPLE_METADATA_API_SERVICE_ACCOUNT}',
-            )
-            gcp.secretmanager.SecretIamMember(
-                f'{key}-group-cache-secret-accessor',
-                secret_id=secret_id,
-                role='roles/secretmanager.secretAccessor',
-                member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
-            )
-
-            gcp.secretmanager.SecretIamMember(
-                f'{key}-group-cache-secret-version-manager',
-                secret_id=secret_id,
-                role='roles/secretmanager.secretVersionManager',
-                member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
             )
 
     # Declare access to sample-metadata API of format ({env}-{read,write})
     sm_access_levels: List[SampleMetadataAccessorMembership] = [
         SampleMetadataAccessorMembership(
             name='human',
-            service_account=access_group.group_key.id,
+            member_key=access_group.group_key.id,
             permissions=('main-read', 'test-read', 'test-write'),
         ),
         SampleMetadataAccessorMembership(
             name='test',
-            service_account=access_level_groups['test'].group_key.id,
+            member_key=access_level_groups['test'].group_key.id,
             permissions=('test-read', 'test-write'),
         ),
         SampleMetadataAccessorMembership(
             name='standard',
-            service_account=access_level_groups['standard'].group_key.id,
+            member_key=access_level_groups['standard'].group_key.id,
             permissions=('main-read', 'main-write'),
         ),
         SampleMetadataAccessorMembership(
             name='full',
-            service_account=access_level_groups['full'].group_key.id,
+            member_key=access_level_groups['full'].group_key.id,
             permissions=sm_groups.keys(),
         ),
     ]
@@ -892,19 +882,10 @@ def main():  # pylint: disable=too-many-locals
             service_account_id=service_account,
         )
 
-        secret = gcp.secretmanager.Secret(
+        secret = create_secret(
             f'cromwell-service-account-{access_level}-secret',
             secret_id=f'{dataset}-cromwell-{access_level}-key',
             project=ANALYSIS_RUNNER_PROJECT,
-            replication=gcp.secretmanager.SecretReplicationArgs(
-                user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
-                    replicas=[
-                        gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
-                            location='australia-southeast1',
-                        ),
-                    ],
-                ),
-            ),
         )
 
         gcp.secretmanager.SecretVersion(
