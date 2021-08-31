@@ -121,10 +121,27 @@ def index():
         cpg_utils.cloud.read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config')
     )
 
+    # key = f'sample-metadata-{env}-{rs}'
+    # secret_id = f'{dataset}-{key}-members-cache'
+
+    group_types = [
+        'access',
+        'web-access',
+        'test',
+        'standard',
+        'full',
+    ]
+    # add SM group types
+    group_types.extend(
+        f'sample-metadata-{env}-{rs}'
+        for env in ('production', 'test')
+        for rs in ('read', 'write')
+    )
+
     groups = []
     dataset_by_group = {}
     for dataset in config:
-        for group_type in 'access', 'web-access', 'test', 'standard', 'full':
+        for group_type in group_types:
             group = f'{dataset}-{group_type}'
             groups.append(group)
             dataset_by_group[group] = dataset
