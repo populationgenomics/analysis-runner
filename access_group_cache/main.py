@@ -121,9 +121,6 @@ def index():
         cpg_utils.cloud.read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config')
     )
 
-    # key = f'sample-metadata-{env}-{rs}'
-    # secret_id = f'{dataset}-{key}-members-cache'
-
     group_types = [
         'access',
         'web-access',
