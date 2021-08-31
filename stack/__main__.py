@@ -1,8 +1,8 @@
 """Pulumi stack to set up buckets and permission groups."""
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import base64
-from typing import Optional
+from typing import Optional, List
 import pulumi
 import pulumi_gcp as gcp
 
@@ -28,6 +28,10 @@ SAMPLE_METADATA_API_SERVICE_ACCOUNT = (
     'sample-metadata-api@sample-metadata.iam.gserviceaccount.com'
 )
 ACCESS_LEVELS = ('test', 'standard', 'full')
+
+SampleMetadataAccessorMembership = namedtuple(
+    'SampleMetadataAccessorMembership', ['name', 'service_account', 'permissions']
+)
 
 
 def main():  # pylint: disable=too-many-locals
@@ -332,9 +336,9 @@ def main():  # pylint: disable=too-many-locals
     )
 
     # Sample metadata access
-    #   - 4 secrets, production-read, production-write, development-read, development-write
+    #   - 4 secrets, main-read, main-write, test-read, test-write
     sm_groups = {}
-    for env in ('production', 'test'):
+    for env in ('main', 'test'):
         for rs in ('read', 'write'):
             key = f'sample-metadata-{env}-{rs}'
             secret_id = f'{dataset}-{key}-members-cache'
@@ -343,10 +347,10 @@ def main():  # pylint: disable=too-many-locals
             sm_groups[f'{env}-{rs}'] = group
 
             gcp.cloudidentity.GroupMembership(
-                f'sample-metadata-group-cache-{env}-{rs}-access-level-group-membership',
+                f'sample-metadata-group-cache-{env}-{rs}-group-membership',
                 group=group,
                 preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
-                    id=SAMPLE_METADATA_API_SERVICE_ACCOUNT
+                    id=ACCESS_GROUP_CACHE_SERVICE_ACCOUNT
                 ),
                 roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
                 opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
@@ -368,35 +372,57 @@ def main():  # pylint: disable=too-many-locals
             )
 
             gcp.secretmanager.SecretIamMember(
-                f'sample-metadata-api-{env}-{rs}-access-group-cache-secret-accessor',
+                f'{key}-api-secret-accessor',
                 secret_id=secret_id,
                 role='roles/secretmanager.secretAccessor',
                 member=f'serviceAccount:{SAMPLE_METADATA_API_SERVICE_ACCOUNT}',
             )
+            gcp.secretmanager.SecretIamMember(
+                f'{key}-group-cache-secret-accessor',
+                secret_id=secret_id,
+                role='roles/secretmanager.secretAccessor',
+                member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
+            )
 
-    sm_access_levels = [
-        (
-            'person',
-            access_group.group_key.id,
-            ('production-read', 'test-read', 'test-write'),
+            gcp.secretmanager.SecretIamMember(
+                f'{key}-group-cache-secret-version-manager',
+                secret_id=secret_id,
+                role='roles/secretmanager.secretVersionManager',
+                member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
+            )
+
+    # Declare access to sample-metadata API of format ({env}-{read,write})
+    sm_access_levels: List[SampleMetadataAccessorMembership] = [
+        SampleMetadataAccessorMembership(
+            name='person',
+            service_account=access_group.group_key.id,
+            permissions=('main-read', 'test-read', 'test-write'),
         ),
-        ('test', access_level_groups['test'].group_key.id, ('test-read', 'test-write')),
-        (
-            'standard',
-            access_level_groups['standard'].group_key.id,
-            ('production-read', 'production-write'),
+        SampleMetadataAccessorMembership(
+            name='test',
+            service_account=access_level_groups['test'].group_key.id,
+            permissions=('test-read', 'test-write'),
         ),
-        ('full', access_level_groups['full'].group_key.id, sm_groups.keys()),
+        SampleMetadataAccessorMembership(
+            name='standard',
+            service_account=access_level_groups['standard'].group_key.id,
+            permissions=('main-read', 'main-write'),
+        ),
+        SampleMetadataAccessorMembership(
+            name='full',
+            service_account=access_level_groups['full'].group_key.id,
+            permissions=sm_groups.keys(),
+        ),
     ]
 
-    # give humans (access_group) access to:
-    for name, access_level_group, kinds in sm_access_levels:
-        for kind in kinds:
+    # give access to sample_metadata groups (and hence sample-metadata API through secrets)
+    for name, service_account, permission in sm_access_levels:
+        for kind in permission:
             gcp.cloudidentity.GroupMembership(
                 f'sample-metadata-{kind}-{name}-access-level-group-membership',
                 group=sm_groups[kind],
                 preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
-                    id=access_level_group
+                    id=service_account
                 ),
                 roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
                 opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
