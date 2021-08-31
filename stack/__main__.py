@@ -344,7 +344,7 @@ def main():  # pylint: disable=too-many-locals
 
             gcp.cloudidentity.GroupMembership(
                 f'sample-metadata-group-cache-{env}-{rs}-access-level-group-membership',
-                group=group.id,
+                group=group,
                 preferred_member_key=gcp.cloudidentity.GroupMembershipPreferredMemberKeyArgs(
                     id=SAMPLE_METADATA_API_SERVICE_ACCOUNT
                 ),
@@ -375,14 +375,18 @@ def main():  # pylint: disable=too-many-locals
             )
 
     sm_access_levels = [
-        ('person', access_group, ('production-read', 'test-read', 'test-write')),
-        ('test', access_level_groups['test'], ('test-read', 'test-write')),
+        (
+            'person',
+            access_group.group_key.id,
+            ('production-read', 'test-read', 'test-write'),
+        ),
+        ('test', access_level_groups['test'].group_key.id, ('test-read', 'test-write')),
         (
             'standard',
-            access_level_groups['standard'],
+            access_level_groups['standard'].group_key.id,
             ('production-read', 'production-write'),
         ),
-        ('full', access_level_groups['full'], sm_groups.keys()),
+        ('full', access_level_groups['full'].group_key.id, sm_groups.keys()),
     ]
 
     # give humans (access_group) access to:
