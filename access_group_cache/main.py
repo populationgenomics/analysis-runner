@@ -131,7 +131,7 @@ def index():
     # add SM group types
     group_types.extend(
         f'sample-metadata-{env}-{rs}'
-        for env in ('production', 'test')
+        for env in ('main', 'test')
         for rs in ('read', 'write')
     )
 
