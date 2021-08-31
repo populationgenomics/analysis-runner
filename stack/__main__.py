@@ -394,7 +394,7 @@ def main():  # pylint: disable=too-many-locals
     # Declare access to sample-metadata API of format ({env}-{read,write})
     sm_access_levels: List[SampleMetadataAccessorMembership] = [
         SampleMetadataAccessorMembership(
-            name='person',
+            name='human',
             service_account=access_group.group_key.id,
             permissions=('main-read', 'test-read', 'test-write'),
         ),
