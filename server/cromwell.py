@@ -205,6 +205,7 @@ def add_cromwell_routes(
                 'google_project': project,
                 'jes_gcs_root': intermediate_dir,
                 'final_workflow_outputs_dir': workflow_output_dir,
+                'google_labels': {'compute_category': 'cromwell'},
             }
 
             if input_dict:
