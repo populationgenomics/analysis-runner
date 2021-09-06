@@ -173,7 +173,16 @@ def main():  # pylint: disable=too-many-locals
 
     # tmp buckets don't have an undelete lifecycle rule, to avoid paying for
     # intermediate results that get cleaned up immediately after workflow runs.
-    test_tmp_bucket = create_bucket(bucket_name('test-tmp'), enable_versioning=False)
+    test_tmp_bucket = create_bucket(
+        bucket_name('test-tmp'),
+        enable_versioning=False,
+        lifecycle_rules=[
+            gcp.storage.BucketLifecycleRuleArgs(
+                action=gcp.storage.BucketLifecycleRuleActionArgs(type='Delete'),
+                condition=gcp.storage.BucketLifecycleRuleConditionArgs(age=30),
+            )
+        ],
+    )
 
     # TODO(@lgruen): delete after `metadata` data has been moved to `analysis`.
     test_metadata_bucket = create_bucket(
@@ -192,7 +201,16 @@ def main():  # pylint: disable=too-many-locals
 
     # tmp buckets don't have an undelete lifecycle rule, to avoid paying for
     # intermediate results that get cleaned up immediately after workflow runs.
-    main_tmp_bucket = create_bucket(bucket_name('main-tmp'), enable_versioning=False)
+    main_tmp_bucket = create_bucket(
+        bucket_name('main-tmp'),
+        enable_versioning=False,
+        lifecycle_rules=[
+            gcp.storage.BucketLifecycleRuleArgs(
+                action=gcp.storage.BucketLifecycleRuleActionArgs(type='Delete'),
+                condition=gcp.storage.BucketLifecycleRuleConditionArgs(age=30),
+            )
+        ],
+    )
 
     # TODO(@lgruen): delete after `metadata` data has been moved to `analysis`.
     main_metadata_bucket = create_bucket(
