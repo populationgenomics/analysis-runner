@@ -6,6 +6,7 @@ Cromwell CLI
 import argparse
 from typing import List, Dict, Optional
 
+import json
 import requests
 
 from analysis_runner.util import (
@@ -72,6 +73,13 @@ def add_cromwell_submit_args_to(parser):
         help='Prefix to apply to all inputs AFTER the workflow argument, usually the workflow name',
     )
 
+    parser.add_argument(
+        '--labels',
+        type=str,
+        required=False,
+        help='A json of labels to be applied to workflow.',
+    )
+
     # workflow WDL
     parser.add_argument('workflow', help='WDL file to submit to cromwell')
 
@@ -110,6 +118,7 @@ def run_cromwell(
     commit=None,
     repository=None,
     cwd=None,
+    labels=None,
 ):
     """
     Prepare parameters for cromwell analysis-runner job
@@ -151,6 +160,11 @@ def run_cromwell(
                 workflow_input_prefix + k: v for k, v in _inputs_dict.items()
             }
 
+    if labels:
+        _labels = json.loads(labels)
+    if labels is None:
+        _labels = None
+
     response = requests.post(
         SERVER_ENDPOINT + '/cromwell',
         json={
@@ -165,6 +179,7 @@ def run_cromwell(
             'inputs_dict': _inputs_dict,
             'input_json_paths': inputs or [],
             'dependencies': imports or [],
+            'labels': _labels,
         },
         headers={'Authorization': f'Bearer {get_google_identity_token()}'},
     )
