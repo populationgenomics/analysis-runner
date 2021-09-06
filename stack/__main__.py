@@ -102,14 +102,16 @@ def main():  # pylint: disable=too-many-locals
         """Returns the bucket name for the given dataset."""
         return f'cpg-{dataset}-{kind}'
 
-    def create_bucket(name: str, **kwargs) -> gcp.storage.Bucket:
+    def create_bucket(
+        name: str, enable_versioning=True, **kwargs
+    ) -> gcp.storage.Bucket:
         """Returns a new GCS bucket."""
         return gcp.storage.Bucket(
             name,
             name=name,
             location=REGION,
             uniform_bucket_level_access=True,
-            versioning=gcp.storage.BucketVersioningArgs(enabled=True),
+            versioning=gcp.storage.BucketVersioningArgs(enabled=enable_versioning),
             labels={'bucket': name},
             **kwargs,
         )
@@ -169,18 +171,9 @@ def main():  # pylint: disable=too-many-locals
 
     test_bucket = create_bucket(bucket_name('test'), lifecycle_rules=[undelete_rule])
 
-    test_tmp_bucket = create_bucket(
-        bucket_name('test-tmp'),
-        lifecycle_rules=[
-            gcp.storage.BucketLifecycleRuleArgs(
-                action=gcp.storage.BucketLifecycleRuleActionArgs(type='Delete'),
-                condition=gcp.storage.BucketLifecycleRuleConditionArgs(
-                    age=30, with_state='LIVE'
-                ),
-            ),
-            undelete_rule,
-        ],
-    )
+    # tmp buckets don't have an undelete lifecycle rule, to avoid paying for
+    # intermediate results that get cleaned up immediately after workflow runs.
+    test_tmp_bucket = create_bucket(bucket_name('test-tmp'), enable_versioning=False)
 
     # TODO(@lgruen): delete after `metadata` data has been moved to `analysis`.
     test_metadata_bucket = create_bucket(
@@ -197,18 +190,9 @@ def main():  # pylint: disable=too-many-locals
 
     main_bucket = create_bucket(bucket_name('main'), lifecycle_rules=[undelete_rule])
 
-    main_tmp_bucket = create_bucket(
-        bucket_name('main-tmp'),
-        lifecycle_rules=[
-            gcp.storage.BucketLifecycleRuleArgs(
-                action=gcp.storage.BucketLifecycleRuleActionArgs(type='Delete'),
-                condition=gcp.storage.BucketLifecycleRuleConditionArgs(
-                    age=30, with_state='LIVE'
-                ),
-            ),
-            undelete_rule,
-        ],
-    )
+    # tmp buckets don't have an undelete lifecycle rule, to avoid paying for
+    # intermediate results that get cleaned up immediately after workflow runs.
+    main_tmp_bucket = create_bucket(bucket_name('main-tmp'), enable_versioning=False)
 
     # TODO(@lgruen): delete after `metadata` data has been moved to `analysis`.
     main_metadata_bucket = create_bucket(
