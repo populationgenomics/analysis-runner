@@ -72,6 +72,7 @@ def hail_dataproc_job(
         assert value, f'environment variable "{env_var}" is not set'
         spark_env.append(f'spark-env:{env_var}={value}')
 
+    # Note that the options and their values must be separated by an equal sign. Using a space will break some options like --label
     start_job_command = [
         'hailctl dataproc start',
         f'--service-account=dataproc-{os.getenv("ACCESS_LEVEL")}@{os.getenv("DATASET_GCP_PROJECT")}.iam.gserviceaccount.com',
@@ -79,7 +80,7 @@ def hail_dataproc_job(
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
-        f'--labels {labels_formatted}',
+        f'--labels={labels_formatted}',
     ]
     if worker_machine_type:
         start_job_command.append(f'--worker-machine-type={worker_machine_type}')
