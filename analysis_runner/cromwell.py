@@ -75,6 +75,7 @@ def add_cromwell_submit_args_to(parser):
 
     parser.add_argument(
         '--labels',
+        type=str,
         required=False,
         help='A json of labels to be applied to workflow.',
     )
