@@ -28,6 +28,7 @@ SAMPLE_METADATA_API_SERVICE_ACCOUNT = (
     'sample-metadata-api@sample-metadata.iam.gserviceaccount.com'
 )
 ACCESS_LEVELS = ('test', 'standard', 'full')
+TMP_BUCKET_PERIOD_IN_DAYS = 8  # tmp content gets deleted afterwards.
 
 SampleMetadataAccessorMembership = namedtuple(
     # the member_key for a group might be group.group_key.id
@@ -102,14 +103,16 @@ def main():  # pylint: disable=too-many-locals
         """Returns the bucket name for the given dataset."""
         return f'cpg-{dataset}-{kind}'
 
-    def create_bucket(name: str, **kwargs) -> gcp.storage.Bucket:
+    def create_bucket(
+        name: str, enable_versioning=True, **kwargs
+    ) -> gcp.storage.Bucket:
         """Returns a new GCS bucket."""
         return gcp.storage.Bucket(
             name,
             name=name,
             location=REGION,
             uniform_bucket_level_access=True,
-            versioning=gcp.storage.BucketVersioningArgs(enabled=True),
+            versioning=gcp.storage.BucketVersioningArgs(enabled=enable_versioning),
             labels={'bucket': name},
             **kwargs,
         )
@@ -169,21 +172,23 @@ def main():  # pylint: disable=too-many-locals
 
     test_bucket = create_bucket(bucket_name('test'), lifecycle_rules=[undelete_rule])
 
+    # tmp buckets don't have an undelete lifecycle rule, to avoid paying for
+    # intermediate results that get cleaned up immediately after workflow runs.
     test_tmp_bucket = create_bucket(
         bucket_name('test-tmp'),
+        enable_versioning=False,
         lifecycle_rules=[
             gcp.storage.BucketLifecycleRuleArgs(
                 action=gcp.storage.BucketLifecycleRuleActionArgs(type='Delete'),
                 condition=gcp.storage.BucketLifecycleRuleConditionArgs(
-                    age=30, with_state='LIVE'
+                    age=TMP_BUCKET_PERIOD_IN_DAYS
                 ),
-            ),
-            undelete_rule,
+            )
         ],
     )
 
-    test_metadata_bucket = create_bucket(
-        bucket_name('test-metadata'), lifecycle_rules=[undelete_rule]
+    test_analysis_bucket = create_bucket(
+        bucket_name('test-analysis'), lifecycle_rules=[undelete_rule]
     )
 
     test_web_bucket = create_bucket(
@@ -192,21 +197,23 @@ def main():  # pylint: disable=too-many-locals
 
     main_bucket = create_bucket(bucket_name('main'), lifecycle_rules=[undelete_rule])
 
+    # tmp buckets don't have an undelete lifecycle rule, to avoid paying for
+    # intermediate results that get cleaned up immediately after workflow runs.
     main_tmp_bucket = create_bucket(
         bucket_name('main-tmp'),
+        enable_versioning=False,
         lifecycle_rules=[
             gcp.storage.BucketLifecycleRuleArgs(
                 action=gcp.storage.BucketLifecycleRuleActionArgs(type='Delete'),
                 condition=gcp.storage.BucketLifecycleRuleConditionArgs(
-                    age=30, with_state='LIVE'
+                    age=TMP_BUCKET_PERIOD_IN_DAYS
                 ),
-            ),
-            undelete_rule,
+            )
         ],
     )
 
-    main_metadata_bucket = create_bucket(
-        bucket_name('main-metadata'), lifecycle_rules=[undelete_rule]
+    main_analysis_bucket = create_bucket(
+        bucket_name('main-analysis'), lifecycle_rules=[undelete_rule]
     )
 
     main_web_bucket = create_bucket(
@@ -452,8 +459,8 @@ def main():  # pylint: disable=too-many-locals
     )
 
     bucket_member(
-        'access-group-test-metadata-bucket-admin',
-        bucket=test_metadata_bucket.name,
+        'access-group-test-analysis-bucket-admin',
+        bucket=test_analysis_bucket.name,
         role='roles/storage.admin',
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
@@ -473,8 +480,8 @@ def main():  # pylint: disable=too-many-locals
     )
 
     bucket_member(
-        'access-group-main-metadata-bucket-viewer',
-        bucket=main_metadata_bucket.name,
+        'access-group-main-analysis-bucket-viewer',
+        bucket=main_analysis_bucket.name,
         role=viewer_role_id,
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
@@ -642,10 +649,10 @@ def main():  # pylint: disable=too-many-locals
             member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
-        # test-metadata bucket
+        # test-analysis bucket
         bucket_member(
-            f'{access_level}-test-metadata-bucket-admin',
-            bucket=test_metadata_bucket.name,
+            f'{access_level}-test-analysis-bucket-admin',
+            bucket=test_analysis_bucket.name,
             role='roles/storage.admin',
             member=pulumi.Output.concat('group:', group.group_key.id),
         )
@@ -683,10 +690,10 @@ def main():  # pylint: disable=too-many-locals
                 member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
-            # main-metadata bucket
+            # main-analysis bucket
             bucket_member(
-                f'standard-main-metadata-bucket-view-create',
-                bucket=main_metadata_bucket.name,
+                f'standard-main-analysis-bucket-view-create',
+                bucket=main_analysis_bucket.name,
                 role=viewer_creator_role_id,
                 member=pulumi.Output.concat('group:', group.group_key.id),
             )
@@ -724,10 +731,10 @@ def main():  # pylint: disable=too-many-locals
                 member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
-            # main-metadata bucket
+            # main-analysis bucket
             bucket_member(
-                f'full-main-metadata-bucket-admin',
-                bucket=main_metadata_bucket.name,
+                f'full-main-analysis-bucket-admin',
+                bucket=main_analysis_bucket.name,
                 role='roles/storage.admin',
                 member=pulumi.Output.concat('group:', group.group_key.id),
             )

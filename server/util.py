@@ -207,7 +207,7 @@ def prepare_git_job(
         # Append metadata information, in case the same output directory gets used
         # multiple times.
         bucket_type = 'test' if access_level == 'test' else 'main'
-        metadata_path = f'gs://cpg-{dataset}-{bucket_type}-metadata/{output_dir}/analysis-runner.json'
+        metadata_path = f'gs://cpg-{dataset}-{bucket_type}-analysis/metadata/{output_dir}/analysis-runner.json'
         job.command(
             f'gsutil cp {quote(metadata_path)} {METADATA_PREFIX}_old.json '
             f'|| touch {METADATA_PREFIX}_old.json'
