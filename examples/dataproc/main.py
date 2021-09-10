@@ -12,14 +12,24 @@ service_backend = hb.ServiceBackend(
 
 batch = hb.Batch(name='dataproc example', backend=service_backend)
 
-dataproc.hail_dataproc_job(
+with dataproc.hail_dataproc(
     batch,
-    'query.py',
     max_age='1h',
     packages=['click', 'selenium'],
     init=['gs://cpg-reference/hail_dataproc/install_common.sh'],
-    job_name='example',
-)
+) as dp:
+    dp.submit('query.py', job_name='example 1')
+    dp.submit('query.py', job_name='example 2')
+
+
+# dataproc.hail_dataproc_job(
+#     batch,
+#     'query.py',
+#     max_age='1h',
+#     packages=['click', 'selenium'],
+#     init=['gs://cpg-reference/hail_dataproc/install_common.sh'],
+#     job_name='example',
+# )
 
 # Don't wait, which avoids resubmissions if this job gets preempted.
 batch.run(wait=False)

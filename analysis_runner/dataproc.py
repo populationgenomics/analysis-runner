@@ -2,6 +2,7 @@
 
 import os
 import uuid
+import contextlib
 from typing import Optional, List, Dict, Tuple
 import hailtop.batch as hb
 from analysis_runner.git import (
@@ -11,6 +12,7 @@ from analysis_runner.git import (
     get_repo_name_from_remote,
 )
 
+
 DATAPROC_IMAGE = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.73'
 )
@@ -19,6 +21,105 @@ GCLOUD_PROJECT = f'gcloud config set project {os.getenv("DATASET_GCP_PROJECT")}'
 DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
+
+
+class DataprocCluster:
+    """
+    Helper class that represents a Dataproc cluster created within a Batch
+    """
+
+    def __init__(
+        self,
+        batch: hb.Batch,
+        start_job: hb.batch.job.Job,
+        stop_job: hb.batch.job.Job,
+        cluster_name: str,
+    ):
+        self.batch = batch
+        self.start_job = start_job
+        self.stop_job = stop_job
+        self.cluster_name = cluster_name
+
+    def submit(
+        self,
+        script: str,
+        job_name: Optional[str] = None,
+        pyfiles: Optional[List[str]] = None,
+    ):
+        """
+        Create a job that submits the `script` to the cluster
+        """
+        submit_job = _submit_to_cluster(
+            batch=self.batch,
+            cluster_name=self.cluster_name,
+            script=script,
+            job_name=job_name,
+            pyfiles=pyfiles,
+        )
+        submit_job.depends_on(self.start_job)
+        self.stop_job.depends_on(submit_job)
+
+
+@contextlib.contextmanager
+def hail_dataproc(
+    batch: hb.Batch,
+    *,
+    max_age: str,
+    num_workers: int = 2,
+    num_secondary_workers: int = 0,
+    worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
+    worker_boot_disk_size: Optional[int] = None,  # in GB
+    secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
+    packages: Optional[List[str]] = None,
+    init: Optional[List[str]] = None,
+    vep: Optional[str] = None,
+    requester_pays_allow_all: bool = True,
+    depends_on: Optional[List[hb.batch.job.Job]] = None,
+    job_name: Optional[str] = None,
+    scopes: Optional[List[str]] = None,
+    labels: Optional[Dict[str, str]] = None,
+) -> hb.batch.job.Job:
+    """
+    Adds jobs to the batch that start and stop a Dataproc cluster, and returns
+    a DataprocCluster object with a submit() method that allows to add jobs into
+    this cluster that submit Query scripts.
+
+    See the `hailctl` tool for information on the keyword parameters.
+
+    depends_on can be used to enforce dependencies for the new job.
+    """
+
+    start_job, cluster_name = _start_cluster(
+        batch=batch,
+        max_age=max_age,
+        num_workers=num_workers,
+        num_secondary_workers=num_secondary_workers,
+        worker_machine_type=worker_machine_type,
+        worker_boot_disk_size=worker_boot_disk_size,
+        secondary_worker_boot_disk_size=secondary_worker_boot_disk_size,
+        packages=packages,
+        init=init,
+        vep=vep,
+        requester_pays_allow_all=requester_pays_allow_all,
+        scopes=scopes,
+        labels=labels,
+        job_name=job_name,
+    )
+    if depends_on:
+        start_job.depends_on(*depends_on)
+
+    stop_job = _stop_cluster(
+        batch=batch,
+        cluster_name=cluster_name,
+        job_name=job_name,
+    )
+    stop_job.depends_on(start_job)
+
+    yield DataprocCluster(
+        batch=batch, start_job=start_job, stop_job=stop_job, cluster_name=cluster_name
+    )
+
+    return stop_job
 
 
 def hail_dataproc_job(
@@ -46,7 +147,7 @@ def hail_dataproc_job(
     information on the keyword parameters. depends_on can be used to enforce
     dependencies for the new job."""
 
-    start_job, cluster_name = start_cluster(
+    start_job, cluster_name = _start_cluster(
         batch=batch,
         max_age=max_age,
         num_workers=num_workers,
@@ -65,7 +166,7 @@ def hail_dataproc_job(
     if depends_on:
         start_job.depends_on(*depends_on)
 
-    main_job = submit_to_cluster(
+    main_job = _submit_to_cluster(
         batch=batch,
         cluster_name=cluster_name,
         script=script,
@@ -74,7 +175,7 @@ def hail_dataproc_job(
     )
     main_job.depends_on(start_job)
 
-    stop_job = stop_cluster(
+    stop_job = _stop_cluster(
         batch=batch,
         cluster_name=cluster_name,
         job_name=job_name,
@@ -84,7 +185,7 @@ def hail_dataproc_job(
     return stop_job
 
 
-def start_cluster(
+def _start_cluster(
     batch: hb.Batch,
     *,
     max_age: str,
@@ -166,7 +267,7 @@ def start_cluster(
     return start_job, cluster_name
 
 
-def submit_to_cluster(
+def _submit_to_cluster(
     batch: hb.Batch,
     cluster_name: str,
     script: str,
@@ -214,7 +315,7 @@ def submit_to_cluster(
     return main_job
 
 
-def stop_cluster(
+def _stop_cluster(
     batch: hb.Batch,
     cluster_name: str,
     job_name: Optional[str] = None,
