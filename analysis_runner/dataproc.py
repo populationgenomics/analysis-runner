@@ -130,8 +130,7 @@ def hail_dataproc_job(
     A legacy wrapper that adds a start, submit, and stop job altogether
     """
     cluster = setup_dataproc(*args, **kwargs)
-    cluster.add_job(script, job_name, pyfiles)
-    return cluster._stop_job  # pylint: disable=protected-access
+    return cluster.add_job(script, job_name, pyfiles)
 
 
 def _add_start_job(
