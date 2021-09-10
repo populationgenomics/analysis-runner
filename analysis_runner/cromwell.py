@@ -160,10 +160,9 @@ def run_cromwell(
                 workflow_input_prefix + k: v for k, v in _inputs_dict.items()
             }
 
+    _labels = None
     if labels:
         _labels = json.loads(labels)
-    if labels is None:
-        _labels = None
 
     response = requests.post(
         SERVER_ENDPOINT + '/cromwell',
