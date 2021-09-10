@@ -4,7 +4,7 @@ import "tools/echo.wdl" as E
 
 workflow hello {
   input {
-    String? inp = "Hello, worlds!"
+    String? inp = "Hello, world!"
   }
   call E.echo as print {
     input:
