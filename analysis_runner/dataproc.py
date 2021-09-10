@@ -2,7 +2,6 @@
 
 import os
 import uuid
-import contextlib
 from typing import Optional, List, Dict, Tuple
 import hailtop.batch as hb
 from analysis_runner.git import (
@@ -40,7 +39,7 @@ class DataprocCluster:
         self.stop_job = stop_job
         self.cluster_name = cluster_name
 
-    def submit(
+    def add_job(
         self,
         script: str,
         job_name: Optional[str] = None,
@@ -60,7 +59,6 @@ class DataprocCluster:
         self.stop_job.depends_on(submit_job)
 
 
-@contextlib.contextmanager
 def hail_dataproc(
     batch: hb.Batch,
     *,
@@ -78,7 +76,7 @@ def hail_dataproc(
     job_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
-) -> hb.batch.job.Job:
+) -> DataprocCluster:
     """
     Adds jobs to the batch that start and stop a Dataproc cluster, and returns
     a DataprocCluster object with a submit() method that allows to add jobs into
@@ -115,11 +113,9 @@ def hail_dataproc(
     )
     stop_job.depends_on(start_job)
 
-    yield DataprocCluster(
+    return DataprocCluster(
         batch=batch, start_job=start_job, stop_job=stop_job, cluster_name=cluster_name
     )
-
-    return stop_job
 
 
 def hail_dataproc_job(

@@ -12,14 +12,15 @@ service_backend = hb.ServiceBackend(
 
 batch = hb.Batch(name='dataproc example', backend=service_backend)
 
-with dataproc.hail_dataproc(
+
+cluster = dataproc.hail_dataproc(
     batch,
     max_age='1h',
     packages=['click', 'selenium'],
     init=['gs://cpg-reference/hail_dataproc/install_common.sh'],
-) as dp:
-    dp.submit('query.py', job_name='example 1')
-    dp.submit('query.py', job_name='example 2')
+)
+cluster.add_job('query.py', job_name='example 1')
+cluster.add_job('query.py', job_name='example 2')
 
 
 # dataproc.hail_dataproc_job(
