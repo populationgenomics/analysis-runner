@@ -129,6 +129,7 @@ def hail_dataproc_job(
     """
     A legacy wrapper that adds a start, submit, and stop job altogether
     """
+    kwargs['job_name'] = job_name
     cluster = setup_dataproc(*args, **kwargs)
     return cluster.add_job(script, job_name, pyfiles)
 
