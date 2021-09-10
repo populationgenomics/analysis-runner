@@ -13,7 +13,7 @@ service_backend = hb.ServiceBackend(
 batch = hb.Batch(name='dataproc example', backend=service_backend)
 
 
-cluster = dataproc.hail_dataproc(
+cluster = dataproc.setup_dataproc(
     batch,
     max_age='1h',
     packages=['click', 'selenium'],

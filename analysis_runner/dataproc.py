@@ -60,7 +60,7 @@ class DataprocCluster:
         return job
 
 
-def hail_dataproc(
+def setup_dataproc(
     batch: hb.Batch,
     *,
     max_age: str,
@@ -120,66 +120,18 @@ def hail_dataproc(
 
 
 def hail_dataproc_job(
-    batch: hb.Batch,
     script: str,
-    *,
-    max_age: str,
-    num_workers: int = 2,
-    num_secondary_workers: int = 0,
-    worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
-    worker_boot_disk_size: Optional[int] = None,  # in GB
-    secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
-    packages: Optional[List[str]] = None,
+    *args,
     pyfiles: Optional[List[str]] = None,
-    init: Optional[List[str]] = None,
-    vep: Optional[str] = None,
-    requester_pays_allow_all: bool = True,
-    depends_on: Optional[List[hb.batch.job.Job]] = None,
     job_name: Optional[str] = None,
-    scopes: Optional[List[str]] = None,
-    labels: Optional[Dict[str, str]] = None,
+    **kwargs,
 ) -> hb.batch.job.Job:
-    """Returns a Batch job which starts a Dataproc cluster, submits a Hail
-    Query script to it, and stops the cluster. See the `hailctl` tool for
-    information on the keyword parameters. depends_on can be used to enforce
-    dependencies for the new job."""
-
-    start_job, cluster_name = _add_start_job(
-        batch=batch,
-        max_age=max_age,
-        num_workers=num_workers,
-        num_secondary_workers=num_secondary_workers,
-        worker_machine_type=worker_machine_type,
-        worker_boot_disk_size=worker_boot_disk_size,
-        secondary_worker_boot_disk_size=secondary_worker_boot_disk_size,
-        packages=packages,
-        init=init,
-        vep=vep,
-        requester_pays_allow_all=requester_pays_allow_all,
-        scopes=scopes,
-        labels=labels,
-        job_name=job_name,
-    )
-    if depends_on:
-        start_job.depends_on(*depends_on)
-
-    main_job = _add_submit_job(
-        batch=batch,
-        cluster_name=cluster_name,
-        script=script,
-        job_name=job_name,
-        pyfiles=pyfiles,
-    )
-    main_job.depends_on(start_job)
-
-    stop_job = _add_stop_job(
-        batch=batch,
-        cluster_name=cluster_name,
-        job_name=job_name,
-    )
-    stop_job.depends_on(main_job)
-
-    return stop_job
+    """
+    A legacy wrapper that adds a start, submit, and stop job altogether
+    """
+    cluster = setup_dataproc(*args, **kwargs)
+    cluster.add_job(script, job_name, pyfiles)
+    return cluster._stop_job  # pylint: disable=protected-access
 
 
 def _add_start_job(
