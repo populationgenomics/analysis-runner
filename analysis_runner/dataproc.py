@@ -50,7 +50,7 @@ def hail_dataproc_job(
 
     if labels is None:
         labels = {}
-    labels.update({'compute_category': 'dataproc'})
+    labels['compute-category'] = 'dataproc'
     labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
 
     job_name_prefix = f'{job_name}: ' if job_name else ''

@@ -37,7 +37,7 @@ def add_cromwell_routes(
     """Add cromwell route(s) to 'routes' flask API"""
 
     @routes.post('/cromwell')
-    async def cromwell(request):
+    async def cromwell(request):  # pylint: disable=too-many-locals
         """
         Checks out a repo, and POSTs the designated workflow to the cromwell server
         ---
@@ -102,6 +102,7 @@ def add_cromwell_routes(
             repo = params['repo']
             check_allowed_repos(server_config, dataset, repo)
             access_level = params['accessLevel']
+            labels = params.get('labels')
 
             ds_config = server_config[dataset]
             project = ds_config.get('projectId')
@@ -199,12 +200,21 @@ def add_cromwell_routes(
                 )
 
             cromwell_post_url = CROMWELL_URL + '/api/workflows/v1'
+
+            google_labels = {}
+
+            if labels:
+                google_labels.update(labels)
+
+            google_labels.update({'compute-category': 'cromwell'})
+
             workflow_options = {
                 'user_service_account_json': service_account_json,
                 'google_compute_service_account': service_account_email,
                 'google_project': project,
                 'jes_gcs_root': intermediate_dir,
                 'final_workflow_outputs_dir': workflow_output_dir,
+                'google_labels': google_labels,
             }
 
             if input_dict:
