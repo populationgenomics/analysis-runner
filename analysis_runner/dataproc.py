@@ -34,10 +34,10 @@ class DataprocCluster:
         stop_job: hb.batch.job.Job,
         cluster_name: str,
     ):
-        self.batch = batch
-        self.start_job = start_job
-        self.stop_job = stop_job
-        self.cluster_name = cluster_name
+        self._batch = batch
+        self._start_job = start_job
+        self._stop_job = stop_job
+        self._cluster_name = cluster_name
 
     def add_job(
         self,
@@ -49,14 +49,14 @@ class DataprocCluster:
         Create a job that submits the `script` to the cluster
         """
         job = _add_submit_job(
-            batch=self.batch,
-            cluster_name=self.cluster_name,
+            batch=self._batch,
+            cluster_name=self._cluster_name,
             script=script,
             job_name=job_name,
             pyfiles=pyfiles,
         )
-        job.depends_on(self.start_job)
-        self.stop_job.depends_on(job)
+        job.depends_on(self._start_job)
+        self._stop_job.depends_on(job)
         return job
 
 
@@ -79,13 +79,13 @@ def hail_dataproc(
     labels: Optional[Dict[str, str]] = None,
 ) -> DataprocCluster:
     """
-    Adds jobs to the batch that start and stop a Dataproc cluster, and returns
-    a DataprocCluster object with a submit() method that allows to add jobs into
-    this cluster that submit Query scripts.
+    Adds jobs to the Batch that start and stop a Dataproc cluster, and returns
+    a DataprocCluster object with an add_job() method, that inserts a job
+    between start and stop.
 
     See the `hailctl` tool for information on the keyword parameters.
 
-    depends_on can be used to enforce dependencies for the new job.
+    `depends_on` can be used to enforce dependencies for the cluster start up.
     """
 
     start_job, cluster_name = _add_start_job(

@@ -19,18 +19,8 @@ cluster = dataproc.hail_dataproc(
     packages=['click', 'selenium'],
     init=['gs://cpg-reference/hail_dataproc/install_common.sh'],
 )
-cluster.add_job('query.py', job_name='example 1')
-cluster.add_job('query.py', job_name='example 2')
+cluster.add_job('query.py', job_name='example')
 
-
-# dataproc.hail_dataproc_job(
-#     batch,
-#     'query.py',
-#     max_age='1h',
-#     packages=['click', 'selenium'],
-#     init=['gs://cpg-reference/hail_dataproc/install_common.sh'],
-#     job_name='example',
-# )
 
 # Don't wait, which avoids resubmissions if this job gets preempted.
 batch.run(wait=False)
