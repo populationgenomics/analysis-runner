@@ -48,15 +48,15 @@ class DataprocCluster:
         """
         Create a job that submits the `script` to the cluster
         """
-        submit_job = _submit_to_cluster(
+        job = _add_submit_job(
             batch=self.batch,
             cluster_name=self.cluster_name,
             script=script,
             job_name=job_name,
             pyfiles=pyfiles,
         )
-        submit_job.depends_on(self.start_job)
-        self.stop_job.depends_on(submit_job)
+        job.depends_on(self.start_job)
+        self.stop_job.depends_on(job)
 
 
 def hail_dataproc(
@@ -87,7 +87,7 @@ def hail_dataproc(
     depends_on can be used to enforce dependencies for the new job.
     """
 
-    start_job, cluster_name = _start_cluster(
+    start_job, cluster_name = _add_start_job(
         batch=batch,
         max_age=max_age,
         num_workers=num_workers,
@@ -106,7 +106,7 @@ def hail_dataproc(
     if depends_on:
         start_job.depends_on(*depends_on)
 
-    stop_job = _stop_cluster(
+    stop_job = _add_stop_job(
         batch=batch,
         cluster_name=cluster_name,
         job_name=job_name,
@@ -143,7 +143,7 @@ def hail_dataproc_job(
     information on the keyword parameters. depends_on can be used to enforce
     dependencies for the new job."""
 
-    start_job, cluster_name = _start_cluster(
+    start_job, cluster_name = _add_start_job(
         batch=batch,
         max_age=max_age,
         num_workers=num_workers,
@@ -162,7 +162,7 @@ def hail_dataproc_job(
     if depends_on:
         start_job.depends_on(*depends_on)
 
-    main_job = _submit_to_cluster(
+    main_job = _add_submit_job(
         batch=batch,
         cluster_name=cluster_name,
         script=script,
@@ -171,7 +171,7 @@ def hail_dataproc_job(
     )
     main_job.depends_on(start_job)
 
-    stop_job = _stop_cluster(
+    stop_job = _add_stop_job(
         batch=batch,
         cluster_name=cluster_name,
         job_name=job_name,
@@ -181,7 +181,7 @@ def hail_dataproc_job(
     return stop_job
 
 
-def _start_cluster(
+def _add_start_job(
     batch: hb.Batch,
     *,
     max_age: str,
@@ -263,7 +263,7 @@ def _start_cluster(
     return start_job, cluster_name
 
 
-def _submit_to_cluster(
+def _add_submit_job(
     batch: hb.Batch,
     cluster_name: str,
     script: str,
@@ -311,7 +311,7 @@ def _submit_to_cluster(
     return main_job
 
 
-def _stop_cluster(
+def _add_stop_job(
     batch: hb.Batch,
     cluster_name: str,
     job_name: Optional[str] = None,
