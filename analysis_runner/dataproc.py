@@ -1,6 +1,7 @@
 """Helper functions to run Hail Query scripts on Dataproc from Hail Batch."""
 
 import os
+import re
 import uuid
 from typing import Optional, List, Dict, Tuple
 import hailtop.batch as hb
@@ -32,12 +33,14 @@ class DataprocCluster:
         batch: hb.Batch,
         start_job: hb.batch.job.Job,
         stop_job: hb.batch.job.Job,
-        cluster_name: str,
+        cluster_id: str,
+        cluster_title: Optional[str] = None,
     ):
         self._batch = batch
         self._start_job = start_job
         self._stop_job = stop_job
-        self._cluster_name = cluster_name
+        self._cluster_id = cluster_id
+        self.cluster_title = cluster_title
 
     def add_job(
         self,
@@ -50,10 +53,11 @@ class DataprocCluster:
         """
         job = _add_submit_job(
             batch=self._batch,
-            cluster_name=self._cluster_name,
+            cluster_id=self._cluster_id,
             script=script,
-            job_name=job_name,
             pyfiles=pyfiles,
+            job_name=job_name,
+            cluster_title=self.cluster_title,
         )
         job.depends_on(self._start_job)
         self._stop_job.depends_on(job)
@@ -75,6 +79,7 @@ def setup_dataproc(
     requester_pays_allow_all: bool = True,
     depends_on: Optional[List[hb.batch.job.Job]] = None,
     job_name: Optional[str] = None,
+    cluster_title: Optional[str] = None,
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
 ) -> DataprocCluster:
@@ -88,7 +93,7 @@ def setup_dataproc(
     `depends_on` can be used to enforce dependencies for the cluster start up.
     """
 
-    start_job, cluster_name = _add_start_job(
+    start_job, cluster_id = _add_start_job(
         batch=batch,
         max_age=max_age,
         num_workers=num_workers,
@@ -103,19 +108,25 @@ def setup_dataproc(
         scopes=scopes,
         labels=labels,
         job_name=job_name,
+        cluster_title=cluster_title,
     )
     if depends_on:
         start_job.depends_on(*depends_on)
 
     stop_job = _add_stop_job(
         batch=batch,
-        cluster_name=cluster_name,
+        cluster_id=cluster_id,
         job_name=job_name,
+        cluster_title=cluster_title,
     )
     stop_job.depends_on(start_job)
 
     return DataprocCluster(
-        batch=batch, start_job=start_job, stop_job=stop_job, cluster_name=cluster_name
+        batch=batch,
+        start_job=start_job,
+        stop_job=stop_job,
+        cluster_id=cluster_id,
+        cluster_title=cluster_title,
     )
 
 
@@ -147,6 +158,7 @@ def _add_start_job(
     init: Optional[List[str]] = None,
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = True,
+    cluster_title: Optional[str] = None,
     job_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
@@ -157,10 +169,14 @@ def _add_start_job(
 
     See the `hailctl` tool for information on the keyword parameters.
     """
-    job_name_prefix = f'{job_name}: ' if job_name else ''
-    job_name = f'{job_name_prefix}start Dataproc cluster'
+    job_name_prefix = f'{job_name}: s' if job_name else 'S'
+    job_name = f'{job_name_prefix}tart Dataproc cluster'
+    if cluster_title:
+        job_name += f' "{cluster_title}"'
 
-    cluster_name = f'dataproc-{uuid.uuid4().hex}'
+    cluster_id = cluster_title or 'dataproc'
+    cluster_id = re.sub(r'[-\s]+', '-', cluster_id.lower())
+    cluster_id = f'{cluster_id}-{uuid.uuid4().hex}'
 
     if labels is None:
         labels = {}
@@ -210,26 +226,29 @@ def _add_start_job(
         start_job_command.append(f'--requester-pays-allow-all')
     if scopes:
         start_job_command.append(f'--scopes={",".join(scopes)}')
-    start_job_command.append(cluster_name)
+    start_job_command.append(cluster_id)
 
     start_job.command(' '.join(start_job_command))
-    return start_job, cluster_name
+    return start_job, cluster_id
 
 
 def _add_submit_job(
     batch: hb.Batch,
-    cluster_name: str,
+    cluster_id: str,
     script: str,
-    job_name: Optional[str] = None,
     pyfiles: Optional[List[str]] = None,
+    job_name: Optional[str] = None,
+    cluster_title: Optional[str] = None,
 ) -> hb.batch.job.Job:
     """
     Returns a job that submits a script to the Dataproc cluster
-    specified by `cluster_name`. It's the user's responsibility to start and stop
+    specified by `cluster_id`. It's the user's responsibility to start and stop
     that cluster with the `start_cluster` and `stop_cluster` functions
     """
-    job_name_prefix = f'{job_name}: ' if job_name else ''
-    job_name = f'{job_name_prefix}submit to Dataproc cluster'
+    job_name_prefix = f'{job_name}: s' if job_name else 'S'
+    job_name = f'{job_name_prefix}ubmit to Dataproc cluster'
+    if cluster_title:
+        job_name += f' "{cluster_title}"'
 
     main_job = batch.new_job(name=job_name)
     main_job.image(DATAPROC_IMAGE)
@@ -259,21 +278,24 @@ def _add_submit_job(
     main_job.command(
         f'hailctl dataproc submit '
         + (f'--pyfiles {PYFILES_DIR}/{PYFILES_ZIP} ' if pyfiles else '')
-        + f'{cluster_name} {script} '
+        + f'{cluster_id} {script} '
     )
     return main_job
 
 
 def _add_stop_job(
     batch: hb.Batch,
-    cluster_name: str,
+    cluster_id: str,
     job_name: Optional[str] = None,
+    cluster_title: Optional[str] = None,
 ) -> hb.batch.job.Job:
     """
-    Returns a job that stops the Dataproc cluster specified by `cluster_name`
+    Returns a job that stops the Dataproc cluster specified by `cluster_id`
     """
-    job_name_prefix = f'{job_name}: ' if job_name else ''
-    job_name = f'{job_name_prefix}stop Dataproc cluster'
+    job_name_prefix = f'{job_name}: s' if job_name else 'S'
+    job_name = f'{job_name_prefix}top Dataproc cluster'
+    if cluster_title:
+        job_name += f' "{cluster_title}"'
 
     stop_job = batch.new_job(name=job_name)
     stop_job.always_run()  # Always clean up.
@@ -281,6 +303,6 @@ def _add_stop_job(
     stop_job.command(GCLOUD_AUTH)
     stop_job.command(GCLOUD_PROJECT)
     stop_job.command(DATAPROC_REGION)
-    stop_job.command(f'hailctl dataproc stop {cluster_name}')
+    stop_job.command(f'hailctl dataproc stop {cluster_id}')
 
     return stop_job
