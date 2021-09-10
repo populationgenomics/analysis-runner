@@ -201,9 +201,12 @@ def add_cromwell_routes(
 
             cromwell_post_url = CROMWELL_URL + '/api/workflows/v1'
 
-            google_labels = {'compute-category': 'cromwell'}
+            google_labels = {}
+
             if labels:
                 google_labels.update(labels)
+
+            google_labels.update({'compute-category': 'cromwell'})
 
             workflow_options = {
                 'user_service_account_json': service_account_json,
