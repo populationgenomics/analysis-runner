@@ -120,8 +120,8 @@ def setup_dataproc(
 
 
 def hail_dataproc_job(
+    batch: hb.Batch,
     script: str,
-    *args,
     pyfiles: Optional[List[str]] = None,
     job_name: Optional[str] = None,
     **kwargs,
@@ -130,7 +130,7 @@ def hail_dataproc_job(
     A legacy wrapper that adds a start, submit, and stop job altogether
     """
     kwargs['job_name'] = job_name
-    cluster = setup_dataproc(*args, **kwargs)
+    cluster = setup_dataproc(batch, **kwargs)
     return cluster.add_job(script, job_name, pyfiles)
 
 
