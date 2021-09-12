@@ -3,9 +3,9 @@
 import os
 import re
 import subprocess
-from typing import List
+from typing import List, Tuple
 
-SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
+SUPPORTED_ORGANIZATIONS = {'populationgenomics', 'vladsaveliev'}
 
 
 def get_output_of_command(command: List[str], description: str) -> str:
@@ -86,7 +86,24 @@ def get_repo_name_from_remote(remote_name: str) -> str:
     )
     'analysis-runner'
     """
+    _, name = parse_git_remote(remote_name)
+    return name
 
+
+def parse_git_remote(remote_name: str) -> Tuple[str, str]:
+    """
+    Get the organization name and the repo name of a GitHub repo from
+    a supported organization based on its remote URL e.g.:
+
+    >>> get_repo_name_from_remote(\
+        'git@github.com:populationgenomics/analysis-runner.git'\
+    )
+    ('populationgenomics, 'analysis-runner')
+    >>> get_repo_name_from_remote(\
+        'https://github.com/populationgenomics/analysis-runner.git'\
+    )
+    ('populationgenomics, 'analysis-runner')
+    """
     organization = None
     repo = None
     if remote_name.startswith('http'):
@@ -104,4 +121,4 @@ def get_repo_name_from_remote(remote_name: str) -> str:
     if repo.endswith('.git'):
         repo = repo[:-4]
 
-    return repo
+    return organization, repo

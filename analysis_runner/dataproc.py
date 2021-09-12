@@ -3,13 +3,14 @@
 import os
 import re
 import uuid
+from shlex import quote
 from typing import Optional, List, Dict, Tuple
 import hailtop.batch as hb
 from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_relative_script_path_from_git_root,
-    get_repo_name_from_remote,
+    parse_git_remote,
 )
 
 
@@ -263,7 +264,8 @@ def _add_submit_job(
     git_remote = get_git_default_remote()
     git_sha = get_git_commit_ref_of_current_repository()
     git_dir = get_relative_script_path_from_git_root('')
-    repo_name = get_repo_name_from_remote(git_remote)
+    organization, repo_name = parse_git_remote(git_remote)
+    git_remote = f'https://github.com/{organization}/{quote(repo_name)}.git'
 
     main_job.command(f'git clone --recurse-submodules {git_remote} {repo_name}')
     main_job.command(f'cd {repo_name}')
