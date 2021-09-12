@@ -34,13 +34,13 @@ class DataprocCluster:
         start_job: hb.batch.job.Job,
         stop_job: hb.batch.job.Job,
         cluster_id: str,
-        cluster_title: Optional[str] = None,
+        cluster_name: Optional[str] = None,
     ):
         self._batch = batch
         self._start_job = start_job
         self._stop_job = stop_job
         self._cluster_id = cluster_id
-        self.cluster_title = cluster_title
+        self._cluster_name = cluster_name
 
     def add_job(
         self,
@@ -57,7 +57,7 @@ class DataprocCluster:
             script=script,
             pyfiles=pyfiles,
             job_name=job_name,
-            cluster_title=self.cluster_title,
+            cluster_name=self._cluster_name,
         )
         job.depends_on(self._start_job)
         self._stop_job.depends_on(job)
@@ -79,7 +79,7 @@ def setup_dataproc(
     requester_pays_allow_all: bool = True,
     depends_on: Optional[List[hb.batch.job.Job]] = None,
     job_name: Optional[str] = None,
-    cluster_title: Optional[str] = None,
+    cluster_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
 ) -> DataprocCluster:
@@ -108,7 +108,7 @@ def setup_dataproc(
         scopes=scopes,
         labels=labels,
         job_name=job_name,
-        cluster_title=cluster_title,
+        cluster_name=cluster_name,
     )
     if depends_on:
         start_job.depends_on(*depends_on)
@@ -117,7 +117,7 @@ def setup_dataproc(
         batch=batch,
         cluster_id=cluster_id,
         job_name=job_name,
-        cluster_title=cluster_title,
+        cluster_name=cluster_name,
     )
     stop_job.depends_on(start_job)
 
@@ -126,7 +126,7 @@ def setup_dataproc(
         start_job=start_job,
         stop_job=stop_job,
         cluster_id=cluster_id,
-        cluster_title=cluster_title,
+        cluster_name=cluster_name,
     )
 
 
@@ -158,7 +158,7 @@ def _add_start_job(
     init: Optional[List[str]] = None,
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = True,
-    cluster_title: Optional[str] = None,
+    cluster_name: Optional[str] = None,
     job_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
@@ -171,12 +171,14 @@ def _add_start_job(
     """
     job_name_prefix = f'{job_name}: s' if job_name else 'S'
     job_name = f'{job_name_prefix}tart Dataproc cluster'
-    if cluster_title:
-        job_name += f' "{cluster_title}"'
+    if cluster_name:
+        job_name += f' "{cluster_name}"'
 
-    cluster_id = cluster_title or 'dataproc'
-    cluster_id = re.sub(r'[-\s]+', '-', cluster_id.lower())
-    cluster_id = f'{cluster_id}-{uuid.uuid4().hex}'
+    if cluster_name:
+        cluster_name = re.sub(r'^[a-zA-Z0-9]+', '-', cluster_name.lower())
+    cluster_id = (
+        f'dataproc{f"-{cluster_name}" if cluster_name else ""}-{uuid.uuid4().hex}'
+    )
 
     if labels is None:
         labels = {}
@@ -198,7 +200,8 @@ def _add_start_job(
         assert value, f'environment variable "{env_var}" is not set'
         spark_env.append(f'spark-env:{env_var}={value}')
 
-    # Note that the options and their values must be separated by an equal sign. Using a space will break some options like --label
+    # Note that the options and their values must be separated by an equal sign.
+    # Using a space will break some options like --label
     start_job_command = [
         'hailctl dataproc start',
         f'--service-account=dataproc-{os.getenv("ACCESS_LEVEL")}@{os.getenv("DATASET_GCP_PROJECT")}.iam.gserviceaccount.com',
@@ -238,7 +241,7 @@ def _add_submit_job(
     script: str,
     pyfiles: Optional[List[str]] = None,
     job_name: Optional[str] = None,
-    cluster_title: Optional[str] = None,
+    cluster_name: Optional[str] = None,
 ) -> hb.batch.job.Job:
     """
     Returns a job that submits a script to the Dataproc cluster
@@ -247,8 +250,8 @@ def _add_submit_job(
     """
     job_name_prefix = f'{job_name}: s' if job_name else 'S'
     job_name = f'{job_name_prefix}ubmit to Dataproc cluster'
-    if cluster_title:
-        job_name += f' "{cluster_title}"'
+    if cluster_name:
+        job_name += f' "{cluster_name}"'
 
     main_job = batch.new_job(name=job_name)
     main_job.image(DATAPROC_IMAGE)
@@ -287,15 +290,15 @@ def _add_stop_job(
     batch: hb.Batch,
     cluster_id: str,
     job_name: Optional[str] = None,
-    cluster_title: Optional[str] = None,
+    cluster_name: Optional[str] = None,
 ) -> hb.batch.job.Job:
     """
     Returns a job that stops the Dataproc cluster specified by `cluster_id`
     """
     job_name_prefix = f'{job_name}: s' if job_name else 'S'
     job_name = f'{job_name_prefix}top Dataproc cluster'
-    if cluster_title:
-        job_name += f' "{cluster_title}"'
+    if cluster_name:
+        job_name += f' "{cluster_name}"'
 
     stop_job = batch.new_job(name=job_name)
     stop_job.always_run()  # Always clean up.
