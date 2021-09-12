@@ -5,7 +5,9 @@ import re
 import subprocess
 from typing import List, Tuple
 
-SUPPORTED_ORGANIZATIONS = {'populationgenomics', 'vladsaveliev'}
+SUPPORTED_ORGANIZATIONS = {
+    os.environ.get('ANALYSIS_RUNNER_SUPPORTED_GITHUB_ORG', 'populationgenomics')
+}
 
 
 def get_output_of_command(command: List[str], description: str) -> str:
