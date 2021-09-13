@@ -175,7 +175,7 @@ def _add_start_job(
         job_name += f' "{cluster_name}"'
 
     if cluster_name:
-        cluster_name = re.sub(r'^[a-zA-Z0-9]+', '-', cluster_name.lower())
+        cluster_name = re.sub(r'[^a-zA-Z0-9]+', '-', cluster_name.lower())
     cluster_id = (
         f'dataproc{f"-{cluster_name}" if cluster_name else ""}-{uuid.uuid4().hex}'
     )
