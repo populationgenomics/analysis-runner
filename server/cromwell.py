@@ -211,8 +211,7 @@ def add_cromwell_routes(
             workflow_options = {
                 'user_service_account_json': service_account_json,
                 'google_compute_service_account': service_account_email,
-                # for requester pays
-                # 'google_project': project,
+                'google_project': project,
                 'jes_gcs_root': intermediate_dir,
                 'final_workflow_outputs_dir': workflow_output_dir,
                 'google_labels': google_labels,
