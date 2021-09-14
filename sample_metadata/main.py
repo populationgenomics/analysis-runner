@@ -9,8 +9,8 @@ def sample_metadata(data, unused_context):
     """Puts analysis in sample-metadata"""
     dataset = data.pop('dataset')
     output_dir = data.pop('output')
-
-    data = {
+    data['source'] = 'analysis-runner'
+    sm_data = {
         # we don't know the sample_ids unfortunately :(
         'sample_ids': [],
         'type': 'custom',
@@ -22,7 +22,7 @@ def sample_metadata(data, unused_context):
     token = get_identity_token()
     requests.put(
         f'https://sample-metadata.populationgenomics.org.au/api/v1/analysis/{dataset}',
-        data,
+        sm_data,
         headers={'Authorization': f'Bearer {token}'},
     )
 
