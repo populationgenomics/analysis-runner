@@ -169,7 +169,7 @@ def _add_start_job(
 
     See the `hailctl` tool for information on the keyword parameters.
     """
-    cluster_id = f'dataproc-{uuid.uuid4().hex}'
+    cluster_id = f'dp-{uuid.uuid4().hex[:20]}'
 
     job_name_prefix = f'{job_name}: s' if job_name else 'S'
     job_name = f'{job_name_prefix}tart Dataproc cluster'
