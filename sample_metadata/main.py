@@ -9,11 +9,15 @@ AUDIENCE = 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
 
 def sample_metadata(data, unused_context):
     """Puts analysis in sample-metadata"""
-    dataset = data.pop('dataset')
+    project = data.pop('dataset')
     output_dir = data.pop('output')
     data['source'] = 'analysis-runner'
+    access_level = data.get('accessLevel')
+
+    if access_level == 'test':
+        project += '-test'
+
     sm_data = {
-        # we don't know the sample_ids unfortunately :(
         'sample_ids': [],
         'type': 'custom',
         'status': 'unknown',
@@ -25,7 +29,7 @@ def sample_metadata(data, unused_context):
     try:
         token = get_identity_token()
         r = requests.put(
-            f'{AUDIENCE}/api/v1/analysis/{dataset}/',
+            f'{AUDIENCE}/api/v1/analysis/{project}/',
             json=sm_data,
             headers={'Authorization': f'Bearer {token}'},
         )
