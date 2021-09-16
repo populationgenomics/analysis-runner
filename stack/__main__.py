@@ -358,6 +358,8 @@ def main():  # pylint: disable=too-many-locals
     )
 
     # Sample metadata access
+
+    # permissions for read / write
     #   - 4 secrets, main-read, main-write, test-read, test-write
     sm_groups = {}
     for env in ('main', 'test'):

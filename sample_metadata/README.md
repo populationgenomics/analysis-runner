@@ -7,7 +7,7 @@ To deploy, run:
 ```bash
 gcloud config set project analysis-runner
 
-gcloud functions deploy sample-metadata \
+gcloud functions deploy sample_metadata \
      --runtime python37 \
      --region australia-southeast1 \
      --trigger-topic submissions \
