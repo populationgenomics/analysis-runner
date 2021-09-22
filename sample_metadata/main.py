@@ -2,6 +2,8 @@
 A Cloud Function to store analysis-runner submission metadata
 in the Sample-Metadata database.
 """
+import json
+import base64
 import requests
 
 AUDIENCE = 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
@@ -9,10 +11,13 @@ AUDIENCE = 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
 
 def sample_metadata(data, unused_context):
     """Puts analysis in sample-metadata"""
-    project = data.pop('dataset')
-    output_dir = data.pop('output')
-    data['source'] = 'analysis-runner'
-    access_level = data.get('accessLevel')
+
+    metadata = json.loads(base64.b64decode(data['data']).decode('utf-8'))
+
+    project = metadata.pop('dataset')
+    output_dir = metadata.pop('output')
+    metadata['source'] = 'analysis-runner'
+    access_level = metadata.get('accessLevel')
 
     if access_level == 'test':
         project += '-test'
@@ -22,8 +27,8 @@ def sample_metadata(data, unused_context):
         'type': 'custom',
         'status': 'unknown',
         'output': output_dir,
-        'author': data.pop('user'),
-        'meta': data,
+        'author': metadata.pop('user'),
+        'meta': metadata,
         'active': False,
     }
     try:
