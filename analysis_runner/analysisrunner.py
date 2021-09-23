@@ -3,6 +3,7 @@ CLI options for standard analysis-runner
 """
 
 import os
+import json
 import argparse
 from shutil import which
 
@@ -52,6 +53,7 @@ def run_analysis_runner(
     commit=None,
     repository=None,
     cwd=None,
+    environment_variables=None,
 ):
     """
     Main function that drives the CLI.
@@ -111,6 +113,9 @@ def run_analysis_runner(
     if _cwd == '.':
         _cwd = None
 
+    if environment_variables:
+        _environment_variables = json.loads(environment_variables)
+
     _token = get_google_identity_token()
 
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
@@ -126,6 +131,7 @@ def run_analysis_runner(
             'script': _script,
             'description': description,
             'cwd': _cwd,
+            'environmentVariables': _environment_variables,
         },
         headers={'Authorization': f'Bearer {_token}'},
     )
