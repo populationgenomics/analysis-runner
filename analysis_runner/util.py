@@ -70,12 +70,6 @@ def add_general_args(parser):
         'arguments are not supplied, the relative path to the git root will be determined',
     )
 
-    parser.add_argument(
-        '--environment-variables',
-        required=False,
-        help='A dictionary of environment variables e.g. {"SM_ENVIRONMENT":"development"} ',
-    )
-
 
 def confirm_choice(choice: str):
     """

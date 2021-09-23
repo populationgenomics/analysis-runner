@@ -34,6 +34,13 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser('analysis-runner subparser')
 
     add_general_args(parser)
+
+    parser.add_argument(
+        '--environment-variables',
+        required=False,
+        help='A dictionary of environment variables',
+    )
+
     parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
 
     return parser
