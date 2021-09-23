@@ -43,6 +43,7 @@ async def index(request):
         dataset = params['dataset']
         check_dataset_and_group(server_config, dataset, email)
         repo = params['repo']
+        environment_variables = params.get('environmentVariables')
         check_allowed_repos(server_config, dataset, repo)
 
         access_level = params['accessLevel']
@@ -114,6 +115,11 @@ async def index(request):
         job.env('HAIL_BILLING_PROJECT', dataset)
         job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
         job.env('OUTPUT', output_dir)
+
+        if environment_variables:
+            for env_var, value in environment_variables:
+                job.env(env_var, value)
+
         if cwd:
             job.command(f'cd {quote(cwd)}')
 
