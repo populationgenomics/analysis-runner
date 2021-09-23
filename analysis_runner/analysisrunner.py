@@ -120,6 +120,7 @@ def run_analysis_runner(
     if _cwd == '.':
         _cwd = None
 
+    _environment_variables = None
     if environment_variables:
         _environment_variables = json.loads(environment_variables)
 
