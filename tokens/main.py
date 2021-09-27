@@ -14,7 +14,12 @@ ALLOWED_REPOS = {
     'fewgenomes': ['analysis-runner', 'fewgenomes', 'joint-calling', 'sv-workflows'],
     'perth-neuro': ['sample-metadata'],
     'seqr': ['hail-elasticsearch-pipelines'],
-    'thousand-genomes': [],
+    'thousand-genomes': [
+        'analysis-runner',
+        'joint-calling',
+        'sv-workflows',
+        'sample-metadata',
+    ],
     'tob-wgs': ['ancestry', 'joint-calling', 'tob-wgs', 'sv-workflows'],
 }
 
