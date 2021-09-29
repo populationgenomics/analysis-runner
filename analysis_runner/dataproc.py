@@ -28,19 +28,14 @@ class DataprocCluster:
     Helper class that represents a Dataproc cluster created within a Batch
     """
 
-    def __init__(
-        self,
-        batch: hb.Batch,
-        start_job: hb.batch.job.Job,
-        stop_job: hb.batch.job.Job,
-        cluster_id: str,
-        cluster_name: Optional[str] = None,
-    ):
-        self._batch = batch
-        self._start_job = start_job
-        self._stop_job = stop_job
-        self._cluster_id = cluster_id
-        self._cluster_name = cluster_name
+    def __init__(self, **kwargs):
+        self._batch = kwargs.pop('batch')
+        self._depends_on = kwargs.pop('depends_on', None)
+        self._cluster_name = kwargs.get('cluster_name', None)
+        self._cluster_id = None
+        self._start_job = None
+        self._stop_job = None
+        self._startup_params = kwargs
 
     def add_job(
         self,
@@ -51,6 +46,21 @@ class DataprocCluster:
         """
         Create a job that submits the `script` to the cluster
         """
+        if self._start_job is None:
+            self._start_job, cluster_id = _add_start_job(
+                batch=self._batch, **self._startup_params
+            )
+            if self._depends_on:
+                self._start_job.depends_on(*self._depends_on)
+
+            self._stop_job = _add_stop_job(
+                batch=self._batch,
+                cluster_id=cluster_id,
+                job_name=job_name,
+                cluster_name=self._cluster_name,
+            )
+            self._stop_job.depends_on(self._start_job)
+
         job = _add_submit_job(
             batch=self._batch,
             cluster_id=self._cluster_id,
@@ -64,9 +74,8 @@ class DataprocCluster:
         return job
 
 
-def setup_dataproc(
+def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
     batch: hb.Batch,
-    *,
     max_age: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
@@ -92,42 +101,7 @@ def setup_dataproc(
 
     `depends_on` can be used to enforce dependencies for the cluster start up.
     """
-
-    start_job, cluster_id = _add_start_job(
-        batch=batch,
-        max_age=max_age,
-        num_workers=num_workers,
-        num_secondary_workers=num_secondary_workers,
-        worker_machine_type=worker_machine_type,
-        worker_boot_disk_size=worker_boot_disk_size,
-        secondary_worker_boot_disk_size=secondary_worker_boot_disk_size,
-        packages=packages,
-        init=init,
-        vep=vep,
-        requester_pays_allow_all=requester_pays_allow_all,
-        scopes=scopes,
-        labels=labels,
-        job_name=job_name,
-        cluster_name=cluster_name,
-    )
-    if depends_on:
-        start_job.depends_on(*depends_on)
-
-    stop_job = _add_stop_job(
-        batch=batch,
-        cluster_id=cluster_id,
-        job_name=job_name,
-        cluster_name=cluster_name,
-    )
-    stop_job.depends_on(start_job)
-
-    return DataprocCluster(
-        batch=batch,
-        start_job=start_job,
-        stop_job=stop_job,
-        cluster_id=cluster_id,
-        cluster_name=cluster_name,
-    )
+    return DataprocCluster(**locals())
 
 
 def hail_dataproc_job(
@@ -145,9 +119,8 @@ def hail_dataproc_job(
     return cluster.add_job(script, job_name, pyfiles)
 
 
-def _add_start_job(
+def _add_start_job(  # pylint: disable=too-many-arguments
     batch: hb.Batch,
-    *,
     max_age: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
