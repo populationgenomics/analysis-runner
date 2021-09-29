@@ -20,8 +20,9 @@ ALLOWED_REPOS = {
         'sample-metadata',
         'production-pipelines',
     ],
+    'mgrb': ['sample-metadata'],
     'perth-neuro': ['sample-metadata'],
-    'seqr': ['hail-elasticsearch-pipelines', 'production-pipelines'],
+    'seqr': ['hail-elasticsearch-pipelines', 'sample-metadata', 'production-pipelines'],
     'thousand-genomes': [
         'analysis-runner',
         'thousand-genomes',
