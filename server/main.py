@@ -117,7 +117,7 @@ async def index(request):
         job.env('OUTPUT', output_dir)
 
         if environment_variables:
-            for env_var, value in environment_variables:
+            for env_var, value in environment_variables.items():
                 job.env(env_var, value)
 
         if cwd:
