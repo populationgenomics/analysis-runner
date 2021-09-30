@@ -6,7 +6,7 @@ from sample_metadata.api import AnalysisApi
 
 aapi = AnalysisApi()
 samples_without_analysis = aapi.get_all_sample_ids_without_analysis_type(
-    'gvcf', 'tob_wgs'
+    'gvcf', 'tob-wgs'
 )
 
 batch = hb.Batch(name='Test Batch Move Standard')
