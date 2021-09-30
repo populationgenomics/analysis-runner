@@ -47,7 +47,7 @@ class DataprocCluster:
         Create a job that submits the `script` to the cluster
         """
         if self._start_job is None:
-            self._start_job, cluster_id = _add_start_job(
+            self._start_job, self._cluster_id = _add_start_job(
                 batch=self._batch, **self._startup_params
             )
             if self._depends_on:
@@ -55,7 +55,7 @@ class DataprocCluster:
 
             self._stop_job = _add_stop_job(
                 batch=self._batch,
-                cluster_id=cluster_id,
+                cluster_id=self._cluster_id,
                 job_name=job_name,
                 cluster_name=self._cluster_name,
             )
