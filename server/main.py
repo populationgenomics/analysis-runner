@@ -206,4 +206,4 @@ async def init_func():
 
 
 if __name__ == '__main__':
-    web.run_app(init_func(), port=5050)
+    web.run_app(init_func())
