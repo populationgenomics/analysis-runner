@@ -121,7 +121,7 @@ def get_analysis_runner_metadata(
     commit,
     script,
     description,
-    output,
+    output_suffix,
     driver_image,
     cwd,
     **kwargs,
@@ -130,6 +130,8 @@ def get_analysis_runner_metadata(
     Get well-formed analysis-runner metadata, requiring the core listed keys
     with some flexibility to provide your own keys (as **kwargs)
     """
+    bucket_type = 'test' if access_level == 'test' else 'main'
+    output_dir = f'gs://cpg-{dataset}-{bucket_type}/{output_suffix}'
 
     return {
         'timestamp': timestamp,
@@ -140,7 +142,7 @@ def get_analysis_runner_metadata(
         'commit': commit,
         'script': script,
         'description': description,
-        'output': output,
+        'output': output_dir,
         'driverImage': driver_image,
         'cwd': cwd,
         **kwargs,
@@ -151,7 +153,7 @@ def prepare_git_job(
     job,
     dataset,
     access_level,
-    output_dir,
+    output_suffix,
     repo,
     commit,
     metadata_str: str,
@@ -207,7 +209,7 @@ def prepare_git_job(
         # Append metadata information, in case the same output directory gets used
         # multiple times.
         bucket_type = 'test' if access_level == 'test' else 'main'
-        metadata_path = f'gs://cpg-{dataset}-{bucket_type}-analysis/metadata/{output_dir}/analysis-runner.json'
+        metadata_path = f'gs://cpg-{dataset}-{bucket_type}-analysis/metadata/{output_suffix}/analysis-runner.json'
         job.command(
             f'gsutil cp {quote(metadata_path)} {METADATA_PREFIX}_old.json '
             f'|| touch {METADATA_PREFIX}_old.json'

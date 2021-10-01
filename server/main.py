@@ -39,7 +39,7 @@ async def index(request):
     params = await request.json()
     try:
         server_config = get_server_config()
-        output_dir = validate_output_dir(params['output'])
+        output_suffix = validate_output_dir(params['output'])
         dataset = params['dataset']
         check_dataset_and_group(server_config, dataset, email)
         repo = params['repo']
@@ -83,7 +83,7 @@ async def index(request):
                 commit=commit,
                 script=' '.join(script),
                 description=params['description'],
-                output=output_dir,
+                output_suffix=output_suffix,
                 hailVersion=hail_version,
                 driver_image=DRIVER_IMAGE,
                 cwd=cwd,
@@ -106,7 +106,7 @@ async def index(request):
             job=job,
             dataset=dataset,
             access_level=access_level,
-            output_dir=output_dir,
+            output_suffix=output_suffix,
             repo=repo,
             commit=commit,
             metadata_str=metadata,
@@ -114,11 +114,13 @@ async def index(request):
         job.env('HAIL_BUCKET', hail_bucket)
         job.env('HAIL_BILLING_PROJECT', dataset)
         job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
-        job.env('OUTPUT', output_dir)
+        
+        job.env('OUTPUT', output_suffix)
 
         if environment_variables:
             for env_var, value in environment_variables.items():
                 job.env(env_var, value)
+
 
         if cwd:
             job.command(f'cd {quote(cwd)}')
