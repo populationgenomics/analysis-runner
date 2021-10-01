@@ -134,9 +134,47 @@ async def index(request):
 add_cromwell_routes(routes)
 
 
+def json_response(status_code: int, message: str) -> web.Response:
+    return web.Response(
+        status=status_code,
+        body=json.dumps({'message': message, 'success': False}).encode('utf-8'),
+        content_type='application/json',
+    )
+
+
+def prepare_response_from_exception(request, ex):
+    logging.error('Request {} has failed with exception: {}'.format(request, repr(ex)))
+
+    if isinstance(ex, web.HTTPException):
+        logging.error(ex)
+        return json_response(status_code=ex.status_code, message=ex.text)
+    if isinstance(ex, KeyError):
+        keys = ', '.join(ex.args)
+        return json_response(400, f'Missing request parameter: {keys}')
+
+    if hasattr(ex, 'message'):
+        m = ex.message
+    else:
+        m = str(ex)
+    return json_response(500, message=m)
+
+
+async def error_middleware(app: web.Application, handler):
+    async def middleware_handler(request):
+        try:
+            response = await handler(request)
+            if isinstance(response, web.HTTPException):
+                return prepare_response_from_exception(request, response)
+            return response
+        except Exception as e:
+            return prepare_response_from_exception(request, e)
+
+    return middleware_handler
+
+
 async def init_func():
     """Initializes the app."""
-    app = web.Application()
+    app = web.Application(middlewares=[error_middleware])
     app.add_routes(routes)
     return app
 
