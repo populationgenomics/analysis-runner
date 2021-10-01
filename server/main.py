@@ -114,13 +114,12 @@ async def index(request):
         job.env('HAIL_BUCKET', hail_bucket)
         job.env('HAIL_BILLING_PROJECT', dataset)
         job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
-        
+
         job.env('OUTPUT', output_suffix)
 
         if environment_variables:
             for env_var, value in environment_variables.items():
                 job.env(env_var, value)
-
 
         if cwd:
             job.command(f'cd {quote(cwd)}')
