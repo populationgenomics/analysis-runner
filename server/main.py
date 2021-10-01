@@ -38,6 +38,7 @@ ANALYSIS_RUNNER_REQUIRED_PARAMS = [
     'description',
 ]
 
+
 # pylint: disable=too-many-statements
 @routes.post('/')
 async def index(request):
