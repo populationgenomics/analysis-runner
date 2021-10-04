@@ -29,17 +29,6 @@ from util import (
     get_cromwell_key,
 )
 
-CROMWELL_REQUIRED_PARAMS = [
-    'accessLevel',
-    'commit',
-    'cwd',
-    'dataset',
-    'description',
-    'output',
-    'repo',
-    'workflow',
-]
-
 
 def add_cromwell_routes(
     routes,
@@ -104,12 +93,6 @@ def add_cromwell_routes(
         # When accessing a missing entry in the params dict, the resulting KeyError
         # exception gets translated to a Bad Request error in the try block below.
         params = await request.json()
-
-        missing_params = [key for key in CROMWELL_REQUIRED_PARAMS if key not in params]
-        if missing_params:
-            raise ValueError(
-                'Missing request parameter(s): ' + ', '.join(missing_params)
-            )
 
         server_config = get_server_config()
         output_dir = validate_output_dir(params['output'])

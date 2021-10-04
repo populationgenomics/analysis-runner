@@ -27,17 +27,6 @@ from util import (
 
 routes = web.RouteTableDef()
 
-ANALYSIS_RUNNER_REQUIRED_PARAMS = [
-    'output',
-    'dataset',
-    'repo',
-    'accessLevel',
-    'commit',
-    'cwd',
-    'script',
-    'description',
-]
-
 
 # pylint: disable=too-many-statements
 @routes.post('/')
@@ -48,11 +37,6 @@ async def index(request):
     # When accessing a missing entry in the params dict, the resulting KeyError
     # exception gets translated to a Bad Request error in the try block below.
     params = await request.json()
-    missing_params = [
-        key for key in ANALYSIS_RUNNER_REQUIRED_PARAMS if key not in params
-    ]
-    if missing_params:
-        raise ValueError('Missing request parameter(s): ' + ', '.join(missing_params))
 
     server_config = get_server_config()
     output_suffix = validate_output_dir(params['output'])
