@@ -37,6 +37,7 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     add_general_args(parser)
 
     parser.add_argument(
+        '-e',
         '--environment-variables',
         required=False,
         help='A dictionary of environment variables',
