@@ -3,7 +3,6 @@ CLI options for standard analysis-runner
 """
 
 import os
-import json
 import argparse
 from shutil import which
 from typing import List
@@ -40,7 +39,7 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         '-e',
         '--environment-variables',
         required=False,
-        help='A dictionary of environment variables',
+        help='Environment variables e.g. -e SM_ENVIRONMENT=production -e OTHERVAR=value',
         action='append',
     )
 
@@ -87,6 +86,7 @@ def run_analysis_runner(
     _commit_ref = commit
     _script = list(script)
     _cwd = cwd
+    _environment_variables = environment_variables
 
     # false-y value catches empty list / tuple as well
     if not _script:
@@ -122,10 +122,6 @@ def run_analysis_runner(
 
     if _cwd == '.':
         _cwd = None
-
-    _environment_variables = None
-    if environment_variables:
-        _environment_variables = json.loads(environment_variables)
 
     _token = get_google_identity_token()
 

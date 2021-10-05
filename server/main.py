@@ -118,7 +118,10 @@ async def index(request):
         job.env('OUTPUT', output_suffix)
 
         if environment_variables:
-            for env_var, value in environment_variables.items():
+            for env_var_pair in environment_variables:
+                pair = env_var_pair.split('=')
+                env_var = pair[0]
+                value = pair[1]
                 job.env(env_var, value)
 
         if cwd:
