@@ -6,6 +6,7 @@ import os
 import json
 import argparse
 from shutil import which
+from typing import List
 
 import requests
 
@@ -39,7 +40,7 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         '--environment-variables',
         required=False,
         help='A dictionary of environment variables',
-    action='append'
+        action='append',
     )
 
     parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
@@ -61,7 +62,7 @@ def run_analysis_runner(
     commit=None,
     repository=None,
     cwd=None,
-    environment_variables: List[str]=None,
+    environment_variables: List[str] = None,
 ):
     """
     Main function that drives the CLI.
