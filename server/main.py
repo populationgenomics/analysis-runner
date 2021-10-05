@@ -37,116 +37,166 @@ async def index(request):
     # When accessing a missing entry in the params dict, the resulting KeyError
     # exception gets translated to a Bad Request error in the try block below.
     params = await request.json()
-    try:
-        server_config = get_server_config()
-        output_suffix = validate_output_dir(params['output'])
-        dataset = params['dataset']
-        check_dataset_and_group(server_config, dataset, email)
-        repo = params['repo']
-        environment_variables = params.get('environmentVariables')
-        check_allowed_repos(server_config, dataset, repo)
 
-        access_level = params['accessLevel']
-        hail_token = server_config[dataset].get(f'{access_level}Token')
-        if not hail_token:
-            raise web.HTTPBadRequest(reason=f'Invalid access level "{access_level}"')
+    server_config = get_server_config()
+    output_suffix = validate_output_dir(params['output'])
+    dataset = params['dataset']
+    check_dataset_and_group(server_config, dataset, email)
+    repo = params['repo']
+    check_allowed_repos(server_config, dataset, repo)
+    environment_variables = params.get('environmentVariables')
 
-        hail_bucket = f'cpg-{dataset}-hail'
-        backend = hb.ServiceBackend(
-            billing_project=dataset,
-            bucket=hail_bucket,
-            token=hail_token,
-        )
+    access_level = params['accessLevel']
+    hail_token = server_config[dataset].get(f'{access_level}Token')
+    if not hail_token:
+        raise web.HTTPBadRequest(reason=f'Invalid access level "{access_level}"')
 
-        commit = params['commit']
-        if not commit or commit == 'HEAD':
-            raise web.HTTPBadRequest(reason='Invalid commit parameter')
+    hail_bucket = f'cpg-{dataset}-hail'
+    backend = hb.ServiceBackend(
+        billing_project=dataset,
+        bucket=hail_bucket,
+        token=hail_token,
+    )
 
-        cwd = params['cwd']
-        script = params['script']
-        if not script:
-            raise web.HTTPBadRequest(reason='Invalid script parameter')
+    commit = params['commit']
+    if not commit or commit == 'HEAD':
+        raise web.HTTPBadRequest(reason='Invalid commit parameter')
 
-        if not isinstance(script, list):
-            raise web.HTTPBadRequest(reason='Script parameter expects an array')
+    cwd = params['cwd']
+    script = params['script']
+    if not script:
+        raise web.HTTPBadRequest(reason='Invalid script parameter')
 
-        # This metadata dictionary gets stored in the metadata bucket, at the output_dir location.
-        hail_version = await _get_hail_version()
-        timestamp = datetime.datetime.now().astimezone().isoformat()
-        metadata = json.dumps(
-            get_analysis_runner_metadata(
-                timestamp=timestamp,
-                dataset=dataset,
-                user=email,
-                access_level=access_level,
-                repo=repo,
-                commit=commit,
-                script=' '.join(script),
-                description=params['description'],
-                output_suffix=output_suffix,
-                hailVersion=hail_version,
-                driver_image=DRIVER_IMAGE,
-                cwd=cwd,
-            )
-        )
+    if not isinstance(script, list):
+        raise web.HTTPBadRequest(reason='Script parameter expects an array')
 
-        # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
-        publisher.publish(PUBSUB_TOPIC, metadata.encode('utf-8')).result()
-
-        user_name = email.split('@')[0]
-        batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
-
-        dataset_gcp_project = server_config[dataset]['projectId']
-        batch = hb.Batch(
-            backend=backend, name=batch_name, requester_pays_project=dataset_gcp_project
-        )
-
-        job = batch.new_job(name='driver')
-        job = prepare_git_job(
-            job=job,
+    # This metadata dictionary gets stored in the metadata bucket, at the output_dir location.
+    hail_version = await _get_hail_version()
+    timestamp = datetime.datetime.now().astimezone().isoformat()
+    metadata = json.dumps(
+        get_analysis_runner_metadata(
+            timestamp=timestamp,
             dataset=dataset,
+            user=email,
             access_level=access_level,
-            output_suffix=output_suffix,
             repo=repo,
             commit=commit,
-            metadata_str=metadata,
+            script=' '.join(script),
+            description=params['description'],
+            output_suffix=output_suffix,
+            hailVersion=hail_version,
+            driver_image=DRIVER_IMAGE,
+            cwd=cwd,
         )
-        job.env('HAIL_BUCKET', hail_bucket)
-        job.env('HAIL_BILLING_PROJECT', dataset)
-        job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
+    )
 
-        job.env('OUTPUT', output_suffix)
+    # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
+    publisher.publish(PUBSUB_TOPIC, metadata.encode('utf-8')).result()
 
-        if environment_variables:
-            for env_var_pair in environment_variables:
-                pair = env_var_pair.split('=')
-                env_var = pair[0]
-                value = pair[1]
-                job.env(env_var, value)
+    user_name = email.split('@')[0]
+    batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
 
-        if cwd:
-            job.command(f'cd {quote(cwd)}')
+    dataset_gcp_project = server_config[dataset]['projectId']
+    batch = hb.Batch(
+        backend=backend, name=batch_name, requester_pays_project=dataset_gcp_project
+    )
 
-        job.command(f'which {quote(script[0])} || chmod +x {quote(script[0])}')
+    job = batch.new_job(name='driver')
+    job = prepare_git_job(
+        job=job,
+        dataset=dataset,
+        access_level=access_level,
+        output_suffix=output_suffix,
+        repo=repo,
+        commit=commit,
+        metadata_str=metadata,
+    )
+    job.env('HAIL_BUCKET', hail_bucket)
+    job.env('HAIL_BILLING_PROJECT', dataset)
+    job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
+    job.env('OUTPUT', output_suffix)
 
-        # Finally, run the script.
-        escaped_script = ' '.join(quote(s) for s in script if s)
-        job.command(escaped_script)
+    if environment_variables:
+        for env_var_pair in environment_variables:
+            pair = env_var_pair.split('=')
+            env_var = pair[0]
+            value = pair[1]
+            job.env(env_var, value)
 
-        url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))
+    if cwd:
+        job.command(f'cd {quote(cwd)}')
 
-        return web.Response(text=f'{url}\n')
-    except KeyError as e:
-        logging.error(e)
-        raise web.HTTPBadRequest(reason=f'Missing request parameter: {e.args[0]}')
+    job.command(f'which {quote(script[0])} || chmod +x {quote(script[0])}')
+
+    # Finally, run the script.
+    escaped_script = ' '.join(quote(s) for s in script if s)
+    job.command(escaped_script)
+
+    url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))
+
+    return web.Response(text=f'{url}\n')
 
 
 add_cromwell_routes(routes)
 
 
+def prepare_exception_json_response(status_code: int, message: str) -> web.Response:
+    """Prepare web.Response for """
+    return web.Response(
+        status=status_code,
+        body=json.dumps({'message': message, 'success': False}).encode('utf-8'),
+        content_type='application/json',
+    )
+
+
+def prepare_response_from_exception(ex: Exception):
+    """Prepare json_response from exception"""
+    logging.error(f'Request failed with exception: {repr(ex)}')
+
+    if isinstance(ex, web.HTTPException):
+        return prepare_exception_json_response(
+            status_code=ex.status_code, message=ex.reason
+        )
+    if isinstance(ex, KeyError):
+        keys = ', '.join(ex.args)
+        return prepare_exception_json_response(
+            400, f'Missing request parameter: {keys}'
+        )
+    if isinstance(ex, ValueError):
+        return prepare_exception_json_response(400, ', '.join(ex.args))
+
+    if hasattr(ex, 'message'):
+        m = ex.message
+    else:
+        m = str(ex)
+    return prepare_exception_json_response(500, message=m)
+
+
+async def error_middleware(_, handler):
+    """
+    Constructs middleware handler
+    First argument is app, but unused in this context
+    """
+
+    async def middleware_handler(request):
+        """
+        Run handler and catch exceptions and response errors
+        """
+        try:
+            response = await handler(request)
+            if isinstance(response, web.HTTPException):
+                return prepare_response_from_exception(response)
+            return response
+        # pylint: disable=broad-except
+        except Exception as e:
+            return prepare_response_from_exception(e)
+
+    return middleware_handler
+
+
 async def init_func():
     """Initializes the app."""
-    app = web.Application()
+    app = web.Application(middlewares=[error_middleware])
     app.add_routes(routes)
     return app
 
