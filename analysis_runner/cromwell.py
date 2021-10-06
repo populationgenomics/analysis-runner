@@ -56,7 +56,11 @@ def add_cromwell_submit_args_to(parser):
     add_general_args(parser)
 
     parser.add_argument(
-        '-i', '--inputs', help='Relative path to input JSON', required=False
+        '-i',
+        '--inputs',
+        help='Relative path to input JSON',
+        required=False,
+        action='append',
     )
     # matches the cromwell param
     parser.add_argument(
