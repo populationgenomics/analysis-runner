@@ -117,6 +117,9 @@ async def index(request):
     job.env('OUTPUT', output_suffix)
 
     if environment_variables:
+        if not isinstance(environment_variables, dict):
+            raise ValueError('Expected environment_variables to be dictionary')
+
         for env_var, value in environment_variables.items():
             job.env(env_var, value)
 
