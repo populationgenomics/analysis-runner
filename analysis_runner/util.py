@@ -8,7 +8,7 @@ import requests
 from analysis_runner._version import __version__
 
 BRANCH = 'main'
-SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
+SERVER_ENDPOINT = 'https://server-test-a2pko7ameq-ts.a.run.app'
 
 logger = logging.getLogger('analysis_runner')
 logger.addHandler(logging.StreamHandler())
@@ -137,3 +137,19 @@ def _perform_version_check():
             )
             logger.warning(message)
         return
+
+
+class AnsiiColors:
+    """
+    Lookup table: https://en.wikipedia.org/wiki/ANSI_escape_code#3/4_bit
+    """
+
+    BRIGHTMAGENTA = '\033[95m'  # Bright magenta
+    BRIGHTBLUE = '\033[94m'  # Bright blue
+    BRIGHTGREEN = '\033[92m'  # Bright green
+    BRIGHTYELLOW = '\033[93m'  # Bright yellow
+    BRIGHTRED = '\033[91m'  # Bright red
+    RESET = '\033[0m'  # SGR (Reset / Normal)
+    BOLD = '\033[1m'  # SGR (Bold or increased intensity
+    ITALIC = '\033[3m'  # SGR (Italic)
+    UNDERLINE = '\033[4m'  # SGR (Underline)
