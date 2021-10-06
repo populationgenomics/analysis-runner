@@ -120,8 +120,20 @@ async def index(request):
         if not isinstance(environment_variables, dict):
             raise ValueError('Expected environment_variables to be dictionary')
 
-        for env_var, value in environment_variables.items():
-            job.env(env_var, value)
+        invalid_env_vars = [
+            f'{k}={v}'
+            for k, v in environment_variables.items()
+            if not isinstance(v, str)
+        ]
+
+        if len(invalid_env_vars) > 0:
+            raise ValueError(
+                'Some environment_variables values were not strings, got '
+                + ', '.join(invalid_env_vars)
+            )
+
+        for k, v in environment_variables.items():
+            job.env(k, v)
 
     if cwd:
         job.command(f'cd {quote(cwd)}')

@@ -126,8 +126,13 @@ def run_analysis_runner(
     if environment_variables:
         _environment_variables = {}
         for env_var_pair in environment_variables:
-            pair = env_var_pair.split('=')
-            _environment_variables[pair[0]] = pair[1]
+            try:
+                pair = env_var_pair.split('=')
+                _environment_variables[pair[0]] = pair[1]
+            except IndexError as e:
+                raise IndexError(
+                    env_var_pair + ' does not conform to key=value format.'
+                ) from e
 
     _token = get_google_identity_token()
 
