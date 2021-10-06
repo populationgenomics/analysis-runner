@@ -86,7 +86,6 @@ def run_analysis_runner(
     _commit_ref = commit
     _script = list(script)
     _cwd = cwd
-    _environment_variables = environment_variables
 
     # false-y value catches empty list / tuple as well
     if not _script:
@@ -122,6 +121,13 @@ def run_analysis_runner(
 
     if _cwd == '.':
         _cwd = None
+
+    _environment_variables = None
+    if environment_variables:
+        _environment_variables = {}
+        for env_var_pair in environment_variables:
+            pair = env_var_pair.split('=')
+            _environment_variables[pair[0]] = pair[1]
 
     _token = get_google_identity_token()
 
