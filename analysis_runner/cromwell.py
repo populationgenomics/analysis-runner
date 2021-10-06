@@ -120,6 +120,11 @@ def add_cromwell_submit_args_to(parser):
         required=False,
         help='A json of labels to be applied to workflow.',
     )
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Print curl request that would be sent to analysis-runner and exit',
+    )
 
     # workflow WDL
     parser.add_argument('workflow', help='WDL file to submit to cromwell')
@@ -148,6 +153,7 @@ def run_cromwell(
     repository=None,
     cwd=None,
     labels=None,
+    dry_run=False,
 ):
     """
     Prepare parameters for cromwell analysis-runner job
@@ -193,22 +199,36 @@ def run_cromwell(
     if labels:
         _labels = json.loads(labels)
 
+    body = {
+        'dataset': dataset,
+        'output': output_dir,
+        'repo': _repository,
+        'accessLevel': access_level,
+        'commit': _commit_ref,
+        'description': description,
+        'cwd': _cwd,
+        'workflow': workflow,
+        'inputs_dict': _inputs_dict,
+        'input_json_paths': inputs or [],
+        'dependencies': imports or [],
+        'labels': _labels,
+    }
+
+    if dry_run:
+        logger.warning('Dry-run, printing curl and exiting')
+        curl = f"""\
+curl --location --request POST \\
+    '{SERVER_ENDPOINT}/cromwell' \\
+    --header "Authorization: Bearer $(gcloud auth print-identity-token)" \\
+    --header "Content-Type: application/json" \\
+    --data-raw '{json.dumps(body, indent=4)}'"""
+
+        print(curl)
+        return
+
     response = requests.post(
         SERVER_ENDPOINT + '/cromwell',
-        json={
-            'dataset': dataset,
-            'output': output_dir,
-            'repo': _repository,
-            'accessLevel': access_level,
-            'commit': _commit_ref,
-            'description': description,
-            'cwd': _cwd,
-            'workflow': workflow,
-            'inputs_dict': _inputs_dict,
-            'input_json_paths': inputs or [],
-            'dependencies': imports or [],
-            'labels': _labels,
-        },
+        json=body,
         headers={'Authorization': f'Bearer {get_google_identity_token()}'},
     )
     try:
