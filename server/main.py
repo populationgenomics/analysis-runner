@@ -72,25 +72,20 @@ async def index(request):
     # This metadata dictionary gets stored in the metadata bucket, at the output_dir location.
     hail_version = await _get_hail_version()
     timestamp = datetime.datetime.now().astimezone().isoformat()
-    metadata = json.dumps(
-        get_analysis_runner_metadata(
-            timestamp=timestamp,
-            dataset=dataset,
-            user=email,
-            access_level=access_level,
-            repo=repo,
-            commit=commit,
-            script=' '.join(script),
-            description=params['description'],
-            output_suffix=output_suffix,
-            hailVersion=hail_version,
-            driver_image=DRIVER_IMAGE,
-            cwd=cwd,
-        )
+    metadata = get_analysis_runner_metadata(
+        timestamp=timestamp,
+        dataset=dataset,
+        user=email,
+        access_level=access_level,
+        repo=repo,
+        commit=commit,
+        script=' '.join(script),
+        description=params['description'],
+        output_suffix=output_suffix,
+        hailVersion=hail_version,
+        driver_image=DRIVER_IMAGE,
+        cwd=cwd,
     )
-
-    # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
-    publisher.publish(PUBSUB_TOPIC, metadata.encode('utf-8')).result()
 
     user_name = email.split('@')[0]
     batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
@@ -108,7 +103,7 @@ async def index(request):
         output_suffix=output_suffix,
         repo=repo,
         commit=commit,
-        metadata_str=metadata,
+        metadata_str=json.dumps(metadata),
     )
     job.env('HAIL_BUCKET', hail_bucket)
     job.env('HAIL_BILLING_PROJECT', dataset)
@@ -124,6 +119,10 @@ async def index(request):
     job.command(escaped_script)
 
     url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))
+
+    # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
+    metadata['batch_url'] = url
+    publisher.publish(PUBSUB_TOPIC, json.dumps(metadata).encode('utf-8')).result()
 
     return web.Response(text=f'{url}\n')
 
