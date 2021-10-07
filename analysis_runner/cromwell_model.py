@@ -291,7 +291,7 @@ class CallMetadata:
             color = self.executionStatus.color()
             rcol = AnsiiColors.RESET
 
-        extras_str = "".join("\n" + indent(e, '    ') for e in extras)
+        extras_str = "".join("\n" + indent(e, '  ') for e in extras)
         return f'{color}[{symbol}] {name} ({duration_str}){extras_str}{rcol}'
 
 
@@ -342,7 +342,7 @@ def prepare_inner_calls_string(
                 c.display(expand_completed=expand_completed, monochrome=monochrome)
                 for c in calls
             ),
-            '    ',
+            '  ',
         )
 
     return f'{color}[{status}] {name}{inner_calls}{rcol}'
