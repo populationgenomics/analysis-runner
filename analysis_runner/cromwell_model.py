@@ -130,6 +130,7 @@ class WorkflowMetadataModel:
 
         headers = [
             ('Workflow ID', self.id),
+            ('Name', self.workflowName),
             ('Status', self.status),
             ('Start', self.start),
             ('End', self.end),

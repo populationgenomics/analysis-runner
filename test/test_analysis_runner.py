@@ -154,6 +154,7 @@ class TestCliCromwell(unittest.TestCase):
         status_str = """
 -----------  ------------------------
 Workflow ID  <mocked-id>
+Name
 Status       preparing
 Start        2021-07-09T09:47:00.000Z
 End          2021-07-09T09:48:00.000Z
