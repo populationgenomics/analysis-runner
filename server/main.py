@@ -44,6 +44,7 @@ async def index(request):
     check_dataset_and_group(server_config, dataset, email)
     repo = params['repo']
     check_allowed_repos(server_config, dataset, repo)
+    environment_variables = params.get('environmentVariables')
 
     access_level = params['accessLevel']
     hail_token = server_config[dataset].get(f'{access_level}Token')
@@ -114,6 +115,26 @@ async def index(request):
     job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
     job.env('OUTPUT', output_suffix)
+
+    if environment_variables:
+        if not isinstance(environment_variables, dict):
+            raise ValueError('Expected environment_variables to be dictionary')
+
+        invalid_env_vars = [
+            f'{k}={v}'
+            for k, v in environment_variables.items()
+            if not isinstance(v, str)
+        ]
+
+        if len(invalid_env_vars) > 0:
+            raise ValueError(
+                'Some environment_variables values were not strings, got '
+                + ', '.join(invalid_env_vars)
+            )
+
+        for k, v in environment_variables.items():
+            job.env(k, v)
+
     if cwd:
         job.command(f'cd {quote(cwd)}')
 

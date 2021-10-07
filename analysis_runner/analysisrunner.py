@@ -5,6 +5,7 @@ CLI options for standard analysis-runner
 import os
 import argparse
 from shutil import which
+from typing import List
 
 import requests
 
@@ -33,6 +34,15 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser('analysis-runner subparser')
 
     add_general_args(parser)
+
+    parser.add_argument(
+        '-e',
+        '--environment-variables',
+        required=False,
+        help='Environment variables e.g. -e SM_ENVIRONMENT=production -e OTHERVAR=value',
+        action='append',
+    )
+
     parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
 
     return parser
@@ -52,6 +62,7 @@ def run_analysis_runner(
     commit=None,
     repository=None,
     cwd=None,
+    environment_variables: List[str] = None,
 ):
     """
     Main function that drives the CLI.
@@ -111,6 +122,18 @@ def run_analysis_runner(
     if _cwd == '.':
         _cwd = None
 
+    _environment_variables = None
+    if environment_variables:
+        _environment_variables = {}
+        for env_var_pair in environment_variables:
+            try:
+                pair = env_var_pair.split('=')
+                _environment_variables[pair[0]] = pair[1]
+            except IndexError as e:
+                raise IndexError(
+                    env_var_pair + ' does not conform to key=value format.'
+                ) from e
+
     _token = get_google_identity_token()
 
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
@@ -126,6 +149,7 @@ def run_analysis_runner(
             'script': _script,
             'description': description,
             'cwd': _cwd,
+            'environmentVariables': _environment_variables,
         },
         headers={'Authorization': f'Bearer {_token}'},
     )
