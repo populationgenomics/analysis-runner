@@ -312,6 +312,12 @@ def unwrap_caused_by(failures: List):
 def prepare_inner_calls_string(
     name, calls: List['CallMetadata'], expand_completed=False, monochrome=False
 ):
+    if len(calls) == 1:
+        return calls[0].display(
+            expand_completed=expand_completed,
+            monochrome=monochrome,
+        )
+
     collapsed_status = collapse_status_of_calls(calls)
     status = collapsed_status.symbol()
     color, rcol = '', ''
