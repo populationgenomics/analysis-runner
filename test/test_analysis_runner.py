@@ -149,7 +149,7 @@ class TestCliCromwell(unittest.TestCase):
         }
         mock_get.return_value = MockResponse(json=lambda: cm)
 
-        args = ['cromwell', 'status', '<mocked-id>']
+        args = ['cromwell', 'status', '<mocked-id>', '--monochrome']
 
         status_str = """
 -----------  ------------------------
