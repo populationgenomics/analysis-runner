@@ -120,7 +120,7 @@ async def index(request):
 
     url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))
 
-    # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
+    # Publish the metadata to Pub/Sub. Wait for the result before returning the url.
     metadata['batch_url'] = url
     publisher.publish(PUBSUB_TOPIC, json.dumps(metadata).encode('utf-8')).result()
 
