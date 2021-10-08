@@ -70,6 +70,8 @@ def _add_generic_cromwell_visualiser_args(parser: argparse.ArgumentParser):
 def add_cromwell_status_args(parser: argparse.ArgumentParser):
     """Add cli args for checking status of Cromwell workflow"""
     parser.add_argument('workflow_id')
+    parser.add_argument('--json-output', help='Output metadata to this path')
+
     _add_generic_cromwell_visualiser_args(parser)
 
     return parser
@@ -241,7 +243,7 @@ curl --location --request POST \\
         )
 
 
-def check_cromwell_status(workflow_id, *args, **kwargs):
+def check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwargs):
     """Check cromwell status with workflow_id"""
 
     url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
@@ -251,6 +253,12 @@ def check_cromwell_status(workflow_id, *args, **kwargs):
     )
     response.raise_for_status()
     d = response.json()
+
+    if json_output:
+        logger.info(f'Writing metadata to: {json_output}')
+        with open(json_output, 'w+', encoding='utf-8') as f:
+            json.dump(d, f)
+
     model = WorkflowMetadataModel.parse(d)
     print(model.display(*args, **kwargs))
 
