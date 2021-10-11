@@ -149,11 +149,12 @@ class TestCliCromwell(unittest.TestCase):
         }
         mock_get.return_value = MockResponse(json=lambda: cm)
 
-        args = ['cromwell', 'status', '<mocked-id>']
+        args = ['cromwell', 'status', '<mocked-id>', '--monochrome']
 
         status_str = """
 -----------  ------------------------
 Workflow ID  <mocked-id>
+Name
 Status       preparing
 Start        2021-07-09T09:47:00.000Z
 End          2021-07-09T09:48:00.000Z

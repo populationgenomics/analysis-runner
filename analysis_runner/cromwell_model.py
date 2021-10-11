@@ -7,6 +7,8 @@ import datetime
 
 from tabulate import tabulate
 
+from analysis_runner.util import AnsiiColors
+
 
 class ExecutionStatus(Enum):
     preparing = 'preparing'
@@ -17,6 +19,7 @@ class ExecutionStatus(Enum):
     succeeded = 'succeeded'
     failed = 'failed'
     retryablefailure = 'retryablefailure'
+    queuedincromwell = 'queuedincromwell'
 
     def __str__(self):
         return self.value
@@ -26,6 +29,7 @@ class ExecutionStatus(Enum):
         return {
             ExecutionStatus.starting: '...',
             ExecutionStatus.preparing: '...',
+            ExecutionStatus.queuedincromwell: '...',
             ExecutionStatus.in_progress: '~',
             ExecutionStatus.running: '~',
             ExecutionStatus.done: '#',
@@ -34,8 +38,20 @@ class ExecutionStatus(Enum):
             ExecutionStatus.retryablefailure: '~!',
         }
 
+    @property
+    def _colors(self):
+        return {
+            ExecutionStatus.done: AnsiiColors.BRIGHTGREEN,
+            ExecutionStatus.succeeded: AnsiiColors.BRIGHTGREEN,
+            ExecutionStatus.failed: AnsiiColors.BRIGHTRED,
+            ExecutionStatus.retryablefailure: AnsiiColors.BRIGHTBLUE,
+        }
+
     def symbol(self):
         return self._symbols.get(self, '?')
+
+    def color(self):
+        return self._colors.get(self, AnsiiColors.RESET)
 
     def is_finished(self):
         _finished_states = {
@@ -105,7 +121,7 @@ class WorkflowMetadataModel:
 
         return WorkflowMetadataModel(calls=calls, **new_d)
 
-    def display(self, expand_completed=False):
+    def display(self, expand_completed=False, monochrome=False):
 
         duration_seconds = get_seconds_duration_between_cromwell_dates(
             self.start, self.end
@@ -114,6 +130,7 @@ class WorkflowMetadataModel:
 
         headers = [
             ('Workflow ID', self.id),
+            ('Name', self.workflowName),
             ('Status', self.status),
             ('Start', self.start),
             ('End', self.end),
@@ -125,7 +142,10 @@ class WorkflowMetadataModel:
             calls_display.append(
                 indent(
                     prepare_inner_calls_string(
-                        name, calls, expand_completed=expand_completed
+                        name,
+                        calls,
+                        expand_completed=expand_completed,
+                        monochrome=monochrome,
                     ),
                     '  ',
                 )
@@ -219,7 +239,7 @@ class CallMetadata:
                 )
         return CallMetadata(calls=calls, **new_d)
 
-    def display(self, expand_completed=False):
+    def display(self, expand_completed=False, monochrome=False):
         duration_str = get_readable_duration(
             get_seconds_duration_between_cromwell_dates(self.start, self.end)
         )
@@ -232,7 +252,10 @@ class CallMetadata:
                 extras.append(
                     indent(
                         prepare_inner_calls_string(
-                            name, calls, expand_completed=expand_completed
+                            name,
+                            calls,
+                            expand_completed=expand_completed,
+                            monochrome=monochrome,
                         ),
                         '  ',
                     )
@@ -264,8 +287,13 @@ class CallMetadata:
             name += f' (attempt {self.attempt})'
 
         symbol = self.executionStatus.symbol()
-        extras_str = "".join("\n" + indent(e, '    ') for e in extras)
-        return f'[{symbol}] {name} ({duration_str}){extras_str}'
+        color, rcol = '', ''
+        if not monochrome:
+            color = self.executionStatus.color()
+            rcol = AnsiiColors.RESET
+
+        extras_str = "".join("\n" + indent(e, '  ') for e in extras)
+        return f'{color}[{symbol}] {name} ({duration_str}){extras_str}{rcol}'
 
 
 def unwrap_caused_by(failures: List):
@@ -283,17 +311,33 @@ def unwrap_caused_by(failures: List):
 
 
 def prepare_inner_calls_string(
-    name, calls: List['CallMetadata'], expand_completed=False
+    name, calls: List['CallMetadata'], expand_completed=False, monochrome=False
 ):
+    if len(calls) == 1:
+        return calls[0].display(
+            expand_completed=expand_completed,
+            monochrome=monochrome,
+        )
+
     collapsed_status = collapse_status_of_calls(calls)
     status = collapsed_status.symbol()
+    color, rcol = '', ''
+    if not monochrome:
+        color = collapsed_status.color()
+        rcol = AnsiiColors.RESET
     inner_calls = ''
 
     if len(calls) > 1 and not expand_completed:
         name += f' ({len(calls)} jobs)'
 
     if len(calls) > 0:
-        start, finish = calls[0].start, calls[-1].end
+        starts = [c.start for c in calls if c.start is not None]
+        finishes = [c.end for c in calls if c.end is not None]
+        start, finish = None, None
+        if starts:
+            start = min(starts)
+        if finishes:
+            finish = max(finishes)
         name += f' ({get_readable_duration(get_seconds_duration_between_cromwell_dates(start, finish))})'
 
     if expand_completed or collapsed_status not in [
@@ -301,11 +345,14 @@ def prepare_inner_calls_string(
         ExecutionStatus.succeeded,
     ]:
         inner_calls = "\n" + indent(
-            '\n'.join(c.display(expand_completed=expand_completed) for c in calls),
-            '    ',
+            '\n'.join(
+                c.display(expand_completed=expand_completed, monochrome=monochrome)
+                for c in calls
+            ),
+            '  ',
         )
 
-    return f'[{status}] {name}{inner_calls}'
+    return f'{color}[{status}] {name}{inner_calls}{rcol}'
 
 
 def collapse_status_of_calls(calls: List['CallMetadata']):
@@ -356,6 +403,9 @@ def get_readable_duration(seconds: int):
 
     if seconds < 0:
         return "In the future..."
+
+    if seconds < 1:
+        return '<1s'
 
     intervals = [
         (365 * 86400, "y"),

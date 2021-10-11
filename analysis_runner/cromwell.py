@@ -25,6 +25,17 @@ from analysis_runner.git import (
 )
 from analysis_runner.cromwell_model import WorkflowMetadataModel
 
+# lambda so we don't see ordering definition errors
+# flake8: noqa
+CROMWELL_MODES = lambda: {
+    'submit': (add_cromwell_submit_args_to, run_cromwell),
+    'status': (add_cromwell_status_args, check_cromwell_status),
+    'visualise': (
+        add_cromwell_metadata_visualier_args,
+        visualise_cromwell_metadata_from_file,
+    ),
+}
+
 
 def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
     """Create / add arguments for cromwell argparser"""
@@ -32,18 +43,46 @@ def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser('cromwell analysis-runner')
 
     subparsers = parser.add_subparsers(dest='cromwell_mode')
-    add_cromwell_submit_args_to(subparsers.add_parser('submit'))
-    add_cromwell_status_args(subparsers.add_parser('status'))
+
+    for mode, (add_args, _) in CROMWELL_MODES().items():
+        add_args(subparsers.add_parser(mode))
 
     return parser
+
+
+def run_cromwell_from_args(args):
+    """Run cromwell CLI mode from argparse.args"""
+    cromwell_modes = CROMWELL_MODES()
+
+    kwargs = vars(args)
+    cromwell_mode = kwargs.pop('cromwell_mode')
+    if cromwell_mode not in cromwell_modes:
+        raise NotImplementedError(cromwell_mode)
+
+    return cromwell_modes[cromwell_mode][1](**kwargs)
+
+
+def _add_generic_cromwell_visualiser_args(parser: argparse.ArgumentParser):
+    parser.add_argument('-l', '--expand-completed', default=False, action='store_true')
+    parser.add_argument('--monochrome', default=False, action='store_true')
 
 
 def add_cromwell_status_args(parser: argparse.ArgumentParser):
     """Add cli args for checking status of Cromwell workflow"""
     parser.add_argument('workflow_id')
+    parser.add_argument('--json-output', help='Output metadata to this path')
 
-    parser.add_argument('-l', '--expand-completed', default=False, action='store_true')
+    _add_generic_cromwell_visualiser_args(parser)
 
+    return parser
+
+
+def add_cromwell_metadata_visualier_args(parser: argparse.ArgumentParser):
+    """
+    Add arguments for visualising cromwell workflow from metadata file
+    """
+    parser.add_argument('metadata_file')
+    _add_generic_cromwell_visualiser_args(parser)
     return parser
 
 
@@ -56,7 +95,11 @@ def add_cromwell_submit_args_to(parser):
     add_general_args(parser)
 
     parser.add_argument(
-        '-i', '--inputs', help='Relative path to input JSON', required=False
+        '-i',
+        '--inputs',
+        help='Relative path to input JSON',
+        required=False,
+        action='append',
     )
     # matches the cromwell param
     parser.add_argument(
@@ -79,6 +122,11 @@ def add_cromwell_submit_args_to(parser):
         required=False,
         help='A json of labels to be applied to workflow.',
     )
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Print curl request that would be sent to analysis-runner and exit',
+    )
 
     # workflow WDL
     parser.add_argument('workflow', help='WDL file to submit to cromwell')
@@ -91,18 +139,6 @@ def add_cromwell_submit_args_to(parser):
     )
 
     return parser
-
-
-def run_cromwell_from_args(args):
-    """Run cromwell CLI mode from argparse.args"""
-    cromwell_modes = {'submit': run_cromwell, 'status': check_cromwell_status}
-
-    kwargs = vars(args)
-    cromwell_mode = kwargs.pop('cromwell_mode')
-    if cromwell_mode not in cromwell_modes:
-        raise NotImplementedError(cromwell_mode)
-
-    return cromwell_modes[cromwell_mode](**kwargs)
 
 
 def run_cromwell(
@@ -119,6 +155,7 @@ def run_cromwell(
     repository=None,
     cwd=None,
     labels=None,
+    dry_run=False,
 ):
     """
     Prepare parameters for cromwell analysis-runner job
@@ -164,22 +201,36 @@ def run_cromwell(
     if labels:
         _labels = json.loads(labels)
 
+    body = {
+        'dataset': dataset,
+        'output': output_dir,
+        'repo': _repository,
+        'accessLevel': access_level,
+        'commit': _commit_ref,
+        'description': description,
+        'cwd': _cwd,
+        'workflow': workflow,
+        'inputs_dict': _inputs_dict,
+        'input_json_paths': inputs or [],
+        'dependencies': imports or [],
+        'labels': _labels,
+    }
+
+    if dry_run:
+        logger.warning('Dry-run, printing curl and exiting')
+        curl = f"""\
+curl --location --request POST \\
+    '{SERVER_ENDPOINT}/cromwell' \\
+    --header "Authorization: Bearer $(gcloud auth print-identity-token)" \\
+    --header "Content-Type: application/json" \\
+    --data-raw '{json.dumps(body, indent=4)}'"""
+
+        print(curl)
+        return
+
     response = requests.post(
         SERVER_ENDPOINT + '/cromwell',
-        json={
-            'dataset': dataset,
-            'output': output_dir,
-            'repo': _repository,
-            'accessLevel': access_level,
-            'commit': _commit_ref,
-            'description': description,
-            'cwd': _cwd,
-            'workflow': workflow,
-            'inputs_dict': _inputs_dict,
-            'input_json_paths': inputs or [],
-            'dependencies': imports or [],
-            'labels': _labels,
-        },
+        json=body,
         headers={'Authorization': f'Bearer {get_google_identity_token()}'},
     )
     try:
@@ -192,7 +243,7 @@ def run_cromwell(
         )
 
 
-def check_cromwell_status(workflow_id, expand_completed=False):
+def check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwargs):
     """Check cromwell status with workflow_id"""
 
     url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
@@ -202,8 +253,29 @@ def check_cromwell_status(workflow_id, expand_completed=False):
     )
     response.raise_for_status()
     d = response.json()
+
+    if json_output:
+        logger.info(f'Writing metadata to: {json_output}')
+        with open(json_output, 'w+', encoding='utf-8') as f:
+            json.dump(d, f)
+
     model = WorkflowMetadataModel.parse(d)
-    print(model.display(expand_completed=expand_completed))
+    print(model.display(*args, **kwargs))
+
+
+def visualise_cromwell_metadata_from_file(metadata_file: str, *args, **kwargs):
+    """Visualise cromwell metadata progress from a json file"""
+    with open(metadata_file, encoding='utf-8') as f:
+        model = WorkflowMetadataModel.parse(json.load(f))
+
+    visualise_cromwell_metadata(model, *args, **kwargs)
+
+
+def visualise_cromwell_metadata(
+    model: WorkflowMetadataModel, expand_completed, monochrome
+):
+    """Print the visualisation of cromwell metadata model"""
+    print(model.display(expand_completed=expand_completed, monochrome=monochrome))
 
 
 def try_parse_value(value: Optional[str]):
