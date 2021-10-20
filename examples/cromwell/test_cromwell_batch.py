@@ -10,7 +10,7 @@ from analysis_runner.git import (
 )
 
 # DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:dev'
-DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:3b4ec0b4bfb387c6d8031c7a60566eb9651f7d8c9763711ea918dd3de8a260d2'
+DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:0c547af06714203e22fc7571c17364735300a2124082b9a7f984b4e4837cfd3d'
 
 OUTPUT_SUFFIX = 'mfranklin/analysis-runner-test/out/'
 BUCKET = 'gs://cpg-fewgenomes-test/' + OUTPUT_SUFFIX
@@ -42,13 +42,13 @@ outputs_dict = watch_workflow_and_get_output(
     b,
     job_prefix='cromwell-workflow',
     workflow_id_file=workflow_id_file,
-    outputs_to_collect={'out': None},
+    outputs_to_collect={'hello.out': None},
     driver_image=DRIVER_IMAGE,
 )
 
 process_j = b.new_job('do-something-with-input')
-process_j.command(f'echo ${{$(cat {outputs_dict["out"]})}}')
-process_j.command(f'echo ${{$(cat {outputs_dict["out"]})}} > {process_j.out}')
+process_j.command(f'echo ${{$(cat {outputs_dict["hello.out"]})}}')
+process_j.command(f'echo ${{$(cat {outputs_dict["hello.out"]})}} > {process_j.out}')
 
 b.write_output(process_j.out, BUCKET)
 
