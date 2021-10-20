@@ -4,29 +4,27 @@ Exports 'add_cromwell_routes', to add the following route to a flask API:
     POST /cromwell: Posts a workflow to a cromwell_url
 """
 import json
-import subprocess
 from datetime import datetime
-from shlex import quote
 
+import hailtop.batch as hb
 import requests
 from aiohttp import web
 
-import hailtop.batch as hb
-
+from analysis_runner.constants import CROMWELL_URL
+from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
+from analysis_runner.git import prepare_git_job
+from analysis_runner.util import get_server_config
+from server.util import write_metadata_to_bucket
 from util import (
     get_analysis_runner_metadata,
     get_email_from_request,
     validate_output_dir,
     check_dataset_and_group,
     check_allowed_repos,
-    get_server_config,
     publisher,
-    prepare_git_job,
     run_batch_job_and_print_url,
-    CROMWELL_URL,
     PUBSUB_TOPIC,
     DRIVER_IMAGE,
-    get_cromwell_key,
 )
 
 
@@ -106,23 +104,7 @@ def add_cromwell_routes(
         ds_config = server_config[dataset]
         project = ds_config.get('projectId')
         hail_token = ds_config.get(f'{access_level}Token')
-        service_account_json = get_cromwell_key(
-            dataset=dataset, access_level=access_level
-        )
         # use the email specified by the service_account_json again
-        service_account_dict = json.loads(service_account_json)
-        service_account_email = service_account_dict.get('client_email')
-        if not service_account_email:
-            raise web.HTTPServerError(
-                reason="The service_account didn't contain an entry for client_email"
-            )
-
-        if access_level == 'test':
-            intermediate_dir = f'gs://cpg-{dataset}-test-tmp/cromwell'
-            workflow_output_dir = f'gs://cpg-{dataset}-test/{output_dir}'
-        else:
-            intermediate_dir = f'gs://cpg-{dataset}-main-tmp/cromwell'
-            workflow_output_dir = f'gs://cpg-{dataset}-main/{output_dir}'
 
         hail_bucket = f'cpg-{dataset}-hail'
         backend = hb.ServiceBackend(
@@ -146,10 +128,14 @@ def add_cromwell_routes(
         input_jsons = params.get('input_json_paths') or []
         input_dict = params.get('inputs_dict')
 
+        if access_level == 'test':
+            workflow_output_dir = f'gs://cpg-{dataset}-test/{output_dir}'
+        else:
+            workflow_output_dir = f'gs://cpg-{dataset}-main/{output_dir}'
+
         # This metadata dictionary gets stored at the output_dir location.
         timestamp = datetime.now().astimezone().isoformat()
-        metadata = json.dumps(
-            get_analysis_runner_metadata(
+        metadata = get_analysis_runner_metadata(
                 timestamp=timestamp,
                 dataset=dataset,
                 user=email,
@@ -162,7 +148,8 @@ def add_cromwell_routes(
                 driver_image=DRIVER_IMAGE,
                 cwd=cwd,
                 mode='cromwell',
-            )
+                server_config=server_config,
+
         )
 
         # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
@@ -178,73 +165,44 @@ def add_cromwell_routes(
         job = batch.new_job(name='driver')
         job = prepare_git_job(
             job=job,
-            dataset=dataset,
-            access_level=access_level,
-            output_suffix=output_dir,
             repo=repo,
             commit=commit,
-            metadata_str=metadata,
             print_all_statements=False,
+            is_test=access_level == 'test'
         )
+
+        write_metadata_to_bucket(
+            job,
+            access_level=access_level,
+            dataset=dataset,
+            output_suffix=output_dir,
+            metadata_str=json.dumps(metadata),
+        )
+        job.image(DRIVER_IMAGE)
+
+        job.env('DRIVER_IMAGE', DRIVER_IMAGE)
+        job.env('DATASET', dataset)
+        job.env('ACCESS_LEVEL', access_level)
         job.env('OUTPUT', output_dir)
 
-        if cwd:
-            job.command(f'cd {quote(cwd)}')
-
-        deps_path = None
-        if libs:
-            deps_path = 'tools.zip'
-            job.command('zip -r tools.zip ' + ' '.join(quote(s + '/') for s in libs))
-
-        cromwell_post_url = CROMWELL_URL + '/api/workflows/v1'
-
-        google_labels = {}
-
-        if labels:
-            google_labels.update(labels)
-
-        google_labels.update({'compute-category': 'cromwell'})
-
-        workflow_options = {
-            'user_service_account_json': service_account_json,
-            'google_compute_service_account': service_account_email,
-            'google_project': project,
-            'jes_gcs_root': intermediate_dir,
-            'final_workflow_outputs_dir': workflow_output_dir,
-            'google_labels': google_labels,
-        }
-
-        if input_dict:
-            tmp_input_json_path = '/tmp/inputs.json'
-            job.command(f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}")
-            input_jsons.append(tmp_input_json_path)
-
-        inputs_cli = []
-        for idx, value in enumerate(input_jsons):
-            key = 'workflowInputs'
-            if idx > 0:
-                key += f'_{idx + 1}'
-
-            inputs_cli.append(f'-F "{key}=@{value}"')
-
-        job.command(
-            f"""
-echo '{json.dumps(workflow_options)}' > workflow-options.json
-access_token=$(gcloud auth print-identity-token --audiences=717631777761-ec4u8pffntsekut9kef58hts126v7usl.apps.googleusercontent.com)
-wid=$(curl -X POST "{cromwell_post_url}" \\
--H "Authorization: Bearer $access_token" \\
--H "accept: application/json" \\
--H "Content-Type: multipart/form-data" \\
--F "workflowSource=@{wf}" \\
-{' '.join(inputs_cli)} \\
--F "workflowOptions=@workflow-options.json;type=application/json" \\
-{f'-F "workflowDependencies=@{deps_path}"' if deps_path else ''})
-
-echo "Submitted workflow with ID $wid"
-"""
+        run_cromwell_workflow(
+            job=job,
+            dataset=dataset,
+            access_level=access_level,
+            workflow=wf,
+            cwd=cwd,
+            libs=libs,
+            labels=labels,
+            output_suffix=output_dir,
+            input_dict=input_dict,
+            input_paths=input_jsons,
         )
 
         url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))
+
+        # Publish the metadata to Pub/Sub.
+        metadata['batch_url'] = url
+        publisher.publish(PUBSUB_TOPIC, json.dumps(metadata).encode('utf-8')).result()
 
         return web.Response(text=f'{url}\n')
 
@@ -257,18 +215,7 @@ echo "Submitted workflow with ID $wid"
                 + f'/api/workflows/v1/{workflow_id}/metadata?expandSubWorkflows=true'
             )
 
-            token = (
-                subprocess.check_output(
-                    [
-                        'gcloud',
-                        'auth',
-                        'print-identity-token',
-                        '--audiences=717631777761-ec4u8pffntsekut9kef58hts126v7usl.apps.googleusercontent.com',
-                    ]
-                )
-                .decode()
-                .strip()
-            )
+            token = get_cromwell_oauth_token()
             headers = {'Authorization': 'Bearer ' + str(token)}
             req = requests.get(cromwell_metadata_url, headers=headers)
             if not req.ok:

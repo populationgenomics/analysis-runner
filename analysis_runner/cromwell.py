@@ -2,13 +2,22 @@
 Cromwell CLI
 """
 # pylint: disable=too-many-arguments,too-many-return-statements
-
-import argparse
-from typing import List, Dict, Optional
-
+import os
+import time
 import json
-import requests
+import argparse
+import subprocess
+from shlex import quote
+from typing import List, Dict, Optional, Any
 
+import requests
+import hailtop.batch as hb
+
+from analysis_runner.constants import (
+    CROMWELL_URL,
+    ANALYSIS_RUNNER_PROJECT_ID,
+    CROMWELL_AUDIENCE,
+)
 from analysis_runner.util import (
     logger,
     add_general_args,
@@ -16,6 +25,7 @@ from analysis_runner.util import (
     confirm_choice,
     get_google_identity_token,
     SERVER_ENDPOINT,
+    get_server_config,
 )
 from analysis_runner.git import (
     get_git_default_remote,
@@ -28,11 +38,11 @@ from analysis_runner.cromwell_model import WorkflowMetadataModel
 # lambda so we don't see ordering definition errors
 # flake8: noqa
 CROMWELL_MODES = lambda: {
-    'submit': (add_cromwell_submit_args_to, run_cromwell),
-    'status': (add_cromwell_status_args, check_cromwell_status),
+    'submit': (_add_cromwell_submit_args_to, _run_cromwell),
+    'status': (_add_cromwell_status_args, _check_cromwell_status),
     'visualise': (
-        add_cromwell_metadata_visualier_args,
-        visualise_cromwell_metadata_from_file,
+        _add_cromwell_metadata_visualier_args,
+        _visualise_cromwell_metadata_from_file,
     ),
 }
 
@@ -67,7 +77,7 @@ def _add_generic_cromwell_visualiser_args(parser: argparse.ArgumentParser):
     parser.add_argument('--monochrome', default=False, action='store_true')
 
 
-def add_cromwell_status_args(parser: argparse.ArgumentParser):
+def _add_cromwell_status_args(parser: argparse.ArgumentParser):
     """Add cli args for checking status of Cromwell workflow"""
     parser.add_argument('workflow_id')
     parser.add_argument('--json-output', help='Output metadata to this path')
@@ -77,7 +87,7 @@ def add_cromwell_status_args(parser: argparse.ArgumentParser):
     return parser
 
 
-def add_cromwell_metadata_visualier_args(parser: argparse.ArgumentParser):
+def _add_cromwell_metadata_visualier_args(parser: argparse.ArgumentParser):
     """
     Add arguments for visualising cromwell workflow from metadata file
     """
@@ -86,7 +96,7 @@ def add_cromwell_metadata_visualier_args(parser: argparse.ArgumentParser):
     return parser
 
 
-def add_cromwell_submit_args_to(parser):
+def _add_cromwell_submit_args_to(parser):
     """
     Add cli args for submitting WDL workflow to cromwell,
     via the analysis runner
@@ -141,7 +151,7 @@ def add_cromwell_submit_args_to(parser):
     return parser
 
 
-def run_cromwell(
+def _run_cromwell(
     dataset,
     output_dir,
     description,
@@ -243,7 +253,7 @@ curl --location --request POST \\
         )
 
 
-def check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwargs):
+def _check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwargs):
     """Check cromwell status with workflow_id"""
 
     url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
@@ -263,7 +273,7 @@ def check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwar
     print(model.display(*args, **kwargs))
 
 
-def visualise_cromwell_metadata_from_file(metadata_file: str, *args, **kwargs):
+def _visualise_cromwell_metadata_from_file(metadata_file: str, *args, **kwargs):
     """Visualise cromwell metadata progress from a json file"""
     with open(metadata_file, encoding='utf-8') as f:
         model = WorkflowMetadataModel.parse(json.load(f))
@@ -401,3 +411,259 @@ def parse_additional_args(args: List[str]) -> Dict[str, any]:
     add_keyword_value_to_keywords(current_keyword, new_value)
 
     return keywords
+
+
+def run_cromwell_workflow(
+    job: hb.batch.job.Job,
+    dataset: str,
+    access_level: str,
+    workflow: str,
+    cwd: Optional[str],
+    libs: List[str],
+    output_suffix: str,
+    labels: Dict[str, str]=None,
+    input_dict: Optional[Dict[str, Any]] = None,
+    input_paths: List[str] = None,
+    server_config: Dict[str, Any] = None,
+):
+    from cpg_utils.cloud import read_secret
+
+    def get_cromwell_key(dataset, access_level):
+        """Get Cromwell key from secrets"""
+        secret_name = f'{dataset}-cromwell-{access_level}-key'
+        return read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
+
+    if cwd:
+        job.command(f'cd {quote(cwd)}')
+
+    deps_path = None
+    if libs:
+        deps_path = 'tools.zip'
+        job.command('zip -r tools.zip ' + ' '.join(quote(s + '/') for s in libs))
+
+    cromwell_post_url = CROMWELL_URL + '/api/workflows/v1'
+
+    google_labels = {}
+
+    if labels:
+        google_labels.update(labels)
+
+    google_labels.update({'compute-category': 'cromwell'})
+
+    if not server_config:
+        server_config = get_server_config()
+
+    ds_config = server_config[dataset]
+    project = ds_config.get('projectId')
+    service_account_json = get_cromwell_key(dataset=dataset, access_level=access_level)
+    # use the email specified by the service_account_json again
+    service_account_dict = json.loads(service_account_json)
+    service_account_email = service_account_dict.get('client_email')
+    if not service_account_email:
+        raise ValueError("The service_account didn't contain an entry for client_email")
+
+    if access_level == 'test':
+        intermediate_dir = f'gs://cpg-{dataset}-test-tmp/cromwell'
+        workflow_output_dir = f'gs://cpg-{dataset}-test/{output_suffix}'
+    else:
+        intermediate_dir = f'gs://cpg-{dataset}-main-tmp/cromwell'
+        workflow_output_dir = f'gs://cpg-{dataset}-main/{output_suffix}'
+
+    workflow_options = {
+        'user_service_account_json': service_account_json,
+        'google_compute_service_account': service_account_email,
+        'google_project': project,
+        'jes_gcs_root': intermediate_dir,
+        'final_workflow_outputs_dir': workflow_output_dir,
+        'google_labels': google_labels,
+    }
+
+    input_paths = input_paths or []
+    if input_dict:
+        tmp_input_json_path = '/tmp/inputs.json'
+        job.command(f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}")
+        input_paths.append(tmp_input_json_path)
+
+    inputs_cli = []
+    for idx, value in enumerate(input_paths):
+        key = 'workflowInputs'
+        if idx > 0:
+            key += f'_{idx + 1}'
+
+        inputs_cli.append(f'-F "{key}=@{value}"')
+
+    output_workflow_id = job.out_workflow_id
+    job.command(
+        f"""
+    echo '{json.dumps(workflow_options)}' > workflow-options.json
+    access_token=$(gcloud auth print-identity-token --audiences={CROMWELL_AUDIENCE})
+    wid=$(curl -X POST "{cromwell_post_url}" \\
+    -H "Authorization: Bearer $access_token" \\
+    -H "accept: application/json" \\
+    -H "Content-Type: multipart/form-data" \\
+    -F "workflowSource=@{workflow}" \\
+    {' '.join(inputs_cli)} \\
+    -F "workflowOptions=@workflow-options.json;type=application/json" \\
+    {f'-F "workflowDependencies=@{deps_path}"' if deps_path else ''})
+
+    echo "Submitted workflow with ID $wid"
+    echo $wid | jq -r .id >> {output_workflow_id}
+    """
+    )
+
+    return output_workflow_id
+
+
+class CromwellError(Exception):
+    pass
+
+
+def watch_workflow_and_get_output(
+    b: hb.Batch,
+    job_prefix: str,
+    workflow_id_file,
+    outputs_to_collect: Dict[str, Optional[int]],
+    driver_image: Optional[str]=None,
+):
+    """
+    This is a little bit tricky, but the process is:
+
+    - Wait for a cromwell workflow to finish,
+    - If it succeeds, get the outputs (as a json)
+    - (Hard) Get the value of the output back into Hail Batch as a resource file.
+
+    Getting the value of the output back into hail batch because the:
+        - outputs to collect +
+        - number of outputs to collect must be known up-front.
+
+    So unfortunately, this function needs to know the structure of the outputs you
+    want to collect. It currently only supports:
+        - a single value, or
+        - a list of values
+
+    If the starts with "gs://", we'll copy it as a resource file,
+    otherwise write the value into a file which will be a batch resource.
+    """
+
+    def watch_workflow(workflow_id_file) -> Dict[str, any]:
+
+        with open(workflow_id_file, encoding='utf-8') as f:
+            workflow_id = f.read().strip()
+        print(f'Got workflow ID: {workflow_id}')
+        final_statuses = {'failed', 'aborted'}
+        subprocess.check_output(['gcloud', '-q', 'auth', 'activate-service-account', '--key-file=/gsa-key/key.json'])
+        url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
+        exception_count = 50
+        while True:
+            if exception_count <= 0:
+                raise CromwellError('Unreachable')
+            try:
+                token = get_cromwell_oauth_token()
+                r = requests.get(url, headers={'Authorization': f'Bearer {token}'})
+                if not r.ok:
+                    exception_count -= 1
+                    time.sleep(30)
+                    print(f'Got not okay from cromwell: {r.text}')
+                    continue
+                status = r.json().get('status')
+                print(f'Got cromwell status: {status}')
+                exception_count = 50
+                if status.lower() == 'succeeded':
+                    # process outputs here
+                    outputs_url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/outputs'
+                    res2 = requests.get(outputs_url, headers={'Authorization': f'Bearer {token}'})
+                    if not res2.ok:
+                        print('Received error when fetching cromwell outputs, will retry in 15 seconds')
+                        continue
+                    outputs = res2.json()
+                    print(f'Got outputs: {outputs}')
+                    return outputs.get('outputs')
+                if status.lower() in final_statuses:
+                    raise CromwellError(status)
+                time.sleep(15)
+            except Exception as e:
+                exception_count -= 1
+                print(f'Got worse exception: {e}')
+                time.sleep(30)
+
+    watch_job = b.new_python_job(job_prefix + "_watch")
+    _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
+
+    watch_job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
+    watch_job.env('PYTHONUNBUFFERED', '1')
+    watch_job.image(_driver_image)
+
+    rdict = watch_job.call(watch_workflow, workflow_id_file).as_json()
+    out_file_map = {}
+    for output, n_outputs in outputs_to_collect.items():
+
+        if n_outputs is None:
+            j = b.new_job(f'{job_prefix}_collect_{output}')
+            out_file_map[output] = _copy_file_into_batch(
+                j=j,
+                rdict=rdict,
+                output=output,
+                idx=None,
+                output_filename=j.out,
+            )
+        else:
+            out_file_map[output] = []
+            for idx in range(n_outputs):
+                j = b.new_job(f'{job_prefix}_collect_{output}')
+                out_file_map[output].append(
+                    _copy_file_into_batch(
+                        j=j,
+                        rdict=rdict,
+                        output=output,
+                        idx=idx,
+                        output_filename=j.out,
+                    )
+                )
+
+    return out_file_map
+
+
+def _copy_file_into_batch(
+    j: hb.batch.job.Job, *, rdict, output, idx: Optional[int], output_filename
+):
+
+    if idx is None:
+        error_description = output
+        jq_el = f'"{output}"'
+    else:
+        error_description = f'{output}[{idx}]'
+        jq_el = f'"{output}"[{idx}]'
+
+    j.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
+    j.command('gcloud -q auth activate-service-account --key-file=/gsa-key/key.json')
+
+    j.command(
+        f"""
+OUTPUT_TYPE=$(cat {rdict} | jq '.{jq_el}' | jq -r type)
+if [ $OUTPUT_TYPE != "string" ]; then
+    echo "The element {error_description} was not of type string, got $OUTPUT_TYPE";
+    # exit 1;
+fi
+
+OUTPUT_VALUE=$(cat {rdict} | jq -r '.{jq_el}')
+if [[ "$OUTPUT_VALUE" == gs://* ]]; then
+    echo "Copying file from $OUTPUT_VALUE";
+    gsutil cp $OUTPUT_VALUE {output_filename};
+else
+    echo "$OUTPUT_VALUE" > {output_filename}
+fi
+    """
+    )
+
+    return output_filename
+
+
+def get_cromwell_oauth_token():
+    token_command = [
+        'gcloud',
+        'auth',
+        'print-identity-token',
+        f'--audiences={CROMWELL_AUDIENCE}',
+    ]
+    token = subprocess.check_output(token_command).decode().strip()
+    return token
