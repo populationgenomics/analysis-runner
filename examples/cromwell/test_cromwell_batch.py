@@ -9,7 +9,9 @@ from analysis_runner.git import (
     get_git_commit_ref_of_current_repository,
 )
 
-DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:dev'
+# DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:dev'
+DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:5ff75185f2ce83b371100118bda7413a740af23619dd275307af98aea34a049a'
+
 
 OUTPUT_SUFFIX = 'mfranklin/analysis-runner-test/out/'
 BUCKET = 'gs://cpg-fewgenomes-test/' + OUTPUT_SUFFIX
