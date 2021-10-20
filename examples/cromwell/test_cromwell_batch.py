@@ -1,3 +1,4 @@
+import os
 import hailtop.batch as hb
 from analysis_runner.cromwell import (
     run_cromwell_workflow,
@@ -13,7 +14,7 @@ DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/drive
 OUTPUT_SUFFIX = 'mfranklin/analysis-runner-test/out/'
 BUCKET = 'gs://cpg-fewgenomes-test/' + OUTPUT_SUFFIX
 
-sb = hb.ServiceBackend()
+sb = hb.ServiceBackend(billing_project=os.getenv('HAIL_BILLING_PROJECT'), bucket=os.getenv('HAIL_BUCKET'))
 b = hb.Batch(backend=sb, default_image=DRIVER_IMAGE)
 
 job = b.new_job('submit_cromwell')
