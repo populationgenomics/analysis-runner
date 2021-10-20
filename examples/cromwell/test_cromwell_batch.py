@@ -52,6 +52,6 @@ process_j.command(f"""
 cat {outputs_dict["hello.out"]} | awk '{{print toupper($0)}}'
 cat {outputs_dict["hello.out"]} | awk '{{print toupper($0)}}' > {process_j.out}
 """)
-b.write_output(process_j.out, BUCKET)
+b.write_output(process_j.out, BUCKET + 'file.txt')
 
 b.run(wait=False)
