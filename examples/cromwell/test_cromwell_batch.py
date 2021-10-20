@@ -47,9 +47,11 @@ outputs_dict = watch_workflow_and_get_output(
 )
 
 process_j = b.new_job('do-something-with-input')
-process_j.command(f'echo ${{$(cat {outputs_dict["hello.out"]})}}')
-process_j.command(f'echo ${{$(cat {outputs_dict["hello.out"]})}} > {process_j.out}')
-
+process_j.command(f"""
+# print uppercase value
+cat {outputs_dict["hello.out"]} | awk '{{print toupper($0)}}'
+cat {outputs_dict["hello.out"]} | awk '{{print toupper($0)}}' > {process_j.out}
+""")
 b.write_output(process_j.out, BUCKET)
 
 b.run(wait=False)
