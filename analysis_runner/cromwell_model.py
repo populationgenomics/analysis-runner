@@ -138,7 +138,7 @@ class WorkflowMetadataModel:
         ]
 
         calls_display: List[str] = []
-        for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start):
+        for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start or '0'):
             calls_display.append(
                 indent(
                     prepare_inner_calls_string(
@@ -248,7 +248,7 @@ class CallMetadata:
         is_done = self.executionStatus.is_finished()
         has_succeded = self.executionStatus == ExecutionStatus.succeeded
         if (not has_succeded or expand_completed) and self.calls:
-            for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start):
+            for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start or '0'):
                 extras.append(
                     indent(
                         prepare_inner_calls_string(
@@ -386,6 +386,9 @@ def get_seconds_duration_between_cromwell_dates(start, end):
             tzinfo=None
         )
 
+    if not s:
+        return None
+
     return int(((e or datetime.datetime.utcnow()) - s).total_seconds())
 
 
@@ -400,7 +403,8 @@ def get_readable_duration(seconds: int):
     >>> get_readable_duration(3)
     '3s'
     """
-
+    if seconds is None:
+        return "?"
     if seconds < 0:
         return "In the future..."
 
