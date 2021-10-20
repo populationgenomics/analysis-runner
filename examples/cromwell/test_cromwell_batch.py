@@ -10,8 +10,7 @@ from analysis_runner.git import (
 )
 
 # DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:dev'
-DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:5ff75185f2ce83b371100118bda7413a740af23619dd275307af98aea34a049a'
-
+DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:1dd38c8ad24f86bf98a31bddb5d07fb0f5453abc338d34790b4430988752b610'
 
 OUTPUT_SUFFIX = 'mfranklin/analysis-runner-test/out/'
 BUCKET = 'gs://cpg-fewgenomes-test/' + OUTPUT_SUFFIX
