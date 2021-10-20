@@ -2,17 +2,24 @@
 # pylint: disable=import-outside-toplevel
 
 import re
+import json
 import logging
 import requests
 
+from cpg_utils.cloud import read_secret
 from analysis_runner._version import __version__
+from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID, SERVER_ENDPOINT
 
 BRANCH = 'main'
-SERVER_ENDPOINT = 'https://server-test-a2pko7ameq-ts.a.run.app'
 
 logger = logging.getLogger('analysis_runner')
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
+
+
+def get_server_config() -> dict:
+    """Get the server-config from the secret manager"""
+    return json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
 
 
 def add_general_args(parser):
