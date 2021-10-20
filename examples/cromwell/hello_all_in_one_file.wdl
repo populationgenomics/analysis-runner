@@ -4,7 +4,7 @@ workflow hello {
   input {
     String inp = "Hello, world!"
   }
-  call E.echo as print {
+  call echo as print {
     input:
       inp=inp
   }

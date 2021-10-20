@@ -51,4 +51,4 @@ process_j.command(f'echo ${{$(cat {outputs_dict["out"]})}} > {process_j.out}')
 
 b.write_output(process_j.out, BUCKET)
 
-b.run()
+b.run(wait=False)
