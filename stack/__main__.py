@@ -941,9 +941,7 @@ def main():  # pylint: disable=too-many-locals
         )
 
         # get the hail service accounts for this access_level
-        hail_service_account = next(
-            sa for sa_al, sa in service_accounts['hail'] if sa_al == access_level
-        )
+        hail_service_account = find_service_account('hail', access_level)
         gcp.secretmanager.SecretIamMember(
             f'cromwell-service-account-{access_level}-self-accessor',
             project=ANALYSIS_RUNNER_PROJECT,
