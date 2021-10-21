@@ -3,20 +3,23 @@
 import os
 import re
 import uuid
+from shlex import quote
 from typing import Optional, List, Dict, Tuple
 import hailtop.batch as hb
+from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
+
 from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
-    get_relative_script_path_from_git_root,
     get_repo_name_from_remote,
+    prepare_git_job,
+    get_relative_path_from_git_root,
 )
 
 
 DATAPROC_IMAGE = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.73'
 )
-GCLOUD_AUTH = 'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
 GCLOUD_PROJECT = f'gcloud config set project {os.getenv("DATASET_GCP_PROJECT")}'
 DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
 PYFILES_DIR = '/tmp/pyfiles'
@@ -159,7 +162,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
 
     start_job = batch.new_job(name=job_name)
     start_job.image(DATAPROC_IMAGE)
-    start_job.command(GCLOUD_AUTH)
+    start_job.command(GCLOUD_ACTIVATE_AUTH)
     start_job.command(GCLOUD_PROJECT)
     start_job.command(DATAPROC_REGION)
 
@@ -227,21 +230,19 @@ def _add_submit_job(
 
     main_job = batch.new_job(name=job_name)
     main_job.image(DATAPROC_IMAGE)
-    main_job.command(GCLOUD_AUTH)
+    main_job.command(GCLOUD_ACTIVATE_AUTH)
     main_job.command(GCLOUD_PROJECT)
     main_job.command(DATAPROC_REGION)
 
     # Clone the repository to pass scripts to the cluster.
-    git_remote = get_git_default_remote()
-    git_sha = get_git_commit_ref_of_current_repository()
-    git_dir = get_relative_script_path_from_git_root('')
-    repo_name = get_repo_name_from_remote(git_remote)
-
-    main_job.command(f'git clone --recurse-submodules {git_remote} {repo_name}')
-    main_job.command(f'cd {repo_name}')
-    main_job.command(f'git checkout {git_sha}')
-    main_job.command(f'git submodule update')
-    main_job.command(f'cd ./{git_dir}')
+    prepare_git_job(
+        job=main_job,
+        repo_name=get_repo_name_from_remote(get_git_default_remote()),
+        commit=get_git_commit_ref_of_current_repository(),
+    )
+    cwd = get_relative_path_from_git_root()
+    if cwd:
+        main_job.command(f'cd {quote(cwd)}')
 
     if pyfiles:
         main_job.command(f'mkdir {PYFILES_DIR}')
@@ -275,7 +276,7 @@ def _add_stop_job(
     stop_job = batch.new_job(name=job_name)
     stop_job.always_run()  # Always clean up.
     stop_job.image(DATAPROC_IMAGE)
-    stop_job.command(GCLOUD_AUTH)
+    stop_job.command(GCLOUD_ACTIVATE_AUTH)
     stop_job.command(GCLOUD_PROJECT)
     stop_job.command(DATAPROC_REGION)
     stop_job.command(f'hailctl dataproc stop {cluster_id}')
