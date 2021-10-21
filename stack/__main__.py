@@ -872,6 +872,15 @@ def main():  # pylint: disable=too-many-locals
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
         )
 
+        # allow all hail service_accounts to access the server-config
+        gcp.secretmanager.SecretIamMember(
+            resource_name=f'ar-server-config-accessor-{access_level}',
+            project=ANALYSIS_RUNNER_PROJECT,
+            role='roles/secretmanager.secretAccessor',
+            secret_id='server-config',
+            member=f'serviceAccount:{service_account}'
+        )
+
     for access_level, service_account in service_accounts['cromwell']:
         # Allow the Cromwell server to run worker VMs using the Cromwell service
         # accounts.
@@ -929,6 +938,16 @@ def main():  # pylint: disable=too-many-locals
             secret_id=secret.id,
             role='roles/secretmanager.secretAccessor',
             member=f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}',
+        )
+
+        # get the hail service accounts for this access_level
+        hail_service_account = next(sa for sa_al, sa in service_accounts['hail'] if sa_al == access_level)
+        gcp.secretmanager.SecretIamMember(
+            f'cromwell-service-account-{access_level}-self-accessor',
+            project=ANALYSIS_RUNNER_PROJECT,
+            secret_id=secret.id,
+            role='roles/secretmanager.secretAccessor',
+            member=f'serviceAccount:{hail_service_account}',
         )
 
     for access_level, group in access_level_groups.items():
