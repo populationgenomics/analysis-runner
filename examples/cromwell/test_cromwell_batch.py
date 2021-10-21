@@ -21,7 +21,7 @@ b = hb.Batch(backend=sb, default_image=DRIVER_IMAGE)
 
 inputs = ['Hello, analysis-runner ;)', 'Hello, second output!']
 
-workflow_id_file = run_cromwell_workflow_from_repo_and_get_outputs(
+workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     b=b,
     job_prefix='hello',
     dataset='fewgenomes',
@@ -31,11 +31,16 @@ workflow_id_file = run_cromwell_workflow_from_repo_and_get_outputs(
     libs=[],
     output_suffix=OUTPUT_SUFFIX,
     input_dict={'hello.inps': inputs},
-    outputs_to_collect={'hello.out': len(inputs)},
+    outputs_to_collect={'hello.outs': len(inputs), "hello.joined_out": None},
     driver_image=DRIVER_IMAGE,
 )
 
-for idx, out in enumerate(workflow_id_file['hello.out']):
+process_j = b.new_job('do-something-with-string-output')
+process_j.command(
+    f"cat {workflow_outputs['hello.joined_out']} | awk '{{print toupper($0)}}'"
+)
+
+for idx, out in enumerate(workflow_outputs['hello.out']):
 
     process_j = b.new_job(f'do-something-with-input-{idx+1}')
     process_j.command(
