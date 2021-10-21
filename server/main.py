@@ -157,7 +157,7 @@ add_cromwell_routes(routes)
 
 
 def prepare_exception_json_response(status_code: int, message: str) -> web.Response:
-    """Prepare web.Response for """
+    """Prepare web.Response for"""
     return web.Response(
         status=status_code,
         body=json.dumps({'message': message, 'success': False}).encode('utf-8'),

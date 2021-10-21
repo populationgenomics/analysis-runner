@@ -435,6 +435,7 @@ def run_cromwell_workflow(
     Run a cromwell workflow, and return a Batch.ResourceFile
     that contains the workflow ID
     """
+
     def get_cromwell_key(dataset, access_level):
         """Get Cromwell key from secrets"""
         secret_name = f'{dataset}-cromwell-{access_level}-key'
@@ -712,7 +713,7 @@ def watch_workflow_and_get_output(
         else:
             out_file_map[output] = []
             for idx in range(n_outputs):
-                j = b.new_job(f'{job_prefix}_collect_{output}')
+                j = b.new_job(f'{job_prefix}_collect_{output}[{idx}]')
                 out_file_map[output].append(
                     _copy_file_into_batch(
                         j=j,
@@ -772,8 +773,8 @@ if [[ "$OUTPUT_VALUE" == gs://* ]]; then
     echo "Copying file from $OUTPUT_VALUE";
     gsutil cp $OUTPUT_VALUE {output_filename};
 else
-    # reselect in case there's some funky quoting going on
-    jq -r '.{jq_el} > {output_filename}
+    # cleaner to directly pipe into file
+    cat {rdict} | jq -r '.{jq_el}' > {output_filename}
 fi
     """
     )

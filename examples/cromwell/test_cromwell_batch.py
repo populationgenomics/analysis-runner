@@ -9,7 +9,7 @@ from analysis_runner.cromwell import (
 )
 
 # DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:dev'
-DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:9206878a91d5ac6929b25a64d503a7d05059db6e675ded0bd6b9cf4be6bc2f2e'
+DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:d06b6c2daa39699b17e10cfc3af0312214727d653a8cd7e0abd3ed58e7f060a0'
 
 OUTPUT_SUFFIX = 'mfranklin/analysis-runner-test/out/'
 BUCKET = 'gs://cpg-fewgenomes-test/' + OUTPUT_SUFFIX
