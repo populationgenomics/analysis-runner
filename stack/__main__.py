@@ -878,7 +878,7 @@ def main():  # pylint: disable=too-many-locals
             project=ANALYSIS_RUNNER_PROJECT,
             role='roles/secretmanager.secretAccessor',
             secret_id='server-config',
-            member=f'serviceAccount:{service_account}'
+            member=f'serviceAccount:{service_account}',
         )
 
     for access_level, service_account in service_accounts['cromwell']:
@@ -941,7 +941,9 @@ def main():  # pylint: disable=too-many-locals
         )
 
         # get the hail service accounts for this access_level
-        hail_service_account = next(sa for sa_al, sa in service_accounts['hail'] if sa_al == access_level)
+        hail_service_account = next(
+            sa for sa_al, sa in service_accounts['hail'] if sa_al == access_level
+        )
         gcp.secretmanager.SecretIamMember(
             f'cromwell-service-account-{access_level}-self-accessor',
             project=ANALYSIS_RUNNER_PROJECT,

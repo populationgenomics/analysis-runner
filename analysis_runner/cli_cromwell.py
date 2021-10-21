@@ -1,3 +1,6 @@
+"""
+Cromwell CLI
+"""
 # pylint: disable=too-many-arguments,too-many-return-statements,broad-except
 import argparse
 import json
@@ -399,4 +402,3 @@ def parse_additional_args(args: List[str]) -> Dict[str, any]:
     add_keyword_value_to_keywords(current_keyword, new_value)
 
     return keywords
-

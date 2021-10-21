@@ -1,5 +1,6 @@
 """
-Cromwell CLI
+Cromwell module contains helper code for submitting + watching
+jobs from within Hail batch.
 """
 # pylint: disable=too-many-arguments,too-many-return-statements,broad-except
 import json
@@ -309,7 +310,7 @@ def watch_workflow_and_get_output(
                 )
                 time.sleep(wait_time)
 
-    watch_job = b.new_python_job(job_prefix + "_watch")
+    watch_job = b.new_python_job(job_prefix + '_watch')
 
     watch_job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
     watch_job.env('PYTHONUNBUFFERED', '1')  # makes the logs go quicker
