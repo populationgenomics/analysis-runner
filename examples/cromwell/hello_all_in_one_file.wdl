@@ -2,14 +2,18 @@ version development
 
 workflow hello {
   input {
-    String inp = "Hello, world!"
+    Array[String] inps
   }
-  call echo as print {
-    input:
-      inp=inp
-  }
+  scatter (inp in inps) {
+      call echo as print {
+        input:
+          inp=inp
+      }
+      String j = read_string(print.out)
+     }
   output {
-    File out = print.out
+    Array[File] outs = print.out
+    String joined_out = sep("; ", j)
   }
 }
 
