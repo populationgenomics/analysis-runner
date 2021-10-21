@@ -29,7 +29,7 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     input_dict={'hello.inps': inputs},
     outputs_to_collect={'hello.outs': len(inputs), 'hello.joined_out': None},
 )
-
+print(workflow_outputs)
 process_j = b.new_job('do-something-with-string-output')
 process_j.command(
     f"cat {workflow_outputs['hello.joined_out']} | awk '{{print toupper($0)}}'"
@@ -45,6 +45,6 @@ cat {out} | awk '{{print toupper($0)}}'
 cat {out} | awk '{{print toupper($0)}}' > {process_j.out}
     """
     )
-    b.write_output(process_j.out, BUCKET + f'file-{idx+1}.txt')
+    b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx+1}.txt')
 
-b.run(wait=False)
+b.run(wait=False, dry_run=True)

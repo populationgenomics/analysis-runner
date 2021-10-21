@@ -163,7 +163,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         - a list of values
 
     Eg: outputs_to_collect={
-        'hello.out': None, # singleoutput
+        'hello.out': None, # single output
         'hello.outs': 5, # array output of length=5
     }
 
