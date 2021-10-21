@@ -114,9 +114,9 @@ def get_repo_name_from_remote(remote_name: str) -> str:
 
 def prepare_git_job(
     job: hb.batch.job.Job,
-    repo: str,
+    repo_name: str,
     commit: str,
-    is_test: bool=True,
+    is_test: bool = True,
     print_all_statements=True,
 ):
     """
@@ -142,9 +142,9 @@ def prepare_git_job(
     # Any job commands here are evaluated in a bash shell, so user arguments should
     # be escaped to avoid command injection.
     job.command(
-        f'git clone --recurse-submodules https://github.com/{GITHUB_ORG}/{quote(repo)}.git'
+        f'git clone --recurse-submodules https://github.com/{GITHUB_ORG}/{quote(repo_name)}.git'
     )
-    job.command(f'cd {quote(repo)}')
+    job.command(f'cd {quote(repo_name)}')
     # Except for the "test" access level, we check whether commits have been
     # reviewed by verifying that the given commit is in the main branch.
     if not is_test:
@@ -157,4 +157,3 @@ def prepare_git_job(
     job.command(f'git submodule update')
 
     return job
-

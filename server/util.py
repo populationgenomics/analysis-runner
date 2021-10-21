@@ -148,6 +148,7 @@ def get_analysis_runner_metadata(
         **kwargs,
     }
 
+
 def run_batch_job_and_print_url(batch, wait):
     """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
     bc_batch = batch.run(wait=False)
@@ -163,7 +164,9 @@ def run_batch_job_and_print_url(batch, wait):
     return url
 
 
-def write_metadata_to_bucket(job, access_level: str, dataset: str, output_suffix: str, metadata_str: str):
+def write_metadata_to_bucket(
+    job, access_level: str, dataset: str, output_suffix: str, metadata_str: str
+):
     """
     Copy analysis-runner.json to the metadata bucket
 

@@ -1,22 +1,27 @@
 """
 Cromwell CLI
 """
-# pylint: disable=too-many-arguments,too-many-return-statements
+# pylint: disable=too-many-arguments,too-many-return-statements,broad-except
+import math
 import os
 import time
 import json
 import argparse
 import subprocess
+from datetime import datetime
 from shlex import quote
 from typing import List, Dict, Optional, Any
 
 import requests
 import hailtop.batch as hb
+from cpg_utils.cloud import read_secret
 
 from analysis_runner.constants import (
     CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
     CROMWELL_AUDIENCE,
+    SERVER_ENDPOINT,
+    GCLOUD_ACTIVATE_AUTH,
 )
 from analysis_runner.util import (
     logger,
@@ -24,7 +29,6 @@ from analysis_runner.util import (
     _perform_version_check,
     confirm_choice,
     get_google_identity_token,
-    SERVER_ENDPOINT,
     get_server_config,
 )
 from analysis_runner.git import (
@@ -32,6 +36,7 @@ from analysis_runner.git import (
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
     get_relative_path_from_git_root,
+    prepare_git_job,
 )
 from analysis_runner.cromwell_model import WorkflowMetadataModel
 
@@ -421,13 +426,15 @@ def run_cromwell_workflow(
     cwd: Optional[str],
     libs: List[str],
     output_suffix: str,
-    labels: Dict[str, str]=None,
+    labels: Dict[str, str] = None,
     input_dict: Optional[Dict[str, Any]] = None,
     input_paths: List[str] = None,
     server_config: Dict[str, Any] = None,
 ):
-    from cpg_utils.cloud import read_secret
-
+    """
+    Run a cromwell workflow, and return a Batch.ResourceFile
+    that contains the workflow ID
+    """
     def get_cromwell_key(dataset, access_level):
         """Get Cromwell key from secrets"""
         secret_name = f'{dataset}-cromwell-{access_level}-key'
@@ -514,8 +521,73 @@ def run_cromwell_workflow(
     return output_workflow_id
 
 
+def run_cromwell_workflow_from_repo_and_get_outputs(
+    b: hb.Batch,
+    job_prefix: str,
+    dataset: str,
+    access_level,
+    workflow: str,
+    outputs_to_collect: Dict[str, Optional[int]],
+    libs: List[str],
+    output_suffix: str,
+    labels: Dict[str, str] = None,
+    input_dict: Optional[Dict[str, Any]] = None,
+    input_paths: List[str] = None,
+    repo: Optional[str] = None,
+    commit: Optional[str] = None,
+    cwd: Optional[str] = None,
+    driver_image: Optional[str] = None,
+    server_config: Dict[str, Any] = None,
+):
+    """
+    This function needs to know the structure of the outputs you
+    want to collect. It currently only supports:
+        - a single value, or
+        - a list of values
+
+    Eg: outputs_to_collect={
+        'hello.out': None, # singleoutput
+        'hello.outs': 5, # array output of length=5
+    }
+
+    If the starts with "gs://", we'll copy it as a resource file,
+    otherwise write the value into a file which will be a batch resource.
+    """
+    submit_job = b.new_job(f'{job_prefix}_submit')
+    prepare_git_job(
+        job=submit_job,
+        repo_name=(repo or get_repo_name_from_remote(get_git_default_remote())),
+        commit=(commit or get_git_commit_ref_of_current_repository()),
+        is_test=access_level == 'test',
+    )
+
+    workflow_id_file = run_cromwell_workflow(
+        job=submit_job,
+        dataset=dataset,
+        access_level=access_level,
+        workflow=workflow,
+        cwd=cwd,
+        libs=libs,
+        output_suffix=output_suffix,
+        input_dict=input_dict,
+        input_paths=input_paths,
+        labels=labels,
+        server_config=server_config,
+    )
+
+    outputs_dict = watch_workflow_and_get_output(
+        b,
+        job_prefix=job_prefix,
+        workflow_id_file=workflow_id_file,
+        outputs_to_collect=outputs_to_collect,
+        driver_image=driver_image,
+    )
+
+    return outputs_dict
+
+
 class CromwellError(Exception):
-    pass
+    """Cromwell status error"""
 
 
 def watch_workflow_and_get_output(
@@ -523,7 +595,10 @@ def watch_workflow_and_get_output(
     job_prefix: str,
     workflow_id_file,
     outputs_to_collect: Dict[str, Optional[int]],
-    driver_image: Optional[str]=None,
+    driver_image: Optional[str] = None,
+    max_poll_interval=60,  # 1 minute
+    exponential_decrease_seconds=3600,  # 1 hour
+    max_sequential_exception_count=25,
 ):
     """
     This is a little bit tricky, but the process is:
@@ -543,55 +618,83 @@ def watch_workflow_and_get_output(
 
     If the starts with "gs://", we'll copy it as a resource file,
     otherwise write the value into a file which will be a batch resource.
+
+    :param driver_image: If specified, must contain python3 (w/ requests), gcloud, jq
     """
 
-    def watch_workflow(workflow_id_file) -> Dict[str, any]:
+    _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
+    start = datetime.now()
 
+    def get_wait_interval():
+        """
+        Get wait time between 5s and {max_poll_interval},
+        curved between 0s and {exponential_decrease_seconds}.
+        """
+        factor = (datetime.now() - start).total_seconds() / exponential_decrease_seconds
+        if factor > 1:
+            return max_poll_interval
+        return max(5, int((1 - math.cos(math.pi * factor)) * max_poll_interval // 2))
+
+    def watch_workflow(workflow_id_file) -> Dict[str, any]:
+        """Python function to watch workflow, and return outputs"""
         with open(workflow_id_file, encoding='utf-8') as f:
             workflow_id = f.read().strip()
-        print(f'Got workflow ID: {workflow_id}')
+        logger.info(f'Received workflow ID: {workflow_id}')
         final_statuses = {'failed', 'aborted'}
-        subprocess.check_output(['gcloud', '-q', 'auth', 'activate-service-account', '--key-file=/gsa-key/key.json'])
+        subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
         url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
-        exception_count = 50
+        _remaining_exceptions = max_sequential_exception_count
         while True:
-            if exception_count <= 0:
+            if _remaining_exceptions <= 0:
                 raise CromwellError('Unreachable')
             try:
                 token = get_cromwell_oauth_token()
                 r = requests.get(url, headers={'Authorization': f'Bearer {token}'})
                 if not r.ok:
-                    exception_count -= 1
-                    time.sleep(30)
-                    print(f'Got not okay from cromwell: {r.text}')
+                    _remaining_exceptions -= 1
+                    wait_time = get_wait_interval()
+                    logger.warning(
+                        f'Received "not okay" (status={r.status_code}) from cromwell '
+                        f'(waiting={wait_time}): {r.text}'
+                    )
+                    time.sleep(wait_time)
                     continue
                 status = r.json().get('status')
-                print(f'Got cromwell status: {status}')
-                exception_count = 50
+                _remaining_exceptions = max_sequential_exception_count
                 if status.lower() == 'succeeded':
+                    logger.info(f'Cromwell workflow moved to succeeded state')
                     # process outputs here
                     outputs_url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/outputs'
-                    res2 = requests.get(outputs_url, headers={'Authorization': f'Bearer {token}'})
-                    if not res2.ok:
-                        print('Received error when fetching cromwell outputs, will retry in 15 seconds')
+                    r_outputs = requests.get(
+                        outputs_url, headers={'Authorization': f'Bearer {token}'}
+                    )
+                    if not r_outputs.ok:
+                        logger.warning(
+                            'Received error when fetching cromwell outputs, will retry in 15 seconds'
+                        )
                         continue
-                    outputs = res2.json()
-                    print(f'Got outputs: {outputs}')
+                    outputs = r_outputs.json()
+                    logger.info(f'Received outputs from Cromwell: {outputs}')
                     return outputs.get('outputs')
                 if status.lower() in final_statuses:
+                    logger.error(f'Got failed cromwell status: {status}')
                     raise CromwellError(status)
-                time.sleep(15)
+                wait_time = get_wait_interval()
+                logger.info(f'Got cromwell status: {status} (sleeping={wait_time})')
+                time.sleep(wait_time)
             except Exception as e:
-                exception_count -= 1
-                print(f'Got worse exception: {e}')
-                time.sleep(30)
+                _remaining_exceptions -= 1
+                wait_time = get_wait_interval()
+                logger.error(
+                    f'Cromwell status watch caught general exception (sleeping={wait_time}): {e}'
+                )
+                time.sleep(wait_time)
 
     watch_job = b.new_python_job(job_prefix + "_watch")
-    _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
 
     watch_job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
-    watch_job.env('PYTHONUNBUFFERED', '1')
-    watch_job.image(_driver_image)
+    watch_job.env('PYTHONUNBUFFERED', '1')  # makes the logs go quicker
+    watch_job.image(_driver_image)  # need an image with python3 + requests
 
     rdict = watch_job.call(watch_workflow, workflow_id_file).as_json()
     out_file_map = {}
@@ -626,16 +729,35 @@ def watch_workflow_and_get_output(
 def _copy_file_into_batch(
     j: hb.batch.job.Job, *, rdict, output, idx: Optional[int], output_filename
 ):
-
+    """
+    1. Take the file-pointer to the dictionary `rdict`,
+    2. the output name `output`,
+    3. check that the value we select is a string,
+    4. either:
+        (a) gsutil cp it into `output_filename`
+        (b) write the value into `output_filename`
+    """
     if idx is None:
+        # if no index, select the value as-is
         error_description = output
+        # wrap this in quotes, because output often contains a '.', which has to be escaped in jq
         jq_el = f'"{output}"'
     else:
+        # if we're supplied an index, grab the value, then get the index, eg: '.hello[5]'
         error_description = f'{output}[{idx}]'
+        # wrap this in quotes, because output often contains a '.', which has to be escaped in jq
         jq_el = f'"{output}"[{idx}]'
 
+    # activate to gsutil cp
     j.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
-    j.command('gcloud -q auth activate-service-account --key-file=/gsa-key/key.json')
+    j.command(GCLOUD_ACTIVATE_AUTH)
+
+    # this has to be in bash unfortunately :(
+    # we want to check that the output we get is a string
+    # if it starts with gs://, then we'll `gsutil cp` it into output_filename
+    # otherwise write the value into output_filename.
+
+    # in future, add s3://* or AWS handling here
 
     j.command(
         f"""
@@ -650,7 +772,8 @@ if [[ "$OUTPUT_VALUE" == gs://* ]]; then
     echo "Copying file from $OUTPUT_VALUE";
     gsutil cp $OUTPUT_VALUE {output_filename};
 else
-    echo "$OUTPUT_VALUE" > {output_filename}
+    # reselect in case there's some funky quoting going on
+    jq -r '.{jq_el} > {output_filename}
 fi
     """
     )
@@ -659,6 +782,7 @@ fi
 
 
 def get_cromwell_oauth_token():
+    """Get oath token for cromwell, specific to audience"""
     token_command = [
         'gcloud',
         'auth',

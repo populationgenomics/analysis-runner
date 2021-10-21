@@ -8,7 +8,7 @@ from shutil import which
 from typing import List
 
 import requests
-
+from analysis_runner.constants import SERVER_ENDPOINT
 from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
@@ -20,7 +20,6 @@ from analysis_runner.util import (
     add_general_args,
     _perform_version_check,
     confirm_choice,
-    SERVER_ENDPOINT,
     logger,
     get_google_identity_token,
 )

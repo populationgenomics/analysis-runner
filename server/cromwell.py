@@ -14,8 +14,9 @@ from analysis_runner.constants import CROMWELL_URL
 from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
 from analysis_runner.git import prepare_git_job
 from analysis_runner.util import get_server_config
-from server.util import write_metadata_to_bucket
-from util import (
+from server.util import (
+    PUBSUB_TOPIC,
+    DRIVER_IMAGE,
     get_analysis_runner_metadata,
     get_email_from_request,
     validate_output_dir,
@@ -23,8 +24,7 @@ from util import (
     check_allowed_repos,
     publisher,
     run_batch_job_and_print_url,
-    PUBSUB_TOPIC,
-    DRIVER_IMAGE,
+    write_metadata_to_bucket,
 )
 
 
@@ -36,56 +36,20 @@ def add_cromwell_routes(
     @routes.post('/cromwell')
     async def cromwell(request):  # pylint: disable=too-many-locals
         """
-        Checks out a repo, and POSTs the designated workflow to the cromwell server
+        Checks out a repo, and POSTs the designated workflow to the cromwell server.
+        Returns a hail batch link, eg: 'batch.hail.populationgenomics.org.au/batches/{batch}'
         ---
-        post:
-          operationId: createCromwellRequest
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    output:
-                      type: string
-                    dataset:
-                      type: string
-                    accessLevel:
-                      type: string
-                    repo:
-                      type: string
-                    commit:
-                      type: string
-                    cwd:
-                      type: string
-                      description: to set the working directory, relative to the repo root
-                    description:
-                      type: string
-                      description: Description of the workflow to run
-                    workflow:
-                      type: string
-                      description: the relative path of the workflow (from the cwd)
-                    input_json_paths:
-                      type: List[string]
-                      description: the relative path to an inputs.json (from the cwd). Currently only supports one inputs.json
-                    dependencies:
-                      type: array
-                      items: string
-                      description: 'An array of directories (/ files) to zip for the '-p / --tools' input to "search for workflow imports"
-                    wait:
-                      type: boolean
-                      description: 'Wait for workflow to complete before returning, could yield long response times'
-
-
-          responses:
-            '200':
-              content:
-                text/plain:
-                  schema:
-                    type: string
-                    example: 'batch.hail.populationgenomics.org.au/batches/{batch}'
-              description: URL of submitted hail batch workflow
+        :param output: string
+        :param dataset: string
+        :param accessLevel: string
+        :param repo: string
+        :param commit: string
+        :param cwd: string (to set the working directory, relative to the repo root)
+        :param description: string (Description of the workflow to run)
+        :param workflow: string (the relative path of the workflow (from the cwd))
+        :param input_json_paths: List[string] (the relative path to an inputs.json (from the cwd). Currently only supports one inputs.json)
+        :param dependencies: List[string] (An array of directories (/ files) to zip for the '-p / --tools' input to "search for workflow imports")
+        :param wait: boolean (Wait for workflow to complete before returning, could yield long response times)
         """
         email = get_email_from_request(request)
         # When accessing a missing entry in the params dict, the resulting KeyError
@@ -136,20 +100,19 @@ def add_cromwell_routes(
         # This metadata dictionary gets stored at the output_dir location.
         timestamp = datetime.now().astimezone().isoformat()
         metadata = get_analysis_runner_metadata(
-                timestamp=timestamp,
-                dataset=dataset,
-                user=email,
-                access_level=access_level,
-                repo=repo,
-                commit=commit,
-                script=wf,
-                description=params['description'],
-                output_suffix=workflow_output_dir,
-                driver_image=DRIVER_IMAGE,
-                cwd=cwd,
-                mode='cromwell',
-                server_config=server_config,
-
+            timestamp=timestamp,
+            dataset=dataset,
+            user=email,
+            access_level=access_level,
+            repo=repo,
+            commit=commit,
+            script=wf,
+            description=params['description'],
+            output_suffix=workflow_output_dir,
+            driver_image=DRIVER_IMAGE,
+            cwd=cwd,
+            mode='cromwell',
+            server_config=server_config,
         )
 
         # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
@@ -165,10 +128,10 @@ def add_cromwell_routes(
         job = batch.new_job(name='driver')
         job = prepare_git_job(
             job=job,
-            repo=repo,
+            repo_name=repo,
             commit=commit,
             print_all_statements=False,
-            is_test=access_level == 'test'
+            is_test=access_level == 'test',
         )
 
         write_metadata_to_bucket(

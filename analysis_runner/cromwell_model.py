@@ -138,7 +138,9 @@ class WorkflowMetadataModel:
         ]
 
         calls_display: List[str] = []
-        for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start or '0'):
+        for name, calls in sorted(
+            self.calls.items(), key=lambda a: a[1][0].start or '0'
+        ):
             calls_display.append(
                 indent(
                     prepare_inner_calls_string(
@@ -248,7 +250,9 @@ class CallMetadata:
         is_done = self.executionStatus.is_finished()
         has_succeded = self.executionStatus == ExecutionStatus.succeeded
         if (not has_succeded or expand_completed) and self.calls:
-            for name, calls in sorted(self.calls.items(), key=lambda a: a[1][0].start or '0'):
+            for name, calls in sorted(
+                self.calls.items(), key=lambda a: a[1][0].start or '0'
+            ):
                 extras.append(
                     indent(
                         prepare_inner_calls_string(

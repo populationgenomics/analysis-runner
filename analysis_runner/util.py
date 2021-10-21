@@ -8,7 +8,7 @@ import requests
 
 from cpg_utils.cloud import read_secret
 from analysis_runner._version import __version__
-from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID, SERVER_ENDPOINT
+from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
 BRANCH = 'main'
 

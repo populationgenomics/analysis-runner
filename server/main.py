@@ -1,16 +1,15 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
-
+# pylint: disable=wrong-import-order
 import datetime
 import json
 import logging
 from shlex import quote
-from aiohttp import web
 
 import hailtop.batch as hb
-
-from cromwell import add_cromwell_routes
+from aiohttp import web
 
 from analysis_runner.git import prepare_git_job
+from cromwell import add_cromwell_routes
 from util import (
     get_analysis_runner_metadata,
     get_email_from_request,
@@ -99,7 +98,7 @@ async def index(request):
 
     job = batch.new_job(name='driver')
     job = prepare_git_job(
-        job=job, repo=repo, commit=commit, is_test=access_level == 'test'
+        job=job, repo_name=repo, commit=commit, is_test=access_level == 'test'
     )
     write_metadata_to_bucket(
         job,
