@@ -31,7 +31,7 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     libs=[],
     output_suffix=OUTPUT_SUFFIX,
     input_dict={'hello.inps': inputs},
-    outputs_to_collect={'hello.outs': len(inputs), "hello.joined_out": None},
+    outputs_to_collect={'hello.outs': len(inputs), 'hello.joined_out': None},
     driver_image=DRIVER_IMAGE,
 )
 
@@ -40,7 +40,7 @@ process_j.command(
     f"cat {workflow_outputs['hello.joined_out']} | awk '{{print toupper($0)}}'"
 )
 
-for idx, out in enumerate(workflow_outputs['hello.out']):
+for idx, out in enumerate(workflow_outputs['hello.outs']):
 
     process_j = b.new_job(f'do-something-with-input-{idx+1}')
     process_j.command(
