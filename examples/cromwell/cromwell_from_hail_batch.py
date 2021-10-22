@@ -15,7 +15,7 @@ OUTPUT_PATH = os.path.join(f'gs://{BUCKET}', OUTPUT_SUFFIX)
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
 ACCESS_LEVEL = os.getenv('ACCESS_LEVEL')
 
-DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:3e2d7042d4055a3fd251d6a99663e56336a1284ca0f4a00d9380161ec88d18cd '
+DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:3e2d7042d4055a3fd251d6a99663e56336a1284ca0f4a00d9380161ec88d18cd'
 
 sb = hb.ServiceBackend(billing_project=BILLING_PROJECT, bucket=BUCKET)
 b = hb.Batch(backend=sb, default_image=os.getenv('DRIVER_IMAGE'))
