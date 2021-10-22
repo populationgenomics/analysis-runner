@@ -872,12 +872,12 @@ def main():  # pylint: disable=too-many-locals
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
         )
 
-        # allow all hail service_accounts to access the server-config
+        # allow all hail service_accounts to access the dataset-to-project-id-map
         gcp.secretmanager.SecretIamMember(
-            resource_name=f'ar-server-config-accessor-{access_level}',
+            resource_name=f'ar-dataset-to-project-id-accessor-{access_level}',
             project=ANALYSIS_RUNNER_PROJECT,
             role='roles/secretmanager.secretAccessor',
-            secret_id='server-config',
+            secret_id='dataset-to-project-id',
             member=f'serviceAccount:{service_account}',
         )
 
