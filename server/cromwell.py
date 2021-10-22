@@ -16,7 +16,7 @@ from analysis_runner.git import prepare_git_job
 from server.util import (
     PUBSUB_TOPIC,
     DRIVER_IMAGE,
-get_server_config,
+    get_server_config,
     get_analysis_runner_metadata,
     get_email_from_request,
     validate_output_dir,
@@ -158,7 +158,7 @@ def add_cromwell_routes(
             output_suffix=output_dir,
             input_dict=input_dict,
             input_paths=input_jsons,
-            project=project
+            project=project,
         )
 
         url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))

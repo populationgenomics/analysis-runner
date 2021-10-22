@@ -11,7 +11,6 @@ from aiohttp import web
 from analysis_runner.git import prepare_git_job
 from cromwell import add_cromwell_routes
 from util import (
-
     DRIVER_IMAGE,
     PUBSUB_TOPIC,
     get_analysis_runner_metadata,
@@ -23,7 +22,7 @@ from util import (
     publisher,
     write_metadata_to_bucket,
     run_batch_job_and_print_url,
-get_server_config,
+    get_server_config,
 )
 
 routes = web.RouteTableDef()

@@ -15,8 +15,6 @@ OUTPUT_PATH = os.path.join(f'gs://{BUCKET}', OUTPUT_SUFFIX)
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
 ACCESS_LEVEL = os.getenv('ACCESS_LEVEL')
 
-DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:325248756912668e8416dc7933db7340aef7d108dbeb73411a0bbf6195a0e958'
-
 sb = hb.ServiceBackend(billing_project=BILLING_PROJECT, bucket=BUCKET)
 b = hb.Batch(backend=sb, default_image=os.getenv('DRIVER_IMAGE'))
 
@@ -33,9 +31,8 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     output_suffix=OUTPUT_SUFFIX,
     dataset=DATASET,
     access_level=ACCESS_LEVEL,
-    driver_image=DRIVER_IMAGE,
 )
-print(workflow_outputs)
+
 process_j = b.new_job('do-something-with-string-output')
 process_j.command(
     f"cat {workflow_outputs['hello.joined_out']} | awk '{{print toupper($0)}}'"

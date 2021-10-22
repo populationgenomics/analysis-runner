@@ -77,7 +77,9 @@ def main():
     """Main entry point."""
 
     # this is used quite surprisingly around the place
-    dataset_to_project_id = {dataset: get_project_id(dataset) for dataset in ALLOWED_REPOS.keys()}
+    dataset_to_project_id = {
+        dataset: get_project_id(dataset) for dataset in ALLOWED_REPOS
+    }
     add_secret('dataset-to-project-id', json.dumps(dataset_to_project_id))
 
     config = {}

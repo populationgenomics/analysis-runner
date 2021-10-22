@@ -18,6 +18,7 @@ logger.setLevel(logging.INFO)
 
 
 def get_project_id(dataset: str) -> str:
+    """Get GCP project ID from dataset name (by looking up secret)"""
     m = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, f'dataset-to-project-id'))
     return m[dataset]
 
