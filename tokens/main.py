@@ -76,12 +76,6 @@ def get_project_id(dataset: str) -> str:
 def main():
     """Main entry point."""
 
-    # this is used quite surprisingly around the place
-    dataset_to_project_id = {
-        dataset: get_project_id(dataset) for dataset in ALLOWED_REPOS
-    }
-    add_secret('dataset-to-project-id', json.dumps(dataset_to_project_id))
-
     config = {}
     for dataset, allowed_repos in ALLOWED_REPOS.items():
         entries = {'projectId': get_project_id(dataset), 'allowedRepos': allowed_repos}

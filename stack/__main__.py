@@ -872,15 +872,6 @@ def main():  # pylint: disable=too-many-locals
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
         )
 
-        # allow all hail service_accounts to access the dataset-to-project-id-map
-        gcp.secretmanager.SecretIamMember(
-            resource_name=f'ar-dataset-to-project-id-accessor-{access_level}',
-            project=ANALYSIS_RUNNER_PROJECT,
-            role='roles/secretmanager.secretAccessor',
-            secret_id='dataset-to-project-id',
-            member=f'serviceAccount:{service_account}',
-        )
-
     for access_level, service_account in service_accounts['cromwell']:
         # Allow the Cromwell server to run worker VMs using the Cromwell service
         # accounts.

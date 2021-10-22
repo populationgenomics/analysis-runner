@@ -17,10 +17,15 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
 
-def get_project_id(dataset: str) -> str:
-    """Get GCP project ID from dataset name (by looking up secret)"""
-    m = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, f'dataset-to-project-id'))
-    return m[dataset]
+def get_project_id(service_account_email: str) -> str:
+    """
+    Get GCP project id from service_account_email
+
+    >>> get_project_id('cromwell-test@tob-wgs.iam.gserviceaccount.com')
+    'tob-wgs'
+    """
+    # quick and dirty
+    return service_account_email.split('@')[-1].split('.')[0]
 
 
 def add_general_args(parser):

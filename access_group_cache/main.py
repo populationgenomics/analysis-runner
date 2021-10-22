@@ -4,7 +4,7 @@ import asyncio
 import json
 import urllib
 import os
-from typing import List, Optional, Dict
+from typing import List, Optional
 import aiohttp
 import cpg_utils.cloud
 from flask import Flask
@@ -117,8 +117,8 @@ async def _get_group_members(group_names: List[str]) -> List[List[str]]:
 def index():
     """Cloud Run entry point."""
 
-    dataset_to_project_id: Dict[str, str] = json.loads(
-        cpg_utils.cloud.read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'dataset-to-project-id')
+    config = json.loads(
+        cpg_utils.cloud.read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config')
     )
 
     group_types = [
@@ -137,7 +137,7 @@ def index():
 
     groups = []
     dataset_by_group = {}
-    for dataset in dataset_to_project_id:
+    for dataset in config:
         for group_type in group_types:
             group = f'{dataset}-{group_type}'
             groups.append(group)
@@ -153,7 +153,7 @@ def index():
         secret_value = ','.join(group_members)
 
         dataset = dataset_by_group[group]
-        project_id = dataset_to_project_id[dataset]
+        project_id = config[dataset]['projectId']
 
         # Check whether the current secret version is up-to-date.
         secret_name = f'{group}-members-cache'
