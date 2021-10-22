@@ -13,10 +13,10 @@ from aiohttp import web
 from analysis_runner.constants import CROMWELL_URL
 from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
 from analysis_runner.git import prepare_git_job
-from analysis_runner.util import get_server_config
 from server.util import (
     PUBSUB_TOPIC,
     DRIVER_IMAGE,
+get_server_config,
     get_analysis_runner_metadata,
     get_email_from_request,
     validate_output_dir,
@@ -56,18 +56,18 @@ def add_cromwell_routes(
         # exception gets translated to a Bad Request error in the try block below.
         params = await request.json()
 
+        dataset = params['dataset']
+        access_level = params['accessLevel']
         server_config = get_server_config()
         output_dir = validate_output_dir(params['output'])
-        dataset = params['dataset']
         check_dataset_and_group(server_config, dataset, email)
         repo = params['repo']
         check_allowed_repos(server_config, dataset, repo)
-        access_level = params['accessLevel']
         labels = params.get('labels')
 
         ds_config = server_config[dataset]
         project = ds_config.get('projectId')
-        hail_token = ds_config.get(f'{access_level}Token')
+        hail_token = ds_config.get('token')
         # use the email specified by the service_account_json again
 
         hail_bucket = f'cpg-{dataset}-hail'
@@ -112,7 +112,6 @@ def add_cromwell_routes(
             driver_image=DRIVER_IMAGE,
             cwd=cwd,
             mode='cromwell',
-            server_config=server_config,
         )
 
         # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
@@ -159,6 +158,7 @@ def add_cromwell_routes(
             output_suffix=output_dir,
             input_dict=input_dict,
             input_paths=input_jsons,
+            project=project
         )
 
         url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))

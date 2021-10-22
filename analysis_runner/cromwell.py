@@ -30,7 +30,7 @@ from analysis_runner.git import (
 )
 from analysis_runner.util import (
     logger,
-    get_server_config,
+    get_project_id,
 )
 
 
@@ -45,7 +45,7 @@ def run_cromwell_workflow(
     labels: Dict[str, str] = None,
     input_dict: Optional[Dict[str, Any]] = None,
     input_paths: List[str] = None,
-    server_config: Dict[str, Any] = None,
+    project: Optional[str] = None,
 ):
     """
     Run a cromwell workflow, and return a Batch.ResourceFile
@@ -74,11 +74,8 @@ def run_cromwell_workflow(
 
     google_labels.update({'compute-category': 'cromwell'})
 
-    if not server_config:
-        server_config = get_server_config()
+    _project = project or os.getenv('DATASET_GCP_PROJECT') or get_project_id(dataset)
 
-    ds_config = server_config[dataset]
-    project = ds_config.get('projectId')
     service_account_json = get_cromwell_key(dataset=dataset, access_level=access_level)
     # use the email specified by the service_account_json again
     service_account_dict = json.loads(service_account_json)
@@ -96,7 +93,7 @@ def run_cromwell_workflow(
     workflow_options = {
         'user_service_account_json': service_account_json,
         'google_compute_service_account': service_account_email,
-        'google_project': project,
+        'google_project': _project,
         'jes_gcs_root': intermediate_dir,
         'final_workflow_outputs_dir': workflow_output_dir,
         'google_labels': google_labels,
@@ -154,7 +151,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     commit: Optional[str] = None,
     cwd: Optional[str] = None,
     driver_image: Optional[str] = None,
-    server_config: Dict[str, Any] = None,
+    project: Optional[str] = None,
 ):
     """
     This function needs to know the structure of the outputs you
@@ -192,7 +189,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         input_dict=input_dict,
         input_paths=input_paths,
         labels=labels,
-        server_config=server_config,
+        project=project,
     )
 
     outputs_dict = watch_workflow_and_get_output(
