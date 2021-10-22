@@ -9,7 +9,8 @@ from analysis_runner.cromwell import (
 )
 
 OUTPUT_SUFFIX = 'mfranklin/analysis-runner-test/out/'
-BUCKET = os.getenv('BUCKET')
+DATASET = os.getenv('DATASET')
+BUCKET = os.getenv('HAIL_BUCKET')
 OUTPUT_PATH = os.path.join(f'gs://{BUCKET}', OUTPUT_SUFFIX)
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
 ACCESS_LEVEL = os.getenv('ACCESS_LEVEL')
@@ -30,7 +31,7 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     outputs_to_collect={'hello.outs': len(inputs), 'hello.joined_out': None},
     libs=[],  # hello_all_in_one_file is self-contained, so no dependencies
     output_suffix=OUTPUT_SUFFIX,
-    dataset=BILLING_PROJECT,
+    dataset=DATASET,
     access_level=ACCESS_LEVEL,
     driver_image=DRIVER_IMAGE,
 )
