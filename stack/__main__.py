@@ -931,7 +931,7 @@ def main():  # pylint: disable=too-many-locals
             member=f'serviceAccount:{ANALYSIS_RUNNER_SERVICE_ACCOUNT}',
         )
 
-        # get the hail service accounts for this access_level
+        # Allow the Hail service account to access its corresponding cromwell key
         hail_service_account = find_service_account('hail', access_level)
         gcp.secretmanager.SecretIamMember(
             f'cromwell-service-account-{access_level}-self-accessor',
