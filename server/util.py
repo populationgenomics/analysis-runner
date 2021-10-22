@@ -40,12 +40,6 @@ def get_server_config() -> dict:
     return json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
 
 
-def get_cromwell_key(dataset, access_level):
-    """Get Cromwell key from secrets"""
-    secret_name = f'{dataset}-cromwell-{access_level}-key'
-    return read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
-
-
 async def _get_hail_version() -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
     deploy_config = get_deploy_config()

@@ -17,9 +17,9 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
 
-def get_server_config() -> dict:
-    """Get the server-config from the secret manager"""
-    return json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
+def get_project_id(dataset: str) -> str:
+    m = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, f'dataset-to-project-id'))
+    return m[dataset]
 
 
 def add_general_args(parser):
