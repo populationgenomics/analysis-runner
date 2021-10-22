@@ -1,14 +1,12 @@
 """Utility function"""
 # pylint: disable=import-outside-toplevel
 
-import re
-import json
 import logging
+import re
+
 import requests
 
-from cpg_utils.cloud import read_secret
 from analysis_runner._version import __version__
-from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
 BRANCH = 'main'
 
@@ -17,11 +15,11 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
 
-def get_project_id(service_account_email: str) -> str:
+def get_project_id_from_service_account_email(service_account_email: str) -> str:
     """
     Get GCP project id from service_account_email
 
-    >>> get_project_id('cromwell-test@tob-wgs.iam.gserviceaccount.com')
+    >>> get_project_id_from_service_account_email('cromwell-test@tob-wgs.iam.gserviceaccount.com')
     'tob-wgs'
     """
     # quick and dirty

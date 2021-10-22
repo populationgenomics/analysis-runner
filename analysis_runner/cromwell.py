@@ -30,7 +30,7 @@ from analysis_runner.git import (
 )
 from analysis_runner.util import (
     logger,
-    get_project_id,
+    get_project_id_from_service_account_email,
 )
 
 
@@ -74,12 +74,16 @@ def run_cromwell_workflow(
 
     google_labels.update({'compute-category': 'cromwell'})
 
-    _project = project or os.getenv('DATASET_GCP_PROJECT') or get_project_id(dataset)
-
     service_account_json = get_cromwell_key(dataset=dataset, access_level=access_level)
     # use the email specified by the service_account_json again
     service_account_dict = json.loads(service_account_json)
     service_account_email = service_account_dict.get('client_email')
+    _project = (
+        project
+        or os.getenv('DATASET_GCP_PROJECT')
+        or get_project_id_from_service_account_email(service_account_email)
+    )
+
     if not service_account_email:
         raise ValueError("The service_account didn't contain an entry for client_email")
 
