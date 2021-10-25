@@ -45,7 +45,14 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     driver_image=DRIVER_IMAGE,
 )
 print(workflow_outputs)
-# {'hello.outs': [__RESOURCE_FILE__2, __RESOURCE_FILE__3], 'hello.joined_out': __RESOURCE_FILE__4}
+# {
+#   'hello.outs': [__RESOURCE_FILE__2, __RESOURCE_FILE__3],
+#   'hello.joined_out': __RESOURCE_FILE__4,
+#   'hello.texts': [
+#       <hailtop.batch.resource.ResourceGroup object at 0x7ffed2d56dd0>,
+#       <hailtop.batch.resource.ResourceGroup object at 0x7ffed2d56590>
+#   ]
+# }
 
 process_j = b.new_job('do-something-with-string-output')
 process_j.command(
@@ -65,4 +72,4 @@ cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}
     )
     b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx+1}.txt')
 
-b.run(wait=False)
+b.run(dry_run=True)
