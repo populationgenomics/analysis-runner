@@ -34,6 +34,65 @@ from analysis_runner.util import (
 )
 
 
+class CromwellOutputType:
+    """Declares output type for cromwell -> hail batch glue"""
+
+    def __init__(
+        self, is_single: bool, array_length: Optional[int] = None, resource_group=None
+    ):
+        self.is_single = is_single
+        self.array_length = array_length
+        self.resource_group = resource_group
+
+    @staticmethod
+    def single():
+        """Single file"""
+        return CromwellOutputType(is_single=True)
+
+    @staticmethod
+    def single_resource_group(resource_group):
+        """
+        Specify a resource group you want to return, where resource_group has the format:
+            {<read-group-name>: <corresponding-output-in-cromwell>}
+        Eg:
+        outputs_to_collect={
+            "<this-key-only-exists-in-output-dict>": CromwellOutputType.single_resource_group({
+                # The hello workflow has two outputs: output_bam, output_bam_index
+                'bam': 'hello.output_bam',
+                'bai': 'hello.output_bam_index'
+            })
+        }
+        """
+        return CromwellOutputType(is_single=True, resource_group=resource_group)
+
+    @staticmethod
+    def array(length: int):
+        """Array of simple files"""
+        return CromwellOutputType(is_single=False, array_length=length)
+
+    @staticmethod
+    def array_resource_group(length: int, resource_group):
+        """
+        Select an array of resource groups. In this case, the outputs
+        you select within the resource group are zipped.
+        Resource_group has the format:
+            {<read-group-name>: <corresponding-output-in-cromwell>}
+        Eg:
+        outputs_to_collect={
+            "<this-key-only-exists-in-output-dict>": CromwellOutputType.array_resource_group({
+                'bam': 'hello.output_bams',
+                'bai': 'hello.output_bam_indexes'
+            }, length=2)
+        }
+
+        # You get
+        # {"<this-key-only-exists-in-output-dict>":  [__resource_group1, __resource_group2]}
+        """
+        return CromwellOutputType(
+            is_single=False, array_length=length, resource_group=resource_group
+        )
+
+
 def run_cromwell_workflow(
     job: hb.batch.job.Job,
     dataset: str,
@@ -215,7 +274,7 @@ def watch_workflow_and_get_output(
     b: hb.Batch,
     job_prefix: str,
     workflow_id_file,
-    outputs_to_collect: Dict[str, Optional[int]],
+    outputs_to_collect: Dict[str, CromwellOutputType],
     driver_image: Optional[str] = None,
     max_poll_interval=60,  # 1 minute
     exponential_decrease_seconds=1200,  # 20 minutes
@@ -319,36 +378,52 @@ def watch_workflow_and_get_output(
 
     rdict = watch_job.call(watch_workflow, workflow_id_file).as_json()
     out_file_map = {}
-    for output, n_outputs in outputs_to_collect.items():
+    for output_name, output_type in outputs_to_collect.items():
 
-        if n_outputs is None:
-            j = b.new_job(f'{job_prefix}_collect_{output}')
-            out_file_map[output] = _copy_file_into_batch(
-                j=j,
-                rdict=rdict,
-                output=output,
-                idx=None,
-                output_filename=j.out,
-            )
-        else:
-            out_file_map[output] = []
-            for idx in range(n_outputs):
-                j = b.new_job(f'{job_prefix}_collect_{output}[{idx}]')
-                out_file_map[output].append(
-                    _copy_file_into_batch(
-                        j=j,
-                        rdict=rdict,
-                        output=output,
-                        idx=idx,
-                        output_filename=j.out,
-                    )
+        if output_type.is_single:
+            j = b.new_job(f'{job_prefix}_collect_{output_name}')
+            if output_type.resource_group:
+                out_file_map[output_name] = _copy_resource_group_into_batch(
+                    j=j,
+                    rdict=rdict,
+                    output_type=output_type,
+                    idx=None,
                 )
+            else:
+                out_file_map[output_name] = _copy_basic_file_into_batch(
+                    j=j,
+                    rdict=rdict,
+                    output_name=output_name,
+                    idx=None,
+                )
+        else:
+            out_file_map[output_name] = []
+            for idx in range(output_type.array_length):
+                j = b.new_job(f'{job_prefix}_collect_{output_name}[{idx}]')
+                if output_type.resource_group:
+                    out_file_map[output_name].append(
+                        _copy_resource_group_into_batch(
+                            j=j,
+                            rdict=rdict,
+                            output_type=output_type,
+                            idx=idx,
+                        )
+                    )
+                else:
+                    out_file_map[output_name].append(
+                        _copy_basic_file_into_batch(
+                            j=j,
+                            rdict=rdict,
+                            output_name=output_name,
+                            idx=idx,
+                        )
+                    )
 
     return out_file_map
 
 
-def _copy_file_into_batch(
-    j: hb.batch.job.Job, *, rdict, output, idx: Optional[int], output_filename
+def _copy_basic_file_into_batch(
+    j: hb.batch.job.Job, *, rdict, output_name, idx: Optional[int]
 ):
     """
     1. Take the file-pointer to the dictionary `rdict`,
@@ -358,16 +433,18 @@ def _copy_file_into_batch(
         (a) gsutil cp it into `output_filename`
         (b) write the value into `output_filename`
     """
+    output_filename = j.out
+
     if idx is None:
         # if no index, select the value as-is
-        error_description = output
+        error_description = output_name
         # wrap this in quotes, because output often contains a '.', which has to be escaped in jq
-        jq_el = f'"{output}"'
+        jq_el = f'"{output_name}"'
     else:
         # if we're supplied an index, grab the value, then get the index, eg: '.hello[5]'
-        error_description = f'{output}[{idx}]'
+        error_description = f'{output_name}[{idx}]'
         # wrap this in quotes, because output often contains a '.', which has to be escaped in jq
-        jq_el = f'"{output}"[{idx}]'
+        jq_el = f'"{output_name}"[{idx}]'
 
     # activate to gsutil cp
     j.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
@@ -398,6 +475,67 @@ else
 fi
     """
     )
+
+    return output_filename
+
+
+def _copy_resource_group_into_batch(
+    j: hb.batch.job.Job, *, rdict, output_type: CromwellOutputType, idx: Optional[int]
+):
+
+    rg = output_type.resource_group
+
+    j.declare_resource_group(
+        out={part_name: f'{{root}}.{part_name}' for part_name in rg}
+    )
+
+    output_filename = j.out
+
+    if idx is None:
+        # if no index, select the value as-is
+        error_descriptions = list(rg.keys())
+
+        # wrap this in quotes, because output often contains a '.', which has to be escaped in jq
+        jq_els = [f'"{output_source}"' for output_source in rg.values()]
+    else:
+        # if we're supplied an index, grab the value, then get the index, eg: '.hello[5]'
+        error_descriptions = [f'{output_name}[{idx}]' for output_name in rg]
+        # wrap this in quotes, because output often contains a '.', which has to be escaped in jq
+        jq_els = [f'"{output_source}"[{idx}]' for output_source in rg.values()]
+
+    # activate to gsutil cp
+    j.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
+    j.command(GCLOUD_ACTIVATE_AUTH)
+
+    # this has to be in bash unfortunately :(
+    # we want to check that the output we get is a string
+    # if it starts with gs://, then we'll `gsutil cp` it into output_filename
+    # otherwise write the value into output_filename.
+
+    # in future, add s3://* or AWS handling here
+
+    for jq_el, error_description, output_name in zip(
+        jq_els, error_descriptions, rg.keys()
+    ):
+
+        j.command(
+            f"""
+        OUTPUT_TYPE=$(cat {rdict} | jq '.{jq_el}' | jq -r type)
+        if [ $OUTPUT_TYPE != "string" ]; then
+            echo "The element {error_description} was not of type string, got $OUTPUT_TYPE";
+            # exit 1;
+        fi
+
+        OUTPUT_VALUE=$(cat {rdict} | jq -r '.{jq_el}')
+        if [[ "$OUTPUT_VALUE" == gs://* ]]; then
+            echo "Copying file from $OUTPUT_VALUE";
+            gsutil cp $OUTPUT_VALUE {output_filename}.{output_name};
+        else
+            # cleaner to directly pipe into file
+            cat {rdict} | jq -r '.{jq_el}' > {output_filename}.{output_name};
+        fi
+            """
+        )
 
     return output_filename
 
