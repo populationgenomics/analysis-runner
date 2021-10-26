@@ -72,4 +72,4 @@ cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}
     )
     b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx+1}.txt')
 
-b.run(dry_run=True)
+b.run(wait=False)
