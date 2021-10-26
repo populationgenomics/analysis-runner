@@ -57,6 +57,13 @@ task GenerateFileWithSecondary {
         echo "$md5" > "$md5.txt.md5"
     >>>
 
+    runtime {
+        docker: "ubuntu@sha256:1d7b639619bdca2d008eca2d5293e3c43ff84cbee597ff76de3b7a7de3e84956"
+        disks: "local-disk 10 SSD"
+        memory: "1G"
+        cpu: 1
+    }
+
     output {
         File out_txt = glob("*.txt")[0]
         File out_txt_md5 = glob("*.txt.md5")[0]
