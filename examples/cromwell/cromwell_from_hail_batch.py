@@ -16,8 +16,6 @@ OUTPUT_PATH = os.path.join(f'gs://{BUCKET}', OUTPUT_SUFFIX)
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
 ACCESS_LEVEL = os.getenv('ACCESS_LEVEL')
 
-DRIVER_IMAGE = 'australia-southeast1-docker.pkg.dev/analysis-runner/images/driver@sha256:4370e54695c8c1ae22bcb968c0ffb99c2be558b26fe3d8a2da3ff21af425a178'
-
 sb = hb.ServiceBackend(billing_project=BILLING_PROJECT, bucket=BUCKET)
 b = hb.Batch(backend=sb, default_image=os.getenv('DRIVER_IMAGE'))
 
@@ -42,7 +40,6 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     output_suffix=OUTPUT_SUFFIX,
     dataset=DATASET,
     access_level=ACCESS_LEVEL,
-    driver_image=DRIVER_IMAGE,
 )
 print(workflow_outputs)
 # {
@@ -60,15 +57,17 @@ process_j.command(
 )
 
 for idx, out in enumerate(workflow_outputs['hello.texts']):
-
     process_j = b.new_job(f'do-something-with-input-{idx+1}')
+
+    # Here, we're showing that you can use the output of a
+    # resource group that we defined earlier in different tasks.
+    # For example:
+    #   convert the .md5 file to uppercase and print it to the console
+    #   convert the .txt file to uppercase and write it as an output
     process_j.command(
-        f"""
-# md5
-echo '{out}'
+        f"""\
 cat {out.md5} | awk '{{print toupper($0)}}'
-cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}
-    """
+cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}"""
     )
     b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx+1}.txt')
 

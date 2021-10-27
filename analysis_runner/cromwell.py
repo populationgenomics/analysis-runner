@@ -362,6 +362,9 @@ def watch_workflow_and_get_output(
                 wait_time = get_wait_interval()
                 logger.info(f'Got cromwell status: {status} (sleeping={wait_time})')
                 time.sleep(wait_time)
+            except CromwellError:
+                # pass through
+                raise
             except Exception as e:
                 _remaining_exceptions -= 1
                 wait_time = get_wait_interval()
