@@ -1,18 +1,29 @@
 """Utility function"""
 # pylint: disable=import-outside-toplevel
 
-import re
 import logging
+import re
+
 import requests
 
 from analysis_runner._version import __version__
 
 BRANCH = 'main'
-SERVER_ENDPOINT = 'https://server-test-a2pko7ameq-ts.a.run.app'
 
 logger = logging.getLogger('analysis_runner')
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
+
+
+def get_project_id_from_service_account_email(service_account_email: str) -> str:
+    """
+    Get GCP project id from service_account_email
+
+    >>> get_project_id_from_service_account_email('cromwell-test@tob-wgs.iam.gserviceaccount.com')
+    'tob-wgs'
+    """
+    # quick and dirty
+    return service_account_email.split('@')[-1].split('.')[0]
 
 
 def add_general_args(parser):

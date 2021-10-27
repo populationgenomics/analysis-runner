@@ -1,16 +1,18 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
-
+# pylint: disable=wrong-import-order
 import datetime
 import json
 import logging
 from shlex import quote
-from aiohttp import web
 
 import hailtop.batch as hb
+from aiohttp import web
 
+from analysis_runner.git import prepare_git_job
 from cromwell import add_cromwell_routes
-
 from util import (
+    DRIVER_IMAGE,
+    PUBSUB_TOPIC,
     get_analysis_runner_metadata,
     get_email_from_request,
     _get_hail_version,
@@ -18,11 +20,9 @@ from util import (
     check_dataset_and_group,
     check_allowed_repos,
     publisher,
-    prepare_git_job,
+    write_metadata_to_bucket,
     run_batch_job_and_print_url,
     get_server_config,
-    DRIVER_IMAGE,
-    PUBSUB_TOPIC,
 )
 
 routes = web.RouteTableDef()
@@ -98,14 +98,19 @@ async def index(request):
 
     job = batch.new_job(name='driver')
     job = prepare_git_job(
-        job=job,
-        dataset=dataset,
+        job=job, repo_name=repo, commit=commit, is_test=access_level == 'test'
+    )
+    write_metadata_to_bucket(
+        job,
         access_level=access_level,
+        dataset=dataset,
         output_suffix=output_suffix,
-        repo=repo,
-        commit=commit,
         metadata_str=json.dumps(metadata),
     )
+    job.image(DRIVER_IMAGE)
+    job.env('DRIVER_IMAGE', DRIVER_IMAGE)
+    job.env('DATASET', dataset)
+    job.env('ACCESS_LEVEL', access_level)
     job.env('HAIL_BUCKET', hail_bucket)
     job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
@@ -141,7 +146,7 @@ async def index(request):
 
     url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))
 
-    # Publish the metadata to Pub/Sub. Wait for the result before returning the url.
+    # Publish the metadata to Pub/Sub.
     metadata['batch_url'] = url
     publisher.publish(PUBSUB_TOPIC, json.dumps(metadata).encode('utf-8')).result()
 
@@ -152,7 +157,7 @@ add_cromwell_routes(routes)
 
 
 def prepare_exception_json_response(status_code: int, message: str) -> web.Response:
-    """Prepare web.Response for """
+    """Prepare web.Response for"""
     return web.Response(
         status=status_code,
         body=json.dumps({'message': message, 'success': False}).encode('utf-8'),

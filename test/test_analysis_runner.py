@@ -7,9 +7,9 @@ from analysis_runner._version import __version__
 from analysis_runner.cli import main_from_args
 
 IMPORT_AR_IDENTITY_TOKEN_PATH = (
-    'analysis_runner.analysisrunner.get_google_identity_token'
+    'analysis_runner.cli_analysisrunner.get_google_identity_token'
 )
-IMPORT_CR_IDENTITY_TOKEN_PATH = 'analysis_runner.cromwell.get_google_identity_token'
+IMPORT_CR_IDENTITY_TOKEN_PATH = 'analysis_runner.cli_cromwell.get_google_identity_token'
 
 REQUEST_POST_PATH = 'requests.post'
 REQUEST_GET_PATH = 'requests.get'

@@ -1,11 +1,16 @@
 """Helper functions for working with Git repositories."""
 
+from typing import List
+
 import os
 import re
 import subprocess
-from typing import List
+from shlex import quote
 
-SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
+import hailtop.batch as hb
+
+GITHUB_ORG = 'populationgenomics'
+SUPPORTED_ORGANIZATIONS = {GITHUB_ORG}
 
 
 def get_output_of_command(command: List[str], description: str) -> str:
@@ -105,3 +110,50 @@ def get_repo_name_from_remote(remote_name: str) -> str:
         repo = repo[:-4]
 
     return repo
+
+
+def prepare_git_job(
+    job: hb.batch.job.Job,
+    repo_name: str,
+    commit: str,
+    is_test: bool = True,
+    print_all_statements=True,
+):
+    """
+    Takes a hail batch job, and:
+        * Activates the google service account
+        * Clones the repository, and
+            * if access_level != "test": check the desired commit is on 'main'
+            * check out the specific commit
+    """
+
+    job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
+
+    # Use "set -x" to print the commands for easier debugging.
+    if print_all_statements:
+        job.command('set -x')
+
+    # activate the google service account
+    job.command(
+        f'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+    )
+
+    # Note: for private GitHub repos we'd need to use a token to clone.
+    # Any job commands here are evaluated in a bash shell, so user arguments should
+    # be escaped to avoid command injection.
+    job.command(
+        f'git clone --recurse-submodules https://github.com/{GITHUB_ORG}/{quote(repo_name)}.git'
+    )
+    job.command(f'cd {quote(repo_name)}')
+    # Except for the "test" access level, we check whether commits have been
+    # reviewed by verifying that the given commit is in the main branch.
+    if not is_test:
+        job.command('git checkout main')
+        job.command(
+            f'git merge-base --is-ancestor {quote(commit)} HEAD || '
+            '{ echo "error: commit not merged into main branch"; exit 1; }'
+        )
+    job.command(f'git checkout {quote(commit)}')
+    job.command(f'git submodule update')
+
+    return job
