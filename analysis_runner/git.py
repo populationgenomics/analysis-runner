@@ -7,8 +7,6 @@ import re
 import subprocess
 from shlex import quote
 
-import hailtop.batch as hb
-
 GITHUB_ORG = 'populationgenomics'
 SUPPORTED_ORGANIZATIONS = {GITHUB_ORG}
 
@@ -113,7 +111,7 @@ def get_repo_name_from_remote(remote_name: str) -> str:
 
 
 def prepare_git_job(
-    job: hb.batch.job.Job,
+    job,
     repo_name: str,
     commit: str,
     is_test: bool = True,

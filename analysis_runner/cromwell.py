@@ -12,9 +12,7 @@ from datetime import datetime
 from shlex import quote
 from typing import List, Dict, Optional, Any
 
-import hailtop.batch as hb
 import requests
-from cpg_utils.cloud import read_secret
 
 from analysis_runner.constants import (
     CROMWELL_URL,
@@ -94,7 +92,7 @@ class CromwellOutputType:
 
 
 def run_cromwell_workflow(
-    job: hb.batch.job.Job,
+    job,
     dataset: str,
     access_level: str,
     workflow: str,
@@ -113,6 +111,9 @@ def run_cromwell_workflow(
 
     def get_cromwell_key(dataset, access_level):
         """Get Cromwell key from secrets"""
+        # pylint: disable=import-error,import-outside-toplevel
+        from cpg_utils.cloud import read_secret
+
         secret_name = f'{dataset}-cromwell-{access_level}-key'
         return read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
 
@@ -199,7 +200,7 @@ def run_cromwell_workflow(
 
 
 def run_cromwell_workflow_from_repo_and_get_outputs(
-    b: hb.Batch,
+    b,
     job_prefix: str,
     dataset: str,
     access_level,
@@ -271,7 +272,7 @@ class CromwellError(Exception):
 
 
 def watch_workflow_and_get_output(
-    b: hb.Batch,
+    b,
     job_prefix: str,
     workflow_id_file,
     outputs_to_collect: Dict[str, CromwellOutputType],
@@ -425,9 +426,7 @@ def watch_workflow_and_get_output(
     return out_file_map
 
 
-def _copy_basic_file_into_batch(
-    j: hb.batch.job.Job, *, rdict, output_name, idx: Optional[int]
-):
+def _copy_basic_file_into_batch(j, *, rdict, output_name, idx: Optional[int]):
     """
     1. Take the file-pointer to the dictionary `rdict`,
     2. the output name `output`,
@@ -483,7 +482,7 @@ fi
 
 
 def _copy_resource_group_into_batch(
-    j: hb.batch.job.Job, *, rdict, output_type: CromwellOutputType, idx: Optional[int]
+    j, *, rdict, output_type: CromwellOutputType, idx: Optional[int]
 ):
 
     rg = output_type.resource_group
