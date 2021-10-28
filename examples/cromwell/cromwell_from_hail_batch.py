@@ -29,9 +29,11 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     cwd='examples/cromwell',
     input_dict={'hello.inps': inputs},
     outputs_to_collect={
-        'hello.outs': CromwellOutputType.array(len(inputs)),
-        'hello.joined_out': CromwellOutputType.single(),
-        'hello.texts': CromwellOutputType.array_resource_group(
+        'joined_out': CromwellOutputType.single('hello.joined_out'),
+        'outs': CromwellOutputType.array('hello.outs', len(inputs)),
+        'out_paths': CromwellOutputType.array_path('hello.outs', len(inputs)),
+        'texts': CromwellOutputType.array_resource_group(
+            'hello.texts',
             len(inputs),
             resource_group={'txt': 'hello.out_txts', 'md5': 'hello.out_txt_md5s'},
         ),
@@ -56,11 +58,26 @@ process_j.command(
     f"cat {workflow_outputs['hello.joined_out']} | awk '{{print toupper($0)}}'"
 )
 
+
+# Use python job to process file paths
+def process_paths_python(*files):
+    """Collect a list of output files, and log to console"""
+    inner_paths = []
+    for file in files:
+        with open(file) as f:
+            inner_paths.append(f.read().strip())
+    # maybe update sample_metadata server?
+    print('Processed paths: ' + ', '.join(inner_paths))
+
+
+process_paths_job = b.new_python_job('process_paths')
+process_paths_job.call(process_paths_python, *workflow_outputs['out_paths'])
+
+# Here, we're showing that you can use the output of a
+# resource group that we defined earlier in different tasks.
 for idx, out in enumerate(workflow_outputs['hello.texts']):
     process_j = b.new_job(f'do-something-with-input-{idx+1}')
 
-    # Here, we're showing that you can use the output of a
-    # resource group that we defined earlier in different tasks.
     # For example:
     #   convert the .md5 file to uppercase and print it to the console
     #   convert the .txt file to uppercase and write it as an output
