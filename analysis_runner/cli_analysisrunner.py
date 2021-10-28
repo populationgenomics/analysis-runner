@@ -14,6 +14,7 @@ from analysis_runner.git import (
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
     get_relative_path_from_git_root,
+    check_if_commit_is_on_remote,
 )
 
 from analysis_runner.util import (
@@ -117,6 +118,13 @@ def run_analysis_runner(
 
         if _cwd is None:
             _cwd = get_relative_path_from_git_root()
+
+        if not check_if_commit_is_on_remote(commit):
+            if not confirm_choice(
+                f'The commit "{commit}" was not found on the remote (Github)'
+                'Please confirm if you want to proceed anyway.'
+            ):
+                raise SystemExit()
 
     if _cwd == '.':
         _cwd = None
