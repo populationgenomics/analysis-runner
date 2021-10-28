@@ -55,7 +55,7 @@ print(workflow_outputs)
 
 process_j = b.new_job('do-something-with-string-output')
 process_j.command(
-    f"cat {workflow_outputs['hello.joined_out']} | awk '{{print toupper($0)}}'"
+    f"cat {workflow_outputs['joined_out']} | awk '{{print toupper($0)}}'"
 )
 
 
@@ -75,7 +75,7 @@ process_paths_job.call(process_paths_python, *workflow_outputs['out_paths'])
 
 # Here, we're showing that you can use the output of a
 # resource group that we defined earlier in different tasks.
-for idx, out in enumerate(workflow_outputs['hello.texts']):
+for idx, out in enumerate(workflow_outputs['texts']):
     process_j = b.new_job(f'do-something-with-input-{idx+1}')
 
     # For example:

@@ -236,7 +236,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     dataset: str,
     access_level,
     workflow: str,
-    outputs_to_collect: Dict[str, Optional[int]],
+    outputs_to_collect: Dict[str, CromwellOutputType],
     libs: List[str],
     output_suffix: str,
     labels: Dict[str, str] = None,
@@ -438,7 +438,7 @@ def watch_workflow_and_get_output(
                 )
         else:
             # is array
-            out_file_map[output_name] = []
+            out_file_map[oname] = []
             for idx in range(array_length):
                 j = b.new_job(f'{job_prefix}_collect_{output_name}[{idx}]')
                 if output.resource_group:
