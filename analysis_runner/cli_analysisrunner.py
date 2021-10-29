@@ -119,9 +119,9 @@ def run_analysis_runner(
         if _cwd is None:
             _cwd = get_relative_path_from_git_root()
 
-        if not check_if_commit_is_on_remote(commit):
+        if not check_if_commit_is_on_remote(_commit_ref):
             if not confirm_choice(
-                f'The commit "{commit}" was not found on the remote (Github)'
+                f'The commit "{_commit_ref}" was not found on the remote (Github). \n'
                 'Please confirm if you want to proceed anyway.'
             ):
                 raise SystemExit()

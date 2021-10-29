@@ -113,8 +113,8 @@ def get_repo_name_from_remote(remote_name: str) -> str:
 def check_if_commit_is_on_remote(commit: str) -> bool:
     command = ['git', 'branch', '-r', '--contains', commit]
     try:
-        subprocess.check_output(command)
-        return True
+        ret = subprocess.check_output(command)
+        return bool(ret)
     except subprocess.CalledProcessError:
         return False
 
