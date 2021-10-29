@@ -16,7 +16,8 @@ from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
-    get_relative_path_from_git_root, check_if_commit_is_on_remote,
+    get_relative_path_from_git_root,
+    check_if_commit_is_on_remote,
 )
 from analysis_runner.util import (
     logger,

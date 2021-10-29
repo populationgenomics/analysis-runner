@@ -111,14 +111,17 @@ def get_repo_name_from_remote(remote_name: str) -> str:
 
 
 def check_if_commit_is_on_remote(commit: str) -> bool:
+    """
+    Returns 'True' if the commit is available on a remote branch.
+    This relies on the current environment to be up-to-date.
+    It asks if the local environment knows a remote branch with the commit.
+    """
     command = ['git', 'branch', '-r', '--contains', commit]
     try:
         ret = subprocess.check_output(command)
         return bool(ret)
     except subprocess.CalledProcessError:
         return False
-
-
 
 
 def prepare_git_job(

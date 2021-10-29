@@ -45,11 +45,12 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
 )
 print(workflow_outputs)
 # {
-#   'hello.outs': [__RESOURCE_FILE__2, __RESOURCE_FILE__3],
-#   'hello.joined_out': __RESOURCE_FILE__4,
-#   'hello.texts': [
-#       <hailtop.batch.resource.ResourceGroup object at 0x7ffed2d56dd0>,
-#       <hailtop.batch.resource.ResourceGroup object at 0x7ffed2d56590>
+#   'joined_out': __RESOURCE_FILE__2,
+#   'outs': [__RESOURCE_FILE__3, __RESOURCE_FILE__4],
+#   'out_paths': [__RESOURCE_FILE__5, __RESOURCE_FILE__6],
+#   'texts': [
+#       <hailtop.batch.resource.ResourceGroup object at 0x7f4de22e0ed0>,
+#       <hailtop.batch.resource.ResourceGroup object at 0x7f4de22e0b90>
 #   ]
 # }
 
