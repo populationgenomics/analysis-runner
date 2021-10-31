@@ -3,7 +3,7 @@
 import os
 import re
 import subprocess
-from typing import List
+from typing import List, Tuple, Union
 
 SUPPORTED_ORGANIZATIONS = {'populationgenomics'}
 
@@ -72,7 +72,9 @@ def get_git_commit_ref_of_current_repository() -> str:
     return get_output_of_command(command, 'get latest Git commit')
 
 
-def get_repo_name_from_remote(remote_name: str) -> str:
+def get_repo_name_from_remote(
+    remote_name: str, return_org: bool = False
+) -> Union[str, Tuple[str, str]]:
     """
     Get the name of a GitHub repo from a supported organization
     based on its remote URL e.g.:
@@ -104,4 +106,6 @@ def get_repo_name_from_remote(remote_name: str) -> str:
     if repo.endswith('.git'):
         repo = repo[:-4]
 
+    if return_org:
+        return repo, organization
     return repo

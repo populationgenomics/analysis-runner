@@ -235,7 +235,9 @@ def _add_submit_job(
     git_remote = get_git_default_remote()
     git_sha = get_git_commit_ref_of_current_repository()
     git_dir = get_relative_script_path_from_git_root('')
-    repo_name = get_repo_name_from_remote(git_remote)
+    repo_name, org = get_repo_name_from_remote(git_remote, return_org=True)
+    # fixing to make sure repo is in https:// format not git@
+    git_remote = f'https://github.com/{org}/{repo_name}.git'
 
     main_job.command(f'git clone --recurse-submodules {git_remote} {repo_name}')
     main_job.command(f'cd {repo_name}')
