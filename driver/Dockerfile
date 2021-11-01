@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y git wget bash bzip2 zip && \
     mkdir $MAMBA_ROOT_PREFIX && \
     micromamba install -y --prefix $MAMBA_ROOT_PREFIX \
         -c cpg -c bioconda -c conda-forge \
-        hail=$HAIL_VERSION cpg-utils analysis-runner sample-metadata=3.2.0 bokeh selenium phantomjs statsmodels \
+        hail=$HAIL_VERSION cpg-utils analysis-runner sample-metadata=3.4.0 bokeh selenium phantomjs statsmodels \
         r-base=4.1.1 r-essentials r-tidyverse r-argparser && \
     rm -r /root/micromamba/pkgs && \
     # hailctl dataproc uses gcloud beta dataproc.
