@@ -63,7 +63,7 @@ def process_paths_python(*files):
     """Collect a list of output files, and log to console"""
     inner_paths = []
     for file in files:
-        with open(file) as f:
+        with open(file, encoding='utf-8') as f:
             inner_paths.append(f.read().strip())
     # maybe update sample_metadata server?
     print('Processed paths: ' + ', '.join(inner_paths))
