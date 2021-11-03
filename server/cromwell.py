@@ -13,7 +13,9 @@ from aiohttp import web
 from analysis_runner.constants import CROMWELL_URL
 from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
 from analysis_runner.git import prepare_git_job
-from server.util import (
+
+# pylint: disable=wrong-import-order
+from util import (
     PUBSUB_TOPIC,
     DRIVER_IMAGE,
     get_server_config,
