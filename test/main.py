@@ -3,4 +3,4 @@
 
 import hail as hl
 
-hl.init()
+print(hl.version())
