@@ -1,5 +1,6 @@
-FROM ubuntu:21.04
+FROM ubuntu:21.04  # defaults to python3.9, for which hail package is built
 
+# https://askubuntu.com/questions/909277/avoiding-user-interaction-with-tzdata-when-installing-certbot-in-a-docker-contai
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && \
