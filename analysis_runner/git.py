@@ -53,11 +53,11 @@ def get_relative_path_from_git_root() -> str:
 
 
 def get_git_default_remote() -> str:
-    """Returns the default git remote,
+    """Returns the git remote of 'origin',
     e.g. https://github.com/populationgenomics/analysis-runner
     """
     command = ['git', 'remote', 'get-url', 'origin']
-    return get_output_of_command(command, 'get default Git remote')
+    return get_output_of_command(command, 'get Git remote of origin')
 
 
 def get_git_repo_root() -> str:
@@ -73,6 +73,11 @@ def get_git_commit_ref_of_current_repository() -> str:
     """Returns the commit SHA at the current HEAD."""
     command = ['git', 'rev-parse', 'HEAD']
     return get_output_of_command(command, 'get latest Git commit')
+
+
+def get_repo_name_from_current_directory() -> str:
+    """Gets the repo name from the default remote"""
+    return get_repo_name_from_remote(get_git_default_remote())
 
 
 def get_repo_name_from_remote(remote_name: str) -> str:
