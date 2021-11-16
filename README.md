@@ -13,7 +13,7 @@ One of our main workflow pipeline systems at the CPG is
 pipelines are defined by running a Python program
 _locally_. This tool instead lets you run the "driver" on Hail Batch itself.
 
-Furthermore, all invocations are logged together with the output data, as well as [Airtable](https://airtable.com/tblx9NarwtJwGqTPA/viwIomAHV49Stq5zr), as well as through the sample-metadata server.
+Furthermore, all invocations are logged together with the output data, as well as [Airtable](https://airtable.com/tblx9NarwtJwGqTPA/viwIomAHV49Stq5zr) and the sample-metadata server.
 
 When using the analysis-runner, the batch jobs are not run under your standard
 Hail Batch [service account user](https://hail.is/docs/batch/service.html#sign-up)
