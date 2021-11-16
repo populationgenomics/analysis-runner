@@ -13,7 +13,7 @@ One of our main workflow pipeline systems at the CPG is
 pipelines are defined by running a Python program
 _locally_. This tool instead lets you run the "driver" on Hail Batch itself.
 
-Furthermore, all invocations are logged together with the output data, as well as [Airtable](https://airtable.com/tblx9NarwtJwGqTPA/viwIomAHV49Stq5zr).
+Furthermore, all invocations are logged together with the output data, as well as [Airtable](https://airtable.com/tblx9NarwtJwGqTPA/viwIomAHV49Stq5zr), as well as through the sample-metadata server.
 
 When using the analysis-runner, the batch jobs are not run under your standard
 Hail Batch [service account user](https://hail.is/docs/batch/service.html#sign-up)
@@ -79,6 +79,57 @@ analysis-runner \
 
 For more examples (including for running an R script and dataproc), see the
 [examples](examples) directory.
+
+## Helper for Hail Batch
+
+The analysis-runner package has a number of functions that make it easier to run reproducible analysis through Hail Batch.
+
+This is installed in the analysis runner driver image, ie: you can access the analysis_runner module when running scripts through the analysis-runner.
+
+### Checking out a git repository at the current commit
+
+```python
+import hailtop.batch as hb
+from analysis_runner.git import (
+  prepare_git_job,
+  get_repo_name_from_current_directory,
+  get_git_commit_ref_of_current_repository,
+)
+
+b = hb.Batch('do-some-analysis')
+j = b.new_job('checkout_repo')
+prepare_git_job(
+  job=j,
+  # you could specify a name here, like 'analysis-runner'
+  repo_name=get_repo_name_from_current_directory(),
+  # you could specify the specific commit here, eg: '1be7bb44de6182d834d9bbac6036b841f459a11a'
+  commit=get_git_commit_ref_of_current_repository(),
+)
+
+# Now, the working directory of j is the checkout out repository
+j.command('examples/bash/hello.sh')
+```
+
+### Running a dataproc script
+
+```python
+import hailtop.batch as hb
+from analysis_runner.dataproc import setup_dataproc
+
+b = hb.Batch('do-some-analysis')
+
+# starts up a cluster, and submits a script to the cluster,
+# see the definition for more information about how you can configure the cluster
+# https://github.com/populationgenomics/analysis-runner/blob/main/analysis_runner/dataproc.py#L80
+cluster = dataproc.setup_dataproc(
+    b,
+    max_age='1h',
+    packages=['click', 'selenium'],
+    init=['gs://cpg-reference/hail_dataproc/install_common.sh'],
+    cluster_name='My Cluster with max-age=1h',
+)
+cluster.add_job('examples/dataproc/query.py', job_name='example')
+```
 
 ## Development
 
