@@ -36,19 +36,26 @@ class CromwellOutputType:
     """Declares output type for cromwell -> hail batch glue"""
 
     def __init__(
-        self, is_single: bool, array_length: Optional[int] = None, resource_group=None
+        self,
+        name: str,
+        copy_file_into_batch: bool,
+        array_length: Optional[int],
+        resource_group=None,
     ):
-        self.is_single = is_single
+        self.name = name
+        self.copy_file_into_batch = copy_file_into_batch
         self.array_length = array_length
         self.resource_group = resource_group
 
     @staticmethod
-    def single():
+    def single(name: str):
         """Single file"""
-        return CromwellOutputType(is_single=True)
+        return CromwellOutputType(
+            name=name, array_length=None, copy_file_into_batch=True
+        )
 
     @staticmethod
-    def single_resource_group(resource_group):
+    def single_resource_group(name: str, resource_group):
         """
         Specify a resource group you want to return, where resource_group has the format:
             {<read-group-name>: <corresponding-output-in-cromwell>}
@@ -61,15 +68,22 @@ class CromwellOutputType:
             })
         }
         """
-        return CromwellOutputType(is_single=True, resource_group=resource_group)
+        return CromwellOutputType(
+            name=name,
+            array_length=None,
+            copy_file_into_batch=True,
+            resource_group=resource_group,
+        )
 
     @staticmethod
-    def array(length: int):
+    def array(name: str, length: int):
         """Array of simple files"""
-        return CromwellOutputType(is_single=False, array_length=length)
+        return CromwellOutputType(
+            name=name, array_length=length, copy_file_into_batch=True
+        )
 
     @staticmethod
-    def array_resource_group(length: int, resource_group):
+    def array_resource_group(name: str, length: int, resource_group):
         """
         Select an array of resource groups. In this case, the outputs
         you select within the resource group are zipped.
@@ -87,7 +101,24 @@ class CromwellOutputType:
         # {"<this-key-only-exists-in-output-dict>":  [__resource_group1, __resource_group2]}
         """
         return CromwellOutputType(
-            is_single=False, array_length=length, resource_group=resource_group
+            name=name,
+            array_length=length,
+            copy_file_into_batch=True,
+            resource_group=resource_group,
+        )
+
+    @staticmethod
+    def single_path(name: str):
+        """Return the file path of the output in a file"""
+        return CromwellOutputType(
+            name=name, array_length=None, copy_file_into_batch=False
+        )
+
+    @staticmethod
+    def array_path(name: str, length: int):
+        """Return a list of file paths of the outputs (one path per file)"""
+        return CromwellOutputType(
+            name=name, array_length=length, copy_file_into_batch=False
         )
 
 
@@ -205,7 +236,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     dataset: str,
     access_level,
     workflow: str,
-    outputs_to_collect: Dict[str, Optional[int]],
+    outputs_to_collect: Dict[str, CromwellOutputType],
     libs: List[str],
     output_suffix: str,
     labels: Dict[str, str] = None,
@@ -382,51 +413,61 @@ def watch_workflow_and_get_output(
 
     rdict = watch_job.call(watch_workflow, workflow_id_file).as_json()
     out_file_map = {}
-    for output_name, output_type in outputs_to_collect.items():
-
-        if output_type.is_single:
+    for oname, output in outputs_to_collect.items():
+        output_name = output.name
+        array_length = output.array_length
+        if array_length is None:
+            # is single
             j = b.new_job(f'{job_prefix}_collect_{output_name}')
-            if output_type.resource_group:
-                out_file_map[output_name] = _copy_resource_group_into_batch(
+            if output.resource_group:
+                # is single resource group
+                out_file_map[oname] = _copy_resource_group_into_batch(
                     j=j,
                     rdict=rdict,
-                    output_type=output_type,
+                    output=output,
                     idx=None,
                 )
             else:
-                out_file_map[output_name] = _copy_basic_file_into_batch(
+                # is single file / value
+                out_file_map[oname] = _copy_basic_file_into_batch(
                     j=j,
                     rdict=rdict,
                     output_name=output_name,
                     idx=None,
+                    copy_file_into_batch=output.copy_file_into_batch,
                 )
         else:
-            out_file_map[output_name] = []
-            for idx in range(output_type.array_length):
+            # is array
+            out_file_map[oname] = []
+            for idx in range(array_length):
                 j = b.new_job(f'{job_prefix}_collect_{output_name}[{idx}]')
-                if output_type.resource_group:
-                    out_file_map[output_name].append(
+                if output.resource_group:
+                    # is array output group
+                    out_file_map[oname].append(
                         _copy_resource_group_into_batch(
                             j=j,
                             rdict=rdict,
-                            output_type=output_type,
+                            output=output,
                             idx=idx,
                         )
                     )
                 else:
-                    out_file_map[output_name].append(
+                    out_file_map[oname].append(
                         _copy_basic_file_into_batch(
                             j=j,
                             rdict=rdict,
                             output_name=output_name,
                             idx=idx,
+                            copy_file_into_batch=output.copy_file_into_batch,
                         )
                     )
 
     return out_file_map
 
 
-def _copy_basic_file_into_batch(j, *, rdict, output_name, idx: Optional[int]):
+def _copy_basic_file_into_batch(
+    j, *, rdict, output_name, idx: Optional[int], copy_file_into_batch: bool
+):
     """
     1. Take the file-pointer to the dictionary `rdict`,
     2. the output name `output`,
@@ -466,7 +507,11 @@ if [ $OUTPUT_TYPE != "string" ]; then
     echo "The element {error_description} was not of type string, got $OUTPUT_TYPE";
     # exit 1;
 fi
-
+"""
+    )
+    if copy_file_into_batch:
+        j.command(
+            f"""
 OUTPUT_VALUE=$(cat {rdict} | jq -r '.{jq_el}')
 if [[ "$OUTPUT_VALUE" == gs://* ]]; then
     echo "Copying file from $OUTPUT_VALUE";
@@ -476,16 +521,19 @@ else
     cat {rdict} | jq -r '.{jq_el}' > {output_filename}
 fi
     """
-    )
+        )
+    else:
+        # directly pipe result into a file
+        j.command(f"cat {rdict} | jq -r '.{jq_el}' > {output_filename}")
 
     return output_filename
 
 
 def _copy_resource_group_into_batch(
-    j, *, rdict, output_type: CromwellOutputType, idx: Optional[int]
+    j, *, rdict, output: CromwellOutputType, idx: Optional[int]
 ):
 
-    rg = output_type.resource_group
+    rg = output.resource_group
 
     j.declare_resource_group(
         out={part_name: f'{{root}}.{part_name}' for part_name in rg}
