@@ -116,9 +116,6 @@ def add_cromwell_routes(
             mode='cromwell',
         )
 
-        # Publish the metadata to Pub/Sub. Wait for the result before running the batch.
-        publisher.publish(PUBSUB_TOPIC, metadata.encode('utf-8')).result()
-
         user_name = email.split('@')[0]
         batch_name = f'{user_name} {repo}:{commit}/cromwell/{wf}'
 
