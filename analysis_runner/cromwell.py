@@ -435,6 +435,7 @@ def watch_workflow_and_get_output(
                     output_name=output_name,
                     idx=None,
                     copy_file_into_batch=output.copy_file_into_batch,
+                    driver_image=driver_image,
                 )
         else:
             # is array
@@ -459,6 +460,7 @@ def watch_workflow_and_get_output(
                             output_name=output_name,
                             idx=idx,
                             copy_file_into_batch=output.copy_file_into_batch,
+                            driver_image=driver_image,
                         )
                     )
 
@@ -466,7 +468,13 @@ def watch_workflow_and_get_output(
 
 
 def _copy_basic_file_into_batch(
-    j, *, rdict, output_name, idx: Optional[int], copy_file_into_batch: bool
+    j,
+    *,
+    rdict,
+    output_name,
+    idx: Optional[int],
+    copy_file_into_batch: bool,
+    driver_image: str,
 ):
     """
     1. Take the file-pointer to the dictionary `rdict`,
@@ -490,6 +498,7 @@ def _copy_basic_file_into_batch(
         jq_el = f'"{output_name}"[{idx}]'
 
     # activate to gsutil cp
+    j.image(driver_image)
     j.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
     j.command(GCLOUD_ACTIVATE_AUTH)
 
