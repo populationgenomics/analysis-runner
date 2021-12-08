@@ -81,6 +81,12 @@ def add_general_args(parser):
         'arguments are not supplied, the relative path to the git root will be determined',
     )
 
+    parser.add_argument(
+        '--use-test-server',
+        action='store_true',
+        help='Use the test analysis-runner server',
+    )
+
 
 def confirm_choice(choice: str):
     """
