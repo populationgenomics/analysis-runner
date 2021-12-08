@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
 USE_GCP_LOGGING = True
 if USE_GCP_LOGGING:
-    import google.cloud.logging
+    import google.cloud.logging  # pylint: disable=import-error,no-name-in-module,c-extension-no-member
 
     client = google.cloud.logging.Client()
     client.get_default_handler()

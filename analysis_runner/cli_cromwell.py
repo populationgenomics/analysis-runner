@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 
 import requests
 
-from analysis_runner.constants import get_server_endpoint
+from analysis_runner.constants import get_server_endpoint, SERVER_ENDPOINT
 from analysis_runner.cromwell_model import WorkflowMetadataModel
 from analysis_runner.git import (
     get_git_default_remote,

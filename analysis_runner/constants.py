@@ -13,6 +13,10 @@ GCLOUD_ACTIVATE_AUTH = (
 
 
 def get_server_endpoint(is_test: bool = False):
+    """
+    Get the server endpoint {production / test}
+    Do it in a function so it's easy to fix if the logic changes
+    """
     if is_test:
         return SERVER_TEST_ENDPOINT
 
