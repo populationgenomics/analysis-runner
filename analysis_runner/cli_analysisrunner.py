@@ -8,7 +8,7 @@ from shutil import which
 from typing import List
 
 import requests
-from analysis_runner.constants import SERVER_ENDPOINT
+from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
@@ -63,6 +63,7 @@ def run_analysis_runner(
     repository=None,
     cwd=None,
     environment_variables: List[str] = None,
+    use_test_server=False,
 ):
     """
     Main function that drives the CLI.
@@ -146,7 +147,7 @@ def run_analysis_runner(
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 
     response = requests.post(
-        SERVER_ENDPOINT,
+        get_server_endpoint(is_test=use_test_server),
         json={
             'dataset': dataset,
             'output': output_dir,

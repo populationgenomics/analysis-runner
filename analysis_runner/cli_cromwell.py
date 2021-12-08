@@ -8,9 +8,7 @@ from typing import List, Dict, Optional
 
 import requests
 
-from analysis_runner.constants import (
-    SERVER_ENDPOINT,
-)
+from analysis_runner.constants import get_server_endpoint, SERVER_ENDPOINT
 from analysis_runner.cromwell_model import WorkflowMetadataModel
 from analysis_runner.git import (
     get_git_default_remote,
@@ -158,6 +156,7 @@ def _run_cromwell(
     cwd=None,
     labels=None,
     dry_run=False,
+    use_test_server=False,
 ):
     """
     Prepare parameters for cromwell analysis-runner job
@@ -225,11 +224,13 @@ def _run_cromwell(
         'labels': _labels,
     }
 
+    endpoint = get_server_endpoint(is_test=use_test_server) + '/cromwell'
+
     if dry_run:
         logger.warning('Dry-run, printing curl and exiting')
         curl = f"""\
 curl --location --request POST \\
-    '{SERVER_ENDPOINT}/cromwell' \\
+    '{endpoint}' \\
     --header "Authorization: Bearer $(gcloud auth print-identity-token)" \\
     --header "Content-Type: application/json" \\
     --data-raw '{json.dumps(body, indent=4)}'"""
@@ -238,7 +239,7 @@ curl --location --request POST \\
         return
 
     response = requests.post(
-        SERVER_ENDPOINT + '/cromwell',
+        endpoint,
         json=body,
         headers={'Authorization': f'Bearer {get_google_identity_token()}'},
     )
