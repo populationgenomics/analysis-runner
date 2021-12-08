@@ -7,6 +7,7 @@ RUN micromamba install --prefix $MAMBA_ROOT_PREFIX -c cpg -c conda-forge \
     google-api-python-client==2.10.0 \
     google-cloud-secret-manager==2.2.0 \
     google-cloud-pubsub==2.3.0 \
+    google-cloud-logging==2.7.0 \
     gunicorn \
     requests && \
     rm -r /root/micromamba/pkgs
