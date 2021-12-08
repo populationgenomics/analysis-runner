@@ -69,15 +69,16 @@ def add_cromwell_routes(
 
         ds_config = server_config[dataset]
         project = ds_config.get('projectId')
-        hail_token = ds_config.get('token')
+        hail_token = ds_config.get(f'{access_level}Token')
+
+        if not hail_token:
+            raise web.HTTPBadRequest(
+                reason=f"Invalid access level '{access_level}', couldn't find corresponding hail token"
+            )
+
         # use the email specified by the service_account_json again
 
         hail_bucket = f'cpg-{dataset}-hail'
-        backend = hb.ServiceBackend(
-            billing_project=dataset,
-            bucket=hail_bucket,
-            token=hail_token,
-        )
 
         commit = params['commit']
         if not commit or commit == 'HEAD':
@@ -118,6 +119,11 @@ def add_cromwell_routes(
 
         user_name = email.split('@')[0]
         batch_name = f'{user_name} {repo}:{commit}/cromwell/{wf}'
+        backend = hb.ServiceBackend(
+            billing_project=dataset,
+            bucket=hail_bucket,
+            token=hail_token,
+        )
 
         batch = hb.Batch(
             backend=backend, name=batch_name, requester_pays_project=project
