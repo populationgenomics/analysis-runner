@@ -422,7 +422,8 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         SampleMetadataAccessorMembership(
             name='human',
             member_key=access_group.group_key.id,
-            permissions=('main-read', 'test-read', 'test-write'),
+            # humans can read / write to main & test
+            permissions=sm_groups.keys(),
         ),
         SampleMetadataAccessorMembership(
             name='test',
