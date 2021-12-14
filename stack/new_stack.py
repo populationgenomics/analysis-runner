@@ -71,7 +71,7 @@ def main(
         },
     }
 
-    with open(pulumi_config_fn, 'w+') as fp:
+    with open(pulumi_config_fn, 'w+', encoding='utf-8') as fp:
         print(f'Writing to {pulumi_config_fn}')
         yaml.dump(pulumi_stack, fp, default_flow_style=False)
 
