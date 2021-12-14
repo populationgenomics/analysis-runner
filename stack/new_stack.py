@@ -34,6 +34,11 @@ def main(
     """Function that coordinates creating a project"""
     _gcp_project = gcp_project or dataset
 
+    if len(dataset) > 17:
+        raise ValueError(
+            f'The dataset length must be less than 17 characters (got {len(dataset)})'
+        )
+
     pulumi_config_fn = f'Pulumi.{dataset}.yaml'
     if os.path.exists(pulumi_config_fn):
         raise ValueError('The pulumi config already exists')
