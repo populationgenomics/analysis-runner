@@ -2,9 +2,10 @@
 
 import asyncio
 import json
+import logging
 import urllib
 import os
-from typing import List, Optional
+from typing import List, Optional, Union, Tuple
 import aiohttp
 import cpg_utils.cloud
 from flask import Flask
@@ -14,7 +15,14 @@ ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 app = Flask(__name__)
 
 
-async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
+async def _get_group_parent(access_token: str, group_name: str) -> Optional[str]:
+    """
+    Get the group parent (group ID)
+    """
+    if group_name.endswith('.iam.gserviceaccount.com'):
+        # we know it's not a group, because it's a service account
+        return None
+
     async with aiohttp.ClientSession() as session:
         # https://cloud.google.com/identity/docs/reference/rest/v1/groups/lookup
         async with session.get(
@@ -22,38 +30,56 @@ async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
             f'groupKey.id={urllib.parse.quote(group_name)}',
             headers={'Authorization': f'Bearer {access_token}'},
         ) as resp:
-            if resp.status != 200:
+            if resp.status == 403:
+                # This is the "email isn't actually a google group" case
+                # Probably a 403 to stop any unauthorized info leakage
                 return None
+
+            resp.raise_for_status()
 
             content = await resp.text()
             return json.loads(content)['name']
 
 
-async def _groups_memberships_list(access_token: str, group_parent: str) -> List[str]:
-    result = []
+async def _groups_memberships_list(
+    access_token: str, group_parent: str
+) -> Tuple[List[str], List[str]]:
+    """Get a tuple of (group_emails, member_emails) in this group_parent"""
+    members = []
+    child_groups = []
 
     async with aiohttp.ClientSession() as session:
         page_token = None
         while True:
             # https://cloud.google.com/identity/docs/reference/rest/v1/groups/lookup
+            # use view=FULL so we get the membership 'type' (GROUP or other)
             async with session.get(
                 f'https://cloudidentity.googleapis.com/v1/{group_parent}/memberships?'
-                f'pageToken={page_token or ""}',
+                f'view=FULL&pageToken={page_token or ""}',
                 headers={'Authorization': f'Bearer {access_token}'},
             ) as resp:
+                resp.raise_for_status()
+
                 content = await resp.text()
                 decoded = json.loads(content)
+
                 for member in decoded['memberships']:
-                    result.append(member['preferredMemberKey']['id'])
+                    member_id = member['preferredMemberKey']['id']
+                    if member['type'] == 'GROUP':
+                        child_groups.append(member_id)
+                    else:
+                        members.append(member_id)
 
                 page_token = decoded.get('nextPageToken')
                 if not page_token:
                     break
 
-    return result
+    return child_groups, members
 
 
-async def _transitive_group_members(access_token: str, group_name: str) -> List[str]:
+async def _transitive_group_members(
+    access_token: str, group_name: str
+) -> Union[List[str], Exception]:
     groups = [group_name]
     seen = set()
     result = set()
@@ -67,25 +93,36 @@ async def _transitive_group_members(access_token: str, group_name: str) -> List[
             remaining_groups.append(group)
 
         group_parents = await asyncio.gather(
-            *(_groups_lookup(access_token, group) for group in remaining_groups)
+            *(_get_group_parent(access_token, group) for group in remaining_groups),
+            return_exceptions=True,
         )
 
         memberships_aws = []
         for group, group_parent in zip(remaining_groups, group_parents):
-            if group_parent:
+            if isinstance(group_parent, Exception):
+                return group_parent
+
+            if group_parent is None:
+                # Group couldn't be resolved, which usually means it's an individual.
+                result.add(group)
+            else:
                 # It's a group, so add its members for the next round.
                 memberships_aws.append(
                     _groups_memberships_list(access_token, group_parent)
                 )
-            else:
-                # Group couldn't be resolved, which usually means it's an individual.
-                result.add(group)
 
-        memberships = await asyncio.gather(*memberships_aws)
+        memberships = await asyncio.gather(*memberships_aws, return_exceptions=True)
 
         groups = []
-        for members in memberships:
-            groups.extend(members)
+        for membership_result in memberships:
+            if isinstance(membership_result, Exception):
+                # if any membership checked, fail the whole group
+                return membership_result
+
+            child_groups, members = membership_result
+
+            result.update(members)
+            groups.extend(child_groups)
 
     return sorted(list(result))
 
@@ -102,14 +139,17 @@ async def _get_service_account_access_token() -> str:
             return json.loads(content)['access_token']
 
 
-async def _get_group_members(group_names: List[str]) -> List[List[str]]:
+async def _get_group_members(
+    group_names: List[str],
+) -> List[Union[List[str], Exception]]:
     access_token = await _get_service_account_access_token()
 
     return await asyncio.gather(
         *(
             _transitive_group_members(access_token, group_name)
             for group_name in group_names
-        )
+        ),
+        return_exceptions=True,
     )
 
 
@@ -150,6 +190,11 @@ def index():
     )
 
     for group, group_members in zip(groups, all_group_members):
+        if isinstance(group_members, Exception):
+            logging.error(
+                f'Skipping update for "{group}" due to exception: {group_members}'
+            )
+            continue
         secret_value = ','.join(group_members)
 
         dataset = dataset_by_group[group]
