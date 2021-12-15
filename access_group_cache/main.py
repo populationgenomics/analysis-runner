@@ -5,7 +5,7 @@ import json
 import logging
 import urllib
 import os
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 import aiohttp
 import cpg_utils.cloud
 from flask import Flask
@@ -24,6 +24,8 @@ async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
             headers={'Authorization': f'Bearer {access_token}'},
         ) as resp:
             if resp.status == 403:
+                # This is the "email isn't actually a google group" case
+                # Probably a 403 to stop any unauthorized info leakage
                 return None
 
             resp.raise_for_status()
@@ -32,8 +34,10 @@ async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
             return json.loads(content)['name']
 
 
-async def _groups_memberships_list(access_token: str, group_parent: str) -> List[str]:
-    result = []
+async def _groups_memberships_list(access_token: str, group_parent: str) -> Tuple[List[str], List[str]]:
+    """Get a tuple of (group_emails, member_emails) in this group_parent"""
+    members = []
+    child_groups = []
 
     async with aiohttp.ClientSession() as session:
         page_token = None
@@ -41,21 +45,26 @@ async def _groups_memberships_list(access_token: str, group_parent: str) -> List
             # https://cloud.google.com/identity/docs/reference/rest/v1/groups/lookup
             async with session.get(
                 f'https://cloudidentity.googleapis.com/v1/{group_parent}/memberships?'
-                f'pageToken={page_token or ""}',
+                f'view=FULL&pageToken={page_token or ""}',
                 headers={'Authorization': f'Bearer {access_token}'},
             ) as resp:
                 resp.raise_for_status()
 
                 content = await resp.text()
                 decoded = json.loads(content)
+
                 for member in decoded['memberships']:
-                    result.append(member['preferredMemberKey']['id'])
+                    member_id = member['preferredMemberKey']['id']
+                    if member['type'] == 'GROUP':
+                        child_groups.append(member_id)
+                    else:
+                        members.append(member_id)
 
                 page_token = decoded.get('nextPageToken')
                 if not page_token:
                     break
 
-    return result
+    return child_groups, members
 
 
 async def _transitive_group_members(
@@ -74,7 +83,7 @@ async def _transitive_group_members(
             remaining_groups.append(group)
 
         group_parents = await asyncio.gather(
-            *(_groups_lookup(access_token, group) for group in remaining_groups),
+            *(_get_group_parent(access_token, group) for group in remaining_groups),
             return_exceptions=True,
         )
 
@@ -83,23 +92,28 @@ async def _transitive_group_members(
             if isinstance(group_parent, Exception):
                 return group_parent
 
-            if group_parent:
+            if group_parent is None:
+                # Group couldn't be resolved, which usually means it's an individual.
+                result.add(group)
+            else:
                 # It's a group, so add its members for the next round.
                 memberships_aws.append(
                     _groups_memberships_list(access_token, group_parent)
                 )
-            else:
-                # Group couldn't be resolved, which usually means it's an individual.
-                result.add(group)
 
         memberships = await asyncio.gather(*memberships_aws, return_exceptions=True)
 
         groups = []
-        for members in memberships:
-            if isinstance(members, Exception):
+        for membership_result in memberships:
+            if isinstance(membership_result, Exception):
                 # if any membership checked, fail the whole group
-                return members
-            groups.extend(members)
+                return membership_result
+
+            logging.info(f'Got child_groups and members: {membership_result}')
+            child_groups, members = membership_result
+
+            result.update(members)
+            groups.extend(child_groups)
 
     return sorted(list(result))
 
