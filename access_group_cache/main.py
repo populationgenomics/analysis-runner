@@ -15,7 +15,14 @@ ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 app = Flask(__name__)
 
 
-async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
+async def _get_group_parent(access_token: str, group_name: str) -> Optional[str]:
+    """
+    Get the group parent (group ID)
+    """
+    if group_name.endswith(".iam.gserviceaccount.com"):
+        # we know it's not a group, because it's a service account
+        return None
+
     async with aiohttp.ClientSession() as session:
         # https://cloud.google.com/identity/docs/reference/rest/v1/groups/lookup
         async with session.get(
