@@ -2,9 +2,10 @@
 
 import asyncio
 import json
+import logging
 import urllib
 import os
-from typing import List, Optional
+from typing import List, Optional, Union
 import aiohttp
 import cpg_utils.cloud
 from flask import Flask
@@ -22,8 +23,10 @@ async def _groups_lookup(access_token: str, group_name: str) -> Optional[str]:
             f'groupKey.id={urllib.parse.quote(group_name)}',
             headers={'Authorization': f'Bearer {access_token}'},
         ) as resp:
-            if resp.status != 200:
+            if resp.status == 403:
                 return None
+
+            resp.raise_for_status()
 
             content = await resp.text()
             return json.loads(content)['name']
@@ -41,6 +44,8 @@ async def _groups_memberships_list(access_token: str, group_parent: str) -> List
                 f'pageToken={page_token or ""}',
                 headers={'Authorization': f'Bearer {access_token}'},
             ) as resp:
+                resp.raise_for_status()
+
                 content = await resp.text()
                 decoded = json.loads(content)
                 for member in decoded['memberships']:
@@ -53,7 +58,9 @@ async def _groups_memberships_list(access_token: str, group_parent: str) -> List
     return result
 
 
-async def _transitive_group_members(access_token: str, group_name: str) -> List[str]:
+async def _transitive_group_members(
+    access_token: str, group_name: str
+) -> Union[List[str], Exception]:
     groups = [group_name]
     seen = set()
     result = set()
@@ -67,11 +74,15 @@ async def _transitive_group_members(access_token: str, group_name: str) -> List[
             remaining_groups.append(group)
 
         group_parents = await asyncio.gather(
-            *(_groups_lookup(access_token, group) for group in remaining_groups)
+            *(_groups_lookup(access_token, group) for group in remaining_groups),
+            return_exceptions=True,
         )
 
         memberships_aws = []
         for group, group_parent in zip(remaining_groups, group_parents):
+            if isinstance(group_parent, Exception):
+                return group_parent
+
             if group_parent:
                 # It's a group, so add its members for the next round.
                 memberships_aws.append(
@@ -81,10 +92,13 @@ async def _transitive_group_members(access_token: str, group_name: str) -> List[
                 # Group couldn't be resolved, which usually means it's an individual.
                 result.add(group)
 
-        memberships = await asyncio.gather(*memberships_aws)
+        memberships = await asyncio.gather(*memberships_aws, return_exceptions=True)
 
         groups = []
         for members in memberships:
+            if isinstance(members, Exception):
+                # if any membership checked, fail the whole group
+                return members
             groups.extend(members)
 
     return sorted(list(result))
@@ -102,14 +116,17 @@ async def _get_service_account_access_token() -> str:
             return json.loads(content)['access_token']
 
 
-async def _get_group_members(group_names: List[str]) -> List[List[str]]:
+async def _get_group_members(
+    group_names: List[str],
+) -> List[Union[List[str], Exception]]:
     access_token = await _get_service_account_access_token()
 
     return await asyncio.gather(
         *(
             _transitive_group_members(access_token, group_name)
             for group_name in group_names
-        )
+        ),
+        return_exceptions=True,
     )
 
 
@@ -150,6 +167,11 @@ def index():
     )
 
     for group, group_members in zip(groups, all_group_members):
+        if isinstance(group_members, Exception):
+            logging.warning(
+                f'Skipping update for "{group}" due to exception {group_members}'
+            )
+            continue
         secret_value = ','.join(group_members)
 
         dataset = dataset_by_group[group]
