@@ -19,7 +19,7 @@ async def _get_group_parent(access_token: str, group_name: str) -> Optional[str]
     """
     Get the group parent (group ID)
     """
-    if group_name.endswith(".iam.gserviceaccount.com"):
+    if group_name.endswith('.iam.gserviceaccount.com'):
         # we know it's not a group, because it's a service account
         return None
 
@@ -41,7 +41,9 @@ async def _get_group_parent(access_token: str, group_name: str) -> Optional[str]
             return json.loads(content)['name']
 
 
-async def _groups_memberships_list(access_token: str, group_parent: str) -> Tuple[List[str], List[str]]:
+async def _groups_memberships_list(
+    access_token: str, group_parent: str
+) -> Tuple[List[str], List[str]]:
     """Get a tuple of (group_emails, member_emails) in this group_parent"""
     members = []
     child_groups = []
