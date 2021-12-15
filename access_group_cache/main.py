@@ -52,6 +52,7 @@ async def _groups_memberships_list(
         page_token = None
         while True:
             # https://cloud.google.com/identity/docs/reference/rest/v1/groups/lookup
+            # use view=FULL so we get the membership 'type' (GROUP or other)
             async with session.get(
                 f'https://cloudidentity.googleapis.com/v1/{group_parent}/memberships?'
                 f'view=FULL&pageToken={page_token or ""}',
@@ -190,8 +191,8 @@ def index():
 
     for group, group_members in zip(groups, all_group_members):
         if isinstance(group_members, Exception):
-            logging.warning(
-                f'Skipping update for "{group}" due to exception {group_members}'
+            logging.error(
+                f'Skipping update for "{group}" due to exception: {group_members}'
             )
             continue
         secret_value = ','.join(group_members)
