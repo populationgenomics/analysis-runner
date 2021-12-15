@@ -118,7 +118,6 @@ async def _transitive_group_members(
                 # if any membership checked, fail the whole group
                 return membership_result
 
-            logging.info(f'Got child_groups and members: {membership_result}')
             child_groups, members = membership_result
 
             result.update(members)
