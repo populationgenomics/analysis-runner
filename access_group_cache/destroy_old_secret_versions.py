@@ -29,7 +29,7 @@ def destroy_old_secret_versions(
     assert project_id and secret_name
     secret_path = secret_manager.secret_path(project_id, secret_name)
 
-    # Disable all previous versions.
+    # Destroy previous versions that fall between start_time and end_time (inclusive)
     for version in secret_manager.list_secret_versions(request={'parent': secret_path}):
         should_delete = version.state == secretmanager.SecretVersion.State.DISABLED
         if start_time or finish_time:
@@ -41,12 +41,10 @@ def destroy_old_secret_versions(
             should_delete = should_delete and after_start and before_end
 
         if should_delete:
-            # secret_manager.destroy_secret_version(request={'name': version.name})
+            secret_manager.destroy_secret_version(request={'name': version.name})
 
             print(
-                'Destroyed secret version: {} (created: {})'.format(
-                    version.name, version.create_time
-                )
+                f'Destroyed secret version: {version.name} (created: {version.create_time})'
             )
 
 
