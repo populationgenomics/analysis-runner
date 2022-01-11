@@ -19,14 +19,14 @@ RUN apt-get update && apt-get install -y git wget bash bzip2 zip && \
         bokeh \
         cpg-utils \
         phantomjs \
-        r-argparser && \
+        r-argparser \
         r-base=4.1.1 \
         r-essentials \
         r-tidyverse \
         sample-metadata=3.5.0 \
         selenium \
         skopeo \
-        statsmodels \
+        statsmodels && \
     rm -r /root/micromamba/pkgs && \
     # hailctl dataproc uses gcloud beta dataproc.
     gcloud -q components install beta
