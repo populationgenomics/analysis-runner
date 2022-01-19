@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y git wget bash bzip2 zip && \
         r-base=4.1.1 \
         r-essentials \
         r-tidyverse \
-        sample-metadata=4.1.0 \
+        sample-metadata=4.1.1 \
         selenium \
         skopeo \
         statsmodels && \
