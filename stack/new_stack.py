@@ -1,14 +1,31 @@
-"""Create GCP project + stack file for Pulumi"""
-# pylint: disable=unreachable,too-many-arguments
-import json
-import logging
+"""
+Create GCP project + stack file for Pulumi
+"""
+# pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error
 import os
 import re
+import json
+import logging
 import subprocess
-import requests
 
 import yaml
 import click
+import requests
+
+from google.cloud.billing.budgets_v1.services.budget_service import (
+    BudgetServiceClient,
+)
+from google.cloud.billing.budgets_v1 import (
+    Budget,
+    BudgetAmount,
+    Filter,
+    ThresholdRule,
+    NotificationsRule,
+    CalendarPeriod,
+)
+from google.api_core.client_options import ClientOptions
+from google.api_core.exceptions import GoogleAPICallError
+from google.type.money_pb2 import Money
 
 TRUTHY_VALUES = ('y', '1', 't')
 DATASET_REGEX = r'^[a-z][a-z0-9-]{1,15}[a-z]$'
@@ -88,7 +105,11 @@ def main(
     logging.info(f'Creating dataset "{dataset}" with GCP id {_gcp_project}.')
 
     if create_hail_service_accounts:
-        print('Skipping creating_hail_service_accounts as it is not implemented yet')
+        inp = str(
+            input('Please confirm you have created the accounts in Hail Batch (y/n): ')
+        )
+        if inp not in TRUTHY_VALUES:
+            raise SystemExit
         # create_hail_accounts(dataset)
 
     if create_gcp_project:
@@ -141,6 +162,7 @@ def assign_billing_account(project_id, billing_account_id=BILLING_ACCOUNT_ID):
     """
     Assign a billing account to a GCP project
     """
+
     command = [
         'gcloud',
         'beta',
@@ -159,27 +181,37 @@ def create_budget(project_id: str, amount=100):
     """
     Create a monthly budget for the project_id
     """
-    command = [
-        'gcloud',
-        *('--project', BILLING_PROJECT_ID),
-        *('billing', 'budgets', 'create'),
-        *('--display-name', project_id),
-        *('--billing-account', BILLING_ACCOUNT_ID),
-        *('--filter-projects', f'projects/{project_id}'),
-        *('--budget-amount', f'{amount:.2f}AUD'),
-        *('--calendar-period', 'month'),
-        *(
-            '--threshold-rule=percent=0.5',
-            '--threshold-rule=percent=0.9',
-            '--threshold-rule=percent=1.0',
-        ),
-        *(
-            '--notifications-rule-pubsub-topic',
-            f'projects/{BILLING_PROJECT_ID}/topics/budget-notifications',
-        ),
-    ]
 
-    return subprocess.check_output(command)
+    budget = Budget(
+        display_name=project_id,
+        budget_filter=Filter(
+            projects=[f'projects/{project_id}'],
+            calendar_period=CalendarPeriod.MONTH,
+        ),
+        amount=BudgetAmount(
+            specified_amount=Money(currency_code='AUD', units=amount, nanos=0),
+        ),
+        threshold_rules=[
+            ThresholdRule(threshold_percent=0.5),
+            ThresholdRule(threshold_percent=0.9),
+            ThresholdRule(threshold_percent=1.0),
+        ],
+        notifications_rule=NotificationsRule(
+            pubsub_topic=f'projects/{BILLING_PROJECT_ID}/topics/budget-notifications',
+            schema_version='1.0',
+        ),
+    )
+    logging.info(f'Creating a budget for {project_id}')
+    try:
+        resp = BudgetServiceClient(
+            client_options=ClientOptions(quota_project_id=BILLING_PROJECT_ID)
+        ).create_budget(budget=budget, parent=f'billingAccounts/{BILLING_ACCOUNT_ID}')
+        logging.info(f'Budget created successfully, {resp}')
+    except GoogleAPICallError as rpc_error:
+        print(rpc_error)
+        raise
+
+    return True
 
 
 def get_hail_service_accounts(dataset: str):
@@ -260,20 +292,12 @@ def generate_pulumi_stack_file(
         ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
     ).decode()
     if current_branch != 'main':
-        answer = str(
-            input(
-                f'Expected branch to be "main", got "{current_branch}". '
-                'Do you want to continue (and branch from this branch) (y/n)? '
-            )
-        ).lower()
-        if answer not in TRUTHY_VALUES:
+        should_continue = click.confirm(
+            f'Expected branch to be "main", got "{current_branch}". '
+            'Do you want to continue (and branch from this branch) (y/n)? '
+        )
+        if not should_continue:
             raise SystemExit
-
-    inp = str(
-        input('Please confirm you have created the accounts in Hail Batch (y/n): ')
-    )
-    if inp not in TRUTHY_VALUES:
-        raise SystemExit
 
     hail_client_emails_by_level = get_hail_service_accounts(dataset=dataset)
 
@@ -359,14 +383,14 @@ def add_dataset_to_tokens(dataset: str):
     Add dataset to the tokens/repository-map.json to
     make permission related caches populate correctly
     """
-
-    with open('../tokens/repository-map.json', 'r+') as f:
-        d = json.load(f)
-        d[dataset] = ['sample-metadata']
-        f.seek(0)
-        json.dump(d, f)
+    print(f'Enable adding dataset {dataset} to tokens')
+    # with open('../tokens/repository-map.json', 'r+') as f:
+    #     d = json.load(f)
+    #     d[dataset] = ['sample-metadata']
+    #     f.seek(0)
+    #     json.dump(d, f)
 
 
 if __name__ == '__main__':
-    # pylint: disable=no-value-for-parameter)
+    # pylint: disable=no-value-for-parameter
     main()
