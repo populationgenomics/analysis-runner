@@ -1,5 +1,5 @@
 """Create GCP project + stack file for Pulumi"""
-# pylint: disable=unreachable
+# pylint: disable=unreachable,too-many-arguments
 import json
 import logging
 import os
@@ -87,8 +87,9 @@ def main(
 
     logging.info(f'Creating dataset "{dataset}" with GCP id {_gcp_project}.')
 
-    # if create_hail_service_accounts:
-    #     create_hail_accounts(dataset)
+    if create_hail_service_accounts:
+        print('Skipping creating_hail_service_accounts as it is not implemented yet')
+        # create_hail_accounts(dataset)
 
     if create_gcp_project:
         create_project(project_id=_gcp_project)
@@ -300,6 +301,8 @@ def generate_pulumi_stack_file(
     if add_to_seqr_stack:
         add_dataset_to_seqr_depends_on(dataset)
 
+    add_dataset_to_tokens(dataset)
+
     logging.info('Preparing GIT commit')
     branch_name = f'add-{dataset}-stack'
     subprocess.check_output(['git', 'checkout', '-b', branch_name])
@@ -349,6 +352,19 @@ def add_dataset_to_seqr_depends_on(dataset: str):
         # go back to the start for writing to disk
         f.seek(0)
         yaml.dump(d, f, default_flow_style=False)
+
+
+def add_dataset_to_tokens(dataset: str):
+    """
+    Add dataset to the tokens/repository-map.json to
+    make permission related caches populate correctly
+    """
+
+    with open('../tokens/repository-map.json', 'r+') as f:
+        d = json.load(f)
+        d[dataset] = ['sample-metadata']
+        f.seek(0)
+        json.dump(d, f)
 
 
 if __name__ == '__main__':
