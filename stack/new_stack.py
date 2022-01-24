@@ -66,6 +66,11 @@ def main(
     if not match:
         raise ValueError(f'Expected dataset {dataset} to match {DATASET_REGEX}.')
 
+    if os.path.basename(os.getcwd()) != 'stack':
+        raise Exception(
+            f'You should run this in the analysis-runner/stack directory, got {os.getcwd()}'
+        )
+
     logging.info(f'Creating dataset "{dataset}" with GCP id {_gcp_project}.')
 
     if create_hail_service_accounts:
@@ -306,7 +311,7 @@ def generate_upload_account_json(dataset, gcp_project):
     """
     Generate access JSON for main-upload service account
     """
-    service_account_fn = os.path.join(os.curdir, f'{dataset}-sa-upload.json')
+    service_account_fn = os.path.join(os.getcwd(), f'{dataset}-sa-upload.json')
     subprocess.check_output(
         [
             *('gcloud', 'iam', 'service-accounts', 'keys', 'create'),
