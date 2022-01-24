@@ -18,6 +18,8 @@ BILLING_ACCOUNT_ID = '01D012-20A6A2-CBD343'
 BILLING_PROJECT_ID = 'billing-admin-290403'
 HAIL_PROJECT = 'hail-295901'
 
+logging.basicConfig(level=logging.INFO)
+
 
 RE_CLIENT_EMAIL_MATCHER = re.compile(
     f'[A-z0-9-]+@{HAIL_PROJECT}.iam.gserviceaccount.com'
@@ -34,6 +36,7 @@ for access_level in test standard full; do kubectl get secret {project}-$access_
 @click.option('--dataset')
 @click.option('--gcp-project', required=False, help='If different to the dataset name')
 @click.option('--create-release-buckets', required=False, is_flag=True)
+@click.option('--perform-all', required=False, is_flag=True)
 @click.option('--create-gcp-project', required=False, is_flag=True)
 @click.option('--setup-gcp-billing', required=False, is_flag=True)
 @click.option('--create-hail-service-accounts', required=False, is_flag=True)
@@ -45,6 +48,7 @@ def main(
     dataset: str,
     gcp_project: str = None,
     create_release_buckets=False,
+    perform_all=False,
     create_gcp_project=False,
     setup_gcp_billing=False,
     create_hail_service_accounts=False,
@@ -54,6 +58,16 @@ def main(
     generate_service_account_key=False,
 ):
     """Function that coordinates creating a project"""
+
+    if perform_all:
+        create_gcp_project = True
+        setup_gcp_billing = True
+        create_hail_service_accounts = True
+        prepare_pulumi_stack = True
+        add_to_seqr_stack = True
+        release_stack = True
+        generate_service_account_key = True
+
     dataset = dataset.lower()
     _gcp_project = (gcp_project or dataset).lower()
 
@@ -73,8 +87,8 @@ def main(
 
     logging.info(f'Creating dataset "{dataset}" with GCP id {_gcp_project}.')
 
-    if create_hail_service_accounts:
-        create_hail_accounts(dataset)
+    # if create_hail_service_accounts:
+    #     create_hail_accounts(dataset)
 
     if create_gcp_project:
         create_project(project_id=_gcp_project)
