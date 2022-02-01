@@ -1,7 +1,7 @@
 """
 Create GCP project + stack file for Pulumi
 """
-# pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error
+# pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error,c-extension-no-member
 import os
 import random
 import re
@@ -107,7 +107,9 @@ def main(
         )
 
     if not re.fullmatch(GCP_PROJECT_REGEX, _gcp_project):
-        components = [f'The GCP project ID "{_gcp_project}" must be between 6 and 30 characters']
+        components = [
+            f'The GCP project ID "{_gcp_project}" must be between 6 and 30 characters'
+        ]
         if len(_gcp_project) < 6:
             components.append('consider adding the --add-random-digits-to-gcp-id flag')
 
@@ -150,7 +152,7 @@ def main(
             add_to_seqr_stack=add_to_seqr_stack,
             dataset=dataset,
             create_release_buckets=create_release_buckets,
-            should_commit=not no_commit
+            should_commit=not no_commit,
         )
 
     if not os.path.exists(pulumi_config_fn):
@@ -169,11 +171,17 @@ def main(
         generate_upload_account_json(dataset=dataset, gcp_project=_gcp_project)
 
 
-def create_project(project_id, organisation_id=ORGANIZATION_ID, return_if_already_exists=True):
+def create_project(
+    project_id, organisation_id=ORGANIZATION_ID, return_if_already_exists=True
+):
     """Call subprocess.check_output to create project under an organisation"""
     # check if exists
     existence_command = ['gcloud', 'projects', 'list', '--filter', project_id]
-    existing_projects_output = subprocess.check_output(existence_command, stderr=subprocess.STDOUT).decode().split("\n")
+    existing_projects_output = (
+        subprocess.check_output(existence_command, stderr=subprocess.STDOUT)
+        .decode()
+        .split("\n")
+    )
     existing_projects_output = [l for l in existing_projects_output if l]
     if len(existing_projects_output) == 2:
         # exists
@@ -274,7 +282,7 @@ def create_hail_accounts(dataset):
     raise NotImplementedError
 
     # Based on: https://github.com/hail-is/hail/pull/11249
-    with open(os.path.expanduser('~/.hail/tokens.json')) as f:
+    with open(os.path.expanduser('~/.hail/tokens.json'), encoding='utf-8') as f:
         hail_auth_token = json.load(f)['default']
 
     username_suffixes = ['-test', '-standard', '-full']
@@ -320,7 +328,9 @@ def generate_pulumi_stack_file(
     Generate Pulumi.{dataset}.yaml pulumi stack file, with required params
     """
     if os.path.exists(pulumi_config_fn):
-        if not click.confirm('The pulumi stack file already existed, do you want to recreate it?'):
+        if not click.confirm(
+            'The pulumi stack file already existed, do you want to recreate it?'
+        ):
             return
 
     branch_name = f'add-{dataset}-stack'
@@ -339,7 +349,9 @@ def generate_pulumi_stack_file(
             try:
                 subprocess.check_output(['git', 'checkout', '-b', branch_name])
             except subprocess.CalledProcessError:
-                logging.error(f'There was an issue checking out the new branch {branch_name}')
+                logging.error(
+                    f'There was an issue checking out the new branch {branch_name}'
+                )
                 raise
 
     hail_client_emails_by_level = get_hail_service_accounts(dataset=dataset)
@@ -393,13 +405,15 @@ def generate_pulumi_stack_file(
         files_to_add = [pulumi_config_fn]
         if add_to_seqr_stack:
             files_to_add.append('Pulumi.seqr.yaml')
-        logging.info(f"""
+        logging.info(
+            f"""
 Created stack {dataset}, you can commit and push this with:
 
     git checkout -b add-{dataset}-stack
     git add {' '.join(files_to_add)}
     git push --set-upstream origin {branch_name}
-""")
+"""
+        )
 
 
 def generate_upload_account_json(dataset, gcp_project):
@@ -421,16 +435,14 @@ def add_dataset_to_seqr_depends_on(dataset: str):
     """
     Add dataset to depends_on in seqr stack
     """
-    with open('Pulumi.seqr.yaml', 'r+') as f:
+    with open('Pulumi.seqr.yaml', 'r+', encoding='utf-8') as f:
         d = yaml.safe_load(f)
         config = d['config']
         depends_on = json.loads(config['datasets:depends_on'])
         if dataset in depends_on:
             # it's already there!
             return
-        config['datasets:depends_on'] = json.dumps(
-            [*depends_on, dataset]
-        )
+        config['datasets:depends_on'] = json.dumps([*depends_on, dataset])
         # go back to the start for writing to disk
         f.seek(0)
         yaml.dump(d, f, default_flow_style=False)
@@ -449,6 +461,7 @@ def add_dataset_to_tokens(dataset: str):
         d[dataset] = ['sample-metadata']
         f.seek(0)
         json.dump(d, f, indent=4)
+    return True
 
 
 if __name__ == '__main__':
