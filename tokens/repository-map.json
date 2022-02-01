@@ -88,5 +88,8 @@
         "sv-workflows",
         "production-pipelines",
         "sample-metadata"
+    ],
+      "schr-neuro": [
+        "sample-metadata"
     ]
 }
