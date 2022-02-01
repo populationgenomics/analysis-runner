@@ -3,6 +3,7 @@ Create GCP project + stack file for Pulumi
 """
 # pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error
 import os
+import random
 import re
 import json
 import logging
@@ -29,6 +30,7 @@ from google.type.money_pb2 import Money
 
 TRUTHY_VALUES = ('y', '1', 't')
 DATASET_REGEX = r'^[a-z][a-z0-9-]{1,15}[a-z]$'
+GCP_PROJECT_REGEX = r'^[a-z0-9-_]{6,30}$'
 
 ORGANIZATION_ID = '648561325637'
 BILLING_ACCOUNT_ID = '01D012-20A6A2-CBD343'
@@ -52,6 +54,8 @@ for access_level in test standard full; do kubectl get secret {project}-$access_
 @click.command()
 @click.option('--dataset')
 @click.option('--gcp-project', required=False, help='If different to the dataset name')
+@click.option('--budget', type=int, help='Monthly budget in whole AUD', default=100)
+@click.option('--add-random-digits-to-gcp-id', required=False, is_flag=True)
 @click.option('--create-release-buckets', required=False, is_flag=True)
 @click.option('--perform-all', required=False, is_flag=True)
 @click.option('--create-gcp-project', required=False, is_flag=True)
@@ -61,9 +65,12 @@ for access_level in test standard full; do kubectl get secret {project}-$access_
 @click.option('--add-to-seqr-stack', required=False, is_flag=True)
 @click.option('--release-stack', required=False, is_flag=True)
 @click.option('--generate-service-account-key', required=False, is_flag=True)
+@click.option('--no-commit', required=False, is_flag=True)
 def main(
     dataset: str,
     gcp_project: str = None,
+    budget: int = 100,
+    add_random_digits_to_gcp_id=False,
     create_release_buckets=False,
     perform_all=False,
     create_gcp_project=False,
@@ -73,6 +80,7 @@ def main(
     add_to_seqr_stack=False,
     release_stack=False,
     generate_service_account_key=False,
+    no_commit=False,
 ):
     """Function that coordinates creating a project"""
 
@@ -81,17 +89,29 @@ def main(
         setup_gcp_billing = True
         create_hail_service_accounts = True
         prepare_pulumi_stack = True
-        add_to_seqr_stack = True
         release_stack = True
         generate_service_account_key = True
 
     dataset = dataset.lower()
-    _gcp_project = (gcp_project or dataset).lower()
+    _gcp_project = gcp_project
+    if not gcp_project:
+        suffix = ''
+        if add_random_digits_to_gcp_id:
+            suffix = '-' + str(random.randint(100000, 999999))
+        _gcp_project = dataset + suffix
+    _gcp_project = _gcp_project.lower()
 
     if len(dataset) > 17:
         raise ValueError(
             f'The dataset length must be less than (or equal to) 17 characters (got {len(dataset)})'
         )
+
+    if not re.fullmatch(GCP_PROJECT_REGEX, _gcp_project):
+        components = [f'The GCP project ID "{_gcp_project}" must be between 6 and 30 characters']
+        if len(_gcp_project) < 6:
+            components.append('consider adding the --add-random-digits-to-gcp-id flag')
+
+        raise ValueError(', '.join(components))
 
     match = re.fullmatch(DATASET_REGEX, dataset)
     if not match:
@@ -113,11 +133,14 @@ def main(
         # create_hail_accounts(dataset)
 
     if create_gcp_project:
-        create_project(project_id=_gcp_project)
-        assign_billing_account(_gcp_project)
+        # True if created, else False if it already existed
+        created_gcp_project = create_project(project_id=_gcp_project)
+        if created_gcp_project:
+            assign_billing_account(_gcp_project)
 
-    if setup_gcp_billing:
-        create_budget(_gcp_project)
+            # I think it makes sense to nest this in here, like
+            if setup_gcp_billing:
+                create_budget(_gcp_project, amount=budget)
 
     pulumi_config_fn = f'Pulumi.{dataset}.yaml'
     if prepare_pulumi_stack:
@@ -127,6 +150,7 @@ def main(
             add_to_seqr_stack=add_to_seqr_stack,
             dataset=dataset,
             create_release_buckets=create_release_buckets,
+            should_commit=not no_commit
         )
 
     if not os.path.exists(pulumi_config_fn):
@@ -145,8 +169,18 @@ def main(
         generate_upload_account_json(dataset=dataset, gcp_project=_gcp_project)
 
 
-def create_project(project_id, organisation_id=ORGANIZATION_ID):
+def create_project(project_id, organisation_id=ORGANIZATION_ID, return_if_already_exists=True):
     """Call subprocess.check_output to create project under an organisation"""
+    # check if exists
+    existence_command = ['gcloud', 'projects', 'list', '--filter', project_id]
+    existing_projects_output = subprocess.check_output(existence_command, stderr=subprocess.STDOUT).decode().split("\n")
+    existing_projects_output = [l for l in existing_projects_output if l]
+    if len(existing_projects_output) == 2:
+        # exists
+        if not return_if_already_exists:
+            raise ValueError(f'Project {project_id} already exists')
+        return False
+
     command = [
         'gcloud',
         'projects',
@@ -156,6 +190,7 @@ def create_project(project_id, organisation_id=ORGANIZATION_ID):
         organisation_id,
     ]
     subprocess.check_output(command)
+    return True
 
 
 def assign_billing_account(project_id, billing_account_id=BILLING_ACCOUNT_ID):
@@ -279,25 +314,33 @@ def generate_pulumi_stack_file(
     dataset: str,
     add_to_seqr_stack: bool,
     create_release_buckets: bool,
+    should_commit=True,
 ):
     """
     Generate Pulumi.{dataset}.yaml pulumi stack file, with required params
     """
     if os.path.exists(pulumi_config_fn):
-        raise ValueError(
-            'Can not create pulumi stack file as the pulumi config already exists'
-        )
+        if not click.confirm('The pulumi stack file already existed, do you want to recreate it?'):
+            return
 
-    current_branch = subprocess.check_output(
-        ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
-    ).decode()
-    if current_branch != 'main':
-        should_continue = click.confirm(
-            f'Expected branch to be "main", got "{current_branch}". '
-            'Do you want to continue (and branch from this branch) (y/n)? '
-        )
-        if not should_continue:
-            raise SystemExit
+    branch_name = f'add-{dataset}-stack'
+    if should_commit:
+        current_branch = subprocess.check_output(
+            ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+        ).decode()
+        if current_branch != 'main':
+            should_continue = click.confirm(
+                f'Expected branch to be "main", got "{current_branch}". '
+                'Do you want to continue (and branch from this branch) (y/n)? '
+            )
+            if not should_continue:
+                raise SystemExit
+        elif current_branch != branch_name:
+            try:
+                subprocess.check_output(['git', 'checkout', '-b', branch_name])
+            except subprocess.CalledProcessError:
+                logging.error(f'There was an issue checking out the new branch {branch_name}')
+                raise
 
     hail_client_emails_by_level = get_hail_service_accounts(dataset=dataset)
 
@@ -312,7 +355,7 @@ def generate_pulumi_stack_file(
             'datasets:customer_id': 'C010ys3gt',
             'datasets:enable_release': create_release_buckets,
             'gcp:billing_project': gcp_project,
-            'gcp:project': dataset,
+            'gcp:project': gcp_project,
             'gcp:user_project_override': 'true',
             **formed_hail_config,
         },
@@ -327,25 +370,36 @@ def generate_pulumi_stack_file(
 
     add_dataset_to_tokens(dataset)
 
-    logging.info('Preparing GIT commit')
-    branch_name = f'add-{dataset}-stack'
-    subprocess.check_output(['git', 'checkout', '-b', branch_name])
-    subprocess.check_output(['git', 'add', pulumi_config_fn])
+    if should_commit:
+        logging.info('Preparing GIT commit')
 
-    if add_to_seqr_stack:
-        subprocess.check_output(['git', 'add', 'Pulumi.seqr.yaml'])
+        subprocess.check_output(['git', 'add', pulumi_config_fn])
 
-    default_commit_message = f'Adds {dataset} dataset'
-    commit_message = str(
-        input(f'Commit message (default="{default_commit_message}"): ')
-    )
-    subprocess.check_output(
-        ['git', 'commit', '-m', commit_message or default_commit_message]
-    )
-    logging.info(
-        f'Created stack, you can push this WITH:\n\n'
-        f'\tgit push --set-upstream origin {branch_name}'
-    )
+        if add_to_seqr_stack:
+            subprocess.check_output(['git', 'add', 'Pulumi.seqr.yaml'])
+
+        default_commit_message = f'Adds {dataset} dataset'
+        commit_message = str(
+            input(f'Commit message (default="{default_commit_message}"): ')
+        )
+        subprocess.check_output(
+            ['git', 'commit', '-m', commit_message or default_commit_message]
+        )
+        logging.info(
+            f'Created stack, you can push this WITH:\n\n'
+            f'\tgit push --set-upstream origin {branch_name}'
+        )
+    else:
+        files_to_add = [pulumi_config_fn]
+        if add_to_seqr_stack:
+            files_to_add.append('Pulumi.seqr.yaml')
+        logging.info(f"""
+Created stack {dataset}, you can commit and push this with:
+
+    git checkout -b add-{dataset}-stack
+    git add {' '.join(files_to_add)}
+    git push --set-upstream origin {branch_name}
+""")
 
 
 def generate_upload_account_json(dataset, gcp_project):
@@ -370,8 +424,12 @@ def add_dataset_to_seqr_depends_on(dataset: str):
     with open('Pulumi.seqr.yaml', 'r+') as f:
         d = yaml.safe_load(f)
         config = d['config']
+        depends_on = json.loads(config['datasets:depends_on'])
+        if dataset in depends_on:
+            # it's already there!
+            return
         config['datasets:depends_on'] = json.dumps(
-            [*json.loads(config['datasets:depends_on']), dataset]
+            [*depends_on, dataset]
         )
         # go back to the start for writing to disk
         f.seek(0)
@@ -383,12 +441,14 @@ def add_dataset_to_tokens(dataset: str):
     Add dataset to the tokens/repository-map.json to
     make permission related caches populate correctly
     """
-    print(f'Enable adding dataset {dataset} to tokens')
-    # with open('../tokens/repository-map.json', 'r+') as f:
-    #     d = json.load(f)
-    #     d[dataset] = ['sample-metadata']
-    #     f.seek(0)
-    #     json.dump(d, f)
+    with open('../tokens/repository-map.json', 'r+') as f:
+        d = json.load(f)
+        if dataset in d:
+            # It's already there!
+            return False
+        d[dataset] = ['sample-metadata']
+        f.seek(0)
+        json.dump(d, f, indent=4)
 
 
 if __name__ == '__main__':
