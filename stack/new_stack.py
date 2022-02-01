@@ -1,7 +1,7 @@
 """
 Create GCP project + stack file for Pulumi
 """
-# pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error,c-extension-no-member
+# pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error
 import os
 import random
 import re
@@ -180,9 +180,9 @@ def create_project(
     existing_projects_output = (
         subprocess.check_output(existence_command, stderr=subprocess.STDOUT)
         .decode()
-        .split("\n")
+        .split('\n')
     )
-    existing_projects_output = [l for l in existing_projects_output if l]
+    existing_projects_output = [line for line in existing_projects_output if line]
     if len(existing_projects_output) == 2:
         # exists
         if not return_if_already_exists:
@@ -453,7 +453,7 @@ def add_dataset_to_tokens(dataset: str):
     Add dataset to the tokens/repository-map.json to
     make permission related caches populate correctly
     """
-    with open('../tokens/repository-map.json', 'r+') as f:
+    with open('../tokens/repository-map.json', 'r+', encoding='utf-8') as f:
         d = json.load(f)
         if dataset in d:
             # It's already there!

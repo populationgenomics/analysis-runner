@@ -14,7 +14,7 @@
 # 7. similar lines
 
 disable=f-string-without-interpolation,inherit-non-class,too-few-public-methods,C0330,
-        C0326,fixme,logging-fstring-interpolation,line-too-long,too-many-statements,R0801
+        C0326,fixme,logging-fstring-interpolation,line-too-long,too-many-statements,R0801,c-extension-no-member
 
 # Overriding variable name patterns to allow short 1- or 2-letter variables
 attr-rgx=[a-z_][a-z0-9_]{0,30}$
