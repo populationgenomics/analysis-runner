@@ -14,7 +14,7 @@ analysis-runner \
     --dataset fewgenomes \
     --output mfranklin-analysis-runner-test \
     --access-level test \
-    --description 'Hello, fewgenomes!'
+    --description 'Hello, fewgenomes!' \
     --workflow-input-prefix 'hello.' \
     --imports tools \
     hello.wdl \
