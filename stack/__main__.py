@@ -293,7 +293,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     web_access_group = create_group(group_mail(dataset, 'web-access'))
 
     # other stacks require the access group to exist
-    pulumi.export(access_group_mail.split('@')[0], access_group.id)
+    pulumi.export(access_group_mail.split('@')[0] + '-group-id', access_group.id)
 
     # Create groups for each access level.
     access_level_groups = {}
@@ -335,23 +335,24 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
             )
 
-            # add the {dataset}-access group to the dependency
-            depends_on_access_group_name = group_mail(dependency, 'access').split('@')[
-                0
-            ]
-            depends_on_access_group_id = dependency_stacks[dependency].get_output(
-                depends_on_access_group_name,
-            )
-            depends_on_access_group = gcp.cloudidentity.Group.get(
-                depends_on_access_group_name, depends_on_access_group_id
-            )
-            gcp.cloudidentity.GroupMembership(
-                f'{dataset}-{dependency}-access',
-                group=depends_on_access_group,
-                preferred_member_key=access_group.group_key,
-                roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
-                opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
-            )
+    for dependency in dependency_stacks:
+        # add the {dataset}-access group to the dependency
+        depends_on_access_group_name = (
+            group_mail(dependency, 'access').split('@')[0] + '-group-id'
+        )
+        depends_on_access_group_id = dependency_stacks[dependency].get_output(
+            depends_on_access_group_name,
+        )
+        depends_on_access_group = gcp.cloudidentity.Group.get(
+            depends_on_access_group_name, depends_on_access_group_id
+        )
+        gcp.cloudidentity.GroupMembership(
+            f'{dataset}-{dependency}-access',
+            group=depends_on_access_group,
+            preferred_member_key=access_group.group_key,
+            roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+        )
 
     for kind, access_level, service_account in service_accounts_gen():
         gcp.cloudidentity.GroupMembership(
