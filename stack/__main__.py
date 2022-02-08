@@ -335,12 +335,12 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
             )
 
-    for dependency in dependency_stacks:
+    for dependency, dstack in dependency_stacks.items():
         # add the {dataset}-access group to the dependency
         depends_on_access_group_name = (
             group_mail(dependency, 'access').split('@')[0] + '-group-id'
         )
-        depends_on_access_group_id = dependency_stacks[dependency].get_output(
+        depends_on_access_group_id = dstack.get_output(
             depends_on_access_group_name,
         )
         depends_on_access_group = gcp.cloudidentity.Group.get(
