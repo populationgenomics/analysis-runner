@@ -94,6 +94,7 @@ def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
     cluster_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
+    autoscaling_policy: Optional[str] = None,
 ) -> DataprocCluster:
     """
     Adds jobs to the Batch that start and stop a Dataproc cluster, and returns
@@ -127,6 +128,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     max_age: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
+    autoscaling_policy: Optional[str] = None,
     worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
@@ -204,6 +206,10 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         start_job_command.append(f'--requester-pays-allow-all')
     if scopes:
         start_job_command.append(f'--scopes={",".join(scopes)}')
+
+    if autoscaling_policy:
+        start_job_command.append(f'--autoscaling-policy={autoscaling_policy}')
+
     start_job_command.append(cluster_id)
 
     start_job.command(' '.join(start_job_command))
