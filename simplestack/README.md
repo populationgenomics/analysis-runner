@@ -51,7 +51,9 @@ gcloud config set project $GCP_PROJECT
 
 # build image
 IMAGE="GCP_REGION-docker.pkg.dev/$GCP_PROJECT/images/$SERVICE_NAME:latest"
-exit 1; # implement the building and pushing, then we can talk about deploying
+
+gcloud builds submit . --tag=$IMAGE
+
 gcloud run deploy $SERVICE_NAME \
   --image=$IMAGE \
   --region=GCP_REGION \
