@@ -47,7 +47,7 @@ az_path = os.getenv('AZ_PATH')
 
 @app.get('/')
 def get_urls(whoami: str = Depends(authenticate)):
-    return {'gcp': gcp_path, 'az': az_path, 'whoami': whoami}
+    return {'gcp': gcp_path, 'azure': az_path, 'whoami': whoami}
 
 
 if __name__ == '__main__':
