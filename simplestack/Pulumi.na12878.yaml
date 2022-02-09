@@ -1,0 +1,14 @@
+encryptionsalt: v1:SPQXlVggjxw=:v1:X1sTpViNuyK+Wcom:3GANI8gZOKtk0gG7BklsyHeNU5uVLw==
+config:
+  datasets:customer_id: C010ys3gt
+  datasets:enable_release: "false"
+  datasets:gcp_hail_service_account_test: <to-fill-in-later>
+  datasets:gcp_hail_service_account_standard: <to-fill-in-later>
+  datasets:gcp_hail_service_account_full: <to-fill-in-later>
+  datasets:az_hail_service_account_test: <to-fill-in-later>
+  datasets:az_hail_service_account_standard: <to-fill-in-later>
+  datasets:az_hail_service_account_full: <to-fill-in-later>
+  gcp:billing_project: cpg-na12878
+  gcp:project: cpg-na12878
+  gcp:user_project_override: "true"
+  azure-native:location: "australiaeast"
