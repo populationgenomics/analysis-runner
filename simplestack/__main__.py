@@ -26,7 +26,9 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     [gcp_svc_identity] = enable_gcp_services()
 
     # create AD group, and give permission to the group to read from the bucket
-    gcp_access_grp, az_acccess_grp = create_group(f'{dataset}-access', gcp_svc_cloudidentity=gcp_svc_identity)
+    gcp_access_grp, az_acccess_grp = create_group(
+        f'{dataset}-access', gcp_svc_cloudidentity=gcp_svc_identity
+    )
 
     create_bucket(rg, f'cpg-{dataset}-main')
 
@@ -48,26 +50,26 @@ def create_group(group_name, gcp_svc_cloudidentity):
         opts=pulumi.resource.ResourceOptions(depends_on=[gcp_svc_cloudidentity]),
     )
 
-    az_grp = azuread.Group(group_name,
-                            display_name=group_name,
-                            owners=[],
-                            security_enabled=True)
-
+    az_grp = azuread.Group(
+        group_name, display_name=group_name, owners=[], security_enabled=True
+    )
 
     return gcp_grp, az_grp
-
 
 
 def az_get_storage_account(rg):
     global az_storage_account
     if az_storage_account is None:
-        az_storage_account = az.storage.StorageAccount('default',
-                              resource_group_name=rg.name,
-                              sku=az.storage.SkuArgs(
-                                  name=az.storage.SkuName.STANDARD_LRS,
-                              ),
-                              kind=az.storage.Kind.STORAGE_V2)
+        az_storage_account = az.storage.StorageAccount(
+            'default',
+            resource_group_name=rg.name,
+            sku=az.storage.SkuArgs(
+                name=az.storage.SkuName.STANDARD_LRS,
+            ),
+            kind=az.storage.Kind.STORAGE_V2,
+        )
     return az_storage_account
+
 
 def create_bucket(rg, bucket_name):
     """Create bucket in GCP and Azure"""
