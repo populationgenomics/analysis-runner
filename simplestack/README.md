@@ -1,5 +1,7 @@
 # Setting up Azure for GCP
 
+> EVERYTHING IN THIS FILE / DIR IS UNTESTED! JUST A COLLECTION OF NOTES SO FAR!
+
 This directory is a PoC, to see how possible it is to set-up a tiny
 infrastructure on both GCP and Azure, as a model for how we intend to
 set it up.
