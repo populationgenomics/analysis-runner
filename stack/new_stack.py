@@ -1,5 +1,8 @@
 """
 Create GCP project + stack file for Pulumi
+
+requirements:
+    - google-cloud-billing-budgets pyyaml click
 """
 # pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error
 import os
