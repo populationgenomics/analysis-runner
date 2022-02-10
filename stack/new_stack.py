@@ -93,7 +93,6 @@ def main(
         create_hail_service_accounts = True
         prepare_pulumi_stack = True
         release_stack = True
-        generate_service_account_key = True
 
     dataset = dataset.lower()
     _gcp_project = gcp_project
@@ -380,18 +379,19 @@ def generate_pulumi_stack_file(
         print(f'Writing to {pulumi_config_fn}')
         yaml.dump(pulumi_stack, fp, default_flow_style=False)
 
+    files_to_add = [pulumi_config_fn]
+
     if add_to_seqr_stack:
         add_dataset_to_seqr_depends_on(dataset)
+        files_to_add.append('Pulumi.seqr.yaml')
 
     add_dataset_to_tokens(dataset)
+    files_to_add.append('../tokens/repository-map.json')
 
     if should_commit:
         logging.info('Preparing GIT commit')
 
-        subprocess.check_output(['git', 'add', pulumi_config_fn])
-
-        if add_to_seqr_stack:
-            subprocess.check_output(['git', 'add', 'Pulumi.seqr.yaml'])
+        subprocess.check_output(['git', 'add', *files_to_add])
 
         default_commit_message = f'Adds {dataset} dataset'
         commit_message = str(
@@ -405,9 +405,6 @@ def generate_pulumi_stack_file(
             f'\tgit push --set-upstream origin {branch_name}'
         )
     else:
-        files_to_add = [pulumi_config_fn]
-        if add_to_seqr_stack:
-            files_to_add.append('Pulumi.seqr.yaml')
         logging.info(
             f"""
 Created stack {dataset}, you can commit and push this with:
