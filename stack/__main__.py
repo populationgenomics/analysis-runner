@@ -80,7 +80,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     )
 
     # Enable Dataproc until the Hail Query Service is ready.
-    cloudidentity = gcp.projects.Service(
+    _ = gcp.projects.Service(
         'dataproc-service',
         service='dataproc.googleapis.com',
         disable_on_destroy=False,
@@ -289,6 +289,13 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             member=f'serviceAccount:{ACCESS_GROUP_CACHE_SERVICE_ACCOUNT}',
         )
 
+    access_group_mail = group_mail(dataset, 'access')
+    access_group = create_group(access_group_mail)
+    web_access_group = create_group(group_mail(dataset, 'web-access'))
+
+    # other stacks require the access group to exist
+    pulumi.export(access_group_mail.split('@')[0] + '-group-id', access_group.id)
+
     # Create groups for each access level.
     access_level_groups = {}
     for access_level in ACCESS_LEVELS:
@@ -329,6 +336,25 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
             )
 
+    for dependency, dstack in dependency_stacks.items():
+        # add the {dataset}-access group to the dependency
+        depends_on_access_group_name = (
+            group_mail(dependency, 'access').split('@')[0] + '-group-id'
+        )
+        depends_on_access_group_id = dstack.get_output(
+            depends_on_access_group_name,
+        )
+        depends_on_access_group = gcp.cloudidentity.Group.get(
+            depends_on_access_group_name, depends_on_access_group_id
+        )
+        gcp.cloudidentity.GroupMembership(
+            f'{dataset}-{dependency}-access',
+            group=depends_on_access_group,
+            preferred_member_key=access_group.group_key,
+            roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+        )
+
     for kind, access_level, service_account in service_accounts_gen():
         gcp.cloudidentity.GroupMembership(
             f'{kind}-{access_level}-access-level-group-membership',
@@ -339,9 +365,6 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
         )
-
-    access_group = create_group(group_mail(dataset, 'access'))
-    web_access_group = create_group(group_mail(dataset, 'web-access'))
 
     secretmanager = gcp.projects.Service(
         'secretmanager-service',

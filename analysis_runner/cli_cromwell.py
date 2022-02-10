@@ -105,9 +105,13 @@ def _add_cromwell_submit_args_to(parser):
     parser.add_argument(
         '-p',
         '--imports',
-        nargs='+',
         required=False,
-        help='A list of directories which are used to search for workflow imports',
+        action='append',
+        help=(
+            'A directory which is used to search for workflow imports. You can specify this argument multiple times.'
+            'Note: the directories are zipped from the cwd with `zip -r {directory1} {directory2}`.'
+            'Please raise an issue to change this behaviour',
+        ),
     )
     parser.add_argument(
         '--workflow-input-prefix',
