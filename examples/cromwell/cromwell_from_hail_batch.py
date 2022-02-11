@@ -11,7 +11,7 @@ from analysis_runner.cromwell import (
 
 OUTPUT_SUFFIX = 'vivbak/analysis-runner-test/out/'
 # DATASET = os.getenv('DATASET')
-BUCKET = 'vivian-dev-upload'
+BUCKET = 'cpg-fewgenomes-test-tmp'
 OUTPUT_PATH = os.path.join(f'gs://{BUCKET}', OUTPUT_SUFFIX)
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
 ACCESS_LEVEL = 'test'
