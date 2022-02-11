@@ -1,3 +1,4 @@
+import os
 import hailtop.batch as hb
 import click
 
@@ -6,7 +7,10 @@ import click
 @click.option('--name-to-print')
 def main(name_to_print):
 
-    sb = hb.ServiceBackend()
+    sb = hb.ServiceBackend(
+        billing_project=os.getenv('HAIL_BILLING_PROJECT'),
+        bucket=os.getenv('HAIL_BUCKET')
+    )
     b = hb.Batch(backend=sb)
 
     j = b.new_job('first job')
