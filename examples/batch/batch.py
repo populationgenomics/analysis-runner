@@ -13,10 +13,16 @@ OUTPUT_PREFIX = os.getenv('OUTPUT')
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
 ACCESS_LEVEL = os.getenv('ACCESS_LEVEL')
 
+REF_FASTA = 'gs://cpg-reference/hg38/v1/Homo_sapiens_assembly38.fasta'
+
 
 @click.command()
-@click.option('--cram', 'cram_path', 'Input CRAM or BAM file')
-def main(cram_path: str):  # pylint: disable=missing-function-docstring
+@click.argument('cram_path')
+@click.argument('region')
+def main(cram_path: str, region: str):  # pylint: disable=missing-function-docstring
+    """
+    Subset CRAM or BAM file CRAM_PATH to REGION. Example: batch.py sample.cram chr21:1-10000
+    """
     # Initializing Batch
     backend = hb.ServiceBackend(billing_project=BILLING_PROJECT, bucket=BUCKET)
     b = hb.Batch(backend=backend, default_image=os.getenv('DRIVER_IMAGE'))
@@ -28,12 +34,11 @@ def main(cram_path: str):  # pylint: disable=missing-function-docstring
     cram = b.read_input_group(**{'cram': cram_path, 'cram.crai': cram_path + '.crai'})
 
     # Working with CRAM files requires the reference fasta
-    ref_fasta = 'gs://cpg-reference/hg38/v1/Homo_sapiens_assembly38.fasta'
     ref = b.read_input_group(
         **dict(
-            base=ref_fasta,
-            fai=ref_fasta + '.fai',
-            dict=ref_fasta.replace('.fasta', '').replace('.fna', '').replace('.fa', '')
+            base=REF_FASTA,
+            fai=REF_FASTA + '.fai',
+            dict=REF_FASTA.replace('.fasta', '').replace('.fna', '').replace('.fa', '')
             + '.dict',
         )
     )
@@ -51,7 +56,7 @@ def main(cram_path: str):  # pylint: disable=missing-function-docstring
     # The command that do the actual job.
     j.command(
         f"""
-    samtools view {cram} -T {ref} -L chr21:1-10000 -o -Ocram {j.output_bam}
+    samtools view {cram} -T {ref} -L {region} -o -Ocram {j.output_bam}
     """
     )
 

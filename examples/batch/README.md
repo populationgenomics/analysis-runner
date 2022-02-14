@@ -9,14 +9,15 @@ analysis-runner \
   --access-level test \
   --dataset fewgenomes \
   --description "Run Batch" \
-  --output-dir "$(whoami)_test_batch" \
+  --output-dir "analysis-runner-test/$(whoami)/batch" \
   batch.py \
-  --cram gs://cpg-fewgenomes-test/benchmark/inputs/toy/NA12878-chr21-tiny.cram
+  --cram gs://cpg-fewgenomes-test/analysis-runner-test/batch/input.cram \
+  --region chr21:1-10000
 ```
 
 Check that the pipeline output GCS bucket contains the expected output file:
 
 ```bash
-gsutil ls gs://cpg-fewgenomes-test/analysis-runner-test/batch/output/
-gs://cpg-fewgenomes-test/$(whoami)_test_batch/NA12878-chr21-tiny-subset.cram
+gsutil ls gs://cpg-fewgenomes-test/analysis-runner-test/$(whoami)/batch
+# gs://cpg-fewgenomes-test/analysis-runner-test/$(whoami)/batch/input-subset.cram
 ```
