@@ -1,4 +1,16 @@
-"""Test Hail Batch Workflow"""
+"""
+Test Hail Batch Workflow
+
+
+    cd examples/batch
+    analysis-runner \
+      --access-level test \
+      --dataset fewgenomes \
+      --description "Run Batch" \
+      --output-dir "$(whoami)/hello-world" \
+      hello.py \
+      --name-to-print $(whoami)
+"""
 import os
 from shlex import quote
 import hailtop.batch as hb
