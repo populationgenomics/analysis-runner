@@ -44,7 +44,7 @@ def main(
     j.image('australia-southeast1-docker.pkg.dev/cpg-common/images/bioinformatics:v1-1')
 
     # For larger CRAMs, request more storage.
-    j.strorage('10G')
+    j.storage('10G')
 
     # If you want to run a multithreaded command, e.g. samtools with -@, request more CPUs here.
     # Note that the machines use hyperthreading, so for every CPU, 2x threads are available.
