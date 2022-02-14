@@ -23,6 +23,7 @@ def main(
     backend = hb.ServiceBackend(billing_project=BILLING_PROJECT, bucket=BUCKET)
     b = hb.Batch(backend=backend, default_image=os.getenv('DRIVER_IMAGE'))
 
+    # Adding a job and giving it a descriptive name.
     j = b.new_job('Subset CRAM')
 
     # Making sure Hail Batch would localize both CRAM and the correponding CRAI index
@@ -39,6 +40,17 @@ def main(
         )
     )
 
+    # This image contains basic bioinformatics tools like samtools, bcftools, Picard, etc.
+    j.image('australia-southeast1-docker.pkg.dev/cpg-common/images/bioinformatics:v1-1')
+
+    # For larger CRAMs, request more storage.
+    j.strorage('10G')
+
+    # If you want to run a multithreaded command, e.g. samtools with -@, request more CPUs here.
+    # Note that the machines use hyperthreading, so for every CPU, 2x threads are available.
+    j.cpu(2)
+
+    # The command that do the actual job.
     j.command(
         f"""
     samtools view {cram} -T {ref} -L chr21:1-10000 -o -Ocram {j.output_bam}
