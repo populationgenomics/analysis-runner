@@ -16,6 +16,7 @@ from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/tmp/metadata'
 PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
+CONTAINER_IMAGE_PREFIX = 'australia-southeast1-docker.pkg.dev/cpg-common/'
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
 
@@ -181,3 +182,13 @@ def write_metadata_to_bucket(
         f'{METADATA_PREFIX}_new.json > {METADATA_PREFIX}.json'
     )
     job.command(f'gsutil cp {METADATA_PREFIX}.json {quote(metadata_path)}')
+
+
+def validate_container(container: str, is_test: bool):
+    """
+    Check that the image is valid for the access_level
+    """
+    if is_test:
+        return True
+
+    return container.startswith(CONTAINER_IMAGE_PREFIX)

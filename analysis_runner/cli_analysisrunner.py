@@ -36,6 +36,19 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     add_general_args(parser)
 
     parser.add_argument(
+        '--container',
+        help=(
+            'Container name, if using standard / full access levels, this must start with '
+            'australia-southeast1-docker.pkg.dev/cpg-common/*.'
+        ),
+    )
+    parser.add_argument('--cpu', type=int, help='Number of CPUs to request')
+    parser.add_argument(
+        '--memory',
+        help='Amount of memory to request in GB, see hail batch docs for available options. Eg: 4G',
+    )
+
+    parser.add_argument(
         '-e',
         '--environment-variables',
         required=False,
@@ -53,7 +66,7 @@ def run_analysis_runner_from_args(args):
     return run_analysis_runner(**vars(args))
 
 
-def run_analysis_runner(
+def run_analysis_runner(  # pylint: disable=too-many-arguments
     dataset,
     output_dir,
     script,
@@ -62,6 +75,9 @@ def run_analysis_runner(
     commit=None,
     repository=None,
     cwd=None,
+    container=None,
+    cpu=None,
+    memory=None,
     environment_variables: List[str] = None,
     use_test_server=False,
 ):
@@ -157,6 +173,9 @@ def run_analysis_runner(
             'script': _script,
             'description': description,
             'cwd': _cwd,
+            'container': container,
+            'cpu': cpu,
+            'memory': memory,
             'environmentVariables': _environment_variables,
         },
         headers={'Authorization': f'Bearer {_token}'},
