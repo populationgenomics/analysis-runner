@@ -9,16 +9,14 @@ import click
 
 DATASET = os.getenv('DATASET')
 BUCKET = os.getenv('HAIL_BUCKET')
+OUTPUT_PREFIX = os.getenv('OUTPUT')
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
 ACCESS_LEVEL = os.getenv('ACCESS_LEVEL')
 
 
 @click.command()
 @click.option('--cram', 'cram_path', 'Input CRAM or BAM file')
-@click.option('--output', 'output_path', 'Output path to write the result')
-def main(
-    cram_path: str, output_path: str
-):  # pylint: disable=missing-function-docstring
+def main(cram_path: str):  # pylint: disable=missing-function-docstring
     # Initializing Batch
     backend = hb.ServiceBackend(billing_project=BILLING_PROJECT, bucket=BUCKET)
     b = hb.Batch(backend=backend, default_image=os.getenv('DRIVER_IMAGE'))
@@ -57,8 +55,11 @@ def main(
     """
     )
 
-    # Writing the result
+    # Speciying where to write the result
+    out_fname = os.path.splitext(os.path.basename(cram_path)[0]) + '-split.cram'
+    output_path = os.path.join(OUTPUT_PREFIX, out_fname)
     b.write_output(j.output_bam, output_path)
+
     # don't wait for the hail batch workflow to complete, otherwise
     # the workflow might get resubmitted if this VM gets preempted.
     b.run(wait=False)
