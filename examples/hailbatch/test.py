@@ -1,4 +1,6 @@
+"""Test Hail Batch Workflow"""
 import os
+from shlex import quote
 import hailtop.batch as hb
 import click
 
@@ -6,21 +8,29 @@ import click
 @click.command()
 @click.option('--name-to-print')
 def main(name_to_print):
-
+    """Runs test hail batch workflow"""
     sb = hb.ServiceBackend(
         billing_project=os.getenv('HAIL_BILLING_PROJECT'),
-        bucket=os.getenv('HAIL_BUCKET')
+        bucket=os.getenv('HAIL_BUCKET'),
     )
     b = hb.Batch(backend=sb)
 
-    j = b.new_job('first job')
-    j.command(f'echo "Hello, {name_to_print}" > {j.outfile}')
+    j1 = b.new_job('first job')
+    # For Hail batch, j.{identifier} will create a Resource (file)
+    # that will be collected at the end of a job
+    stdout_of_j = j1.out
+    string_to_print = f'Hello, {name_to_print}'
+    j1.command(f'echo {quote(string_to_print)}" > {stdout_of_j}')
 
     j2 = b.new_job('second job')
-    j2.command(f'cat {j.outfile}')
+    # for the second job, using an f-string with the resource file
+    # will tell batch to run j2 AFTER j1
+    j2.command(f'cat {stdout_of_j}')
 
+    # use wait=False, otherwise this line will hang while the sub-batch runs
+    # bad for running hail batch within a hail batch, as preemption
     b.run(wait=False)
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    main()  # pylint: disable=no-value-for-parameter
