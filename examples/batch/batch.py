@@ -29,7 +29,7 @@ def main(
     # Making sure Hail Batch would localize both CRAM and the correponding CRAI index
     cram = b.read_input_group(**{'cram': cram_path, 'cram.crai': cram_path + '.crai'})
 
-    # Working with CRAM files requires the refernece fasta
+    # Working with CRAM files requires the reference fasta
     ref_fasta = 'gs://cpg-reference/hg38/v1/Homo_sapiens_assembly38.fasta'
     ref = b.read_input_group(
         **dict(
