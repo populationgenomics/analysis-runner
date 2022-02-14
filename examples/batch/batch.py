@@ -59,7 +59,9 @@ def main(
 
     # Writing the result
     b.write_output(j.output_bam, output_path)
-    b.run()
+    # don't wait for the hail batch workflow to complete, otherwise
+    # the workflow might get resubmitted if this VM gets preempted.
+    b.run(wait=False)
 
 
 if __name__ == '__main__':
