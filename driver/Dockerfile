@@ -27,6 +27,6 @@ RUN apt-get update && apt-get install -y git wget bash bzip2 zip && \
         skopeo \
         statsmodels && \
     rm -r /root/micromamba/pkgs && \
-    pip install cpg-hail=$HAIL_VERSION && \
+    pip3 install cpg-hail=$HAIL_VERSION && \
     # hailctl dataproc uses gcloud beta dataproc.
     gcloud -q components install beta
