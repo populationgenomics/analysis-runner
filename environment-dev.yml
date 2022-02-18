@@ -5,6 +5,7 @@ channels:
   - conda-forge
 dependencies:
   - pip
+  - analysis-runner  # Not yet in pypi.
   - cpg-utils  # Not yet in pypi.
   - pip:
     - airtable-python-wrapper
@@ -14,14 +15,15 @@ dependencies:
     - flake8
     - flake8-bugbear
     - flask
-    - google-api-python-client
-    - google-auth
-    - google-cloud-pubsub
-    - google-cloud-secret-manager
-    - google-cloud-storage
+    - google-api-python-client==2.10.0
+    - google-auth==1.27.0
+    - google-cloud-logging==3.0.0
+    - google-cloud-pubsub==2.3.0
+    - google-cloud-secret-manager==2.2.0
+    - google-cloud-storage==1.25.0
+    - kubernetes
     - pre-commit
     - pulumi-gcp
     - pylint
-    - python-kubernetes
     - requests
     - tabulate
