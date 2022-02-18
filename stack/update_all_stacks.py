@@ -10,7 +10,7 @@ import yaml
 
 deps = {}
 for filename in glob.glob('Pulumi.*.yaml'):
-    with open(filename) as f:
+    with open(filename, encoding='utf-8') as f:
         parsed = yaml.safe_load(f)
     dataset = filename.split('.')[1]
     deps[dataset] = parsed['config'].get('datasets:depends_on', [])
