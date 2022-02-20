@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y git wget bash bzip2 zip && \
     mkdir $MAMBA_ROOT_PREFIX && \
     micromamba install -y --prefix $MAMBA_ROOT_PREFIX \
         -c cpg -c bioconda -c conda-forge \
-        hail=$HAIL_VERSION \
         analysis-runner \
         bokeh \
         cpg-utils \
@@ -28,5 +27,6 @@ RUN apt-get update && apt-get install -y git wget bash bzip2 zip && \
         skopeo \
         statsmodels && \
     rm -r /root/micromamba/pkgs && \
+    pip3 install cpg-hail=$HAIL_VERSION && \
     # hailctl dataproc uses gcloud beta dataproc.
     gcloud -q components install beta
