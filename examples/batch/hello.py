@@ -1,7 +1,6 @@
 """
 Test Hail Batch Workflow
 
-
     cd examples/batch
     analysis-runner \
       --access-level test \
