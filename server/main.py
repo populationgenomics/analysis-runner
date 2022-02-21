@@ -125,8 +125,11 @@ async def index(request):
         metadata_str=json.dumps(metadata),
     )
     job.image(container)
-    job.cpu(cpus)
-    job.memory(mem)
+    if cpus:
+        job.cpu(cpus)
+    if mem:
+        job.memory(mem)
+
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
     job.env('DATASET', dataset)
     job.env('ACCESS_LEVEL', access_level)

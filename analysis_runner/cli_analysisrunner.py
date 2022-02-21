@@ -36,16 +36,25 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     add_general_args(parser)
 
     parser.add_argument(
-        '--container',
+        '--image',
         help=(
-            'Container name, if using standard / full access levels, this must start with '
+            'Image name, if using standard / full access levels, this must start with '
             'australia-southeast1-docker.pkg.dev/cpg-common/*.'
         ),
     )
-    parser.add_argument('--cpu', type=int, help='Number of CPUs to request')
+    parser.add_argument(
+        '--cpu',
+        help=(
+            'Number of CPUs to request. This follows the hail batch convention: ',
+            'https://hail.is/docs/batch/api/batch/hailtop.batch.job.Job.html#hailtop.batch.job.Job.cpu',
+        ),
+    )
     parser.add_argument(
         '--memory',
-        help='Amount of memory to request in GB, see hail batch docs for available options. Eg: 4G',
+        help=(
+            'Amount of memory to request in GB (eg: 4G). This follows the hail batch convention: '
+            'https://hail.is/docs/batch/api/batch/hailtop.batch.job.Job.html#hailtop.batch.job.Job.memory'
+        ),
     )
 
     parser.add_argument(
