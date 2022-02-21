@@ -45,8 +45,8 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     parser.add_argument(
         '--cpu',
         help=(
-            'Number of CPUs to request. This follows the hail batch convention: ',
-            'https://hail.is/docs/batch/api/batch/hailtop.batch.job.Job.html#hailtop.batch.job.Job.cpu',
+            'Number of CPUs to request. This follows the hail batch convention: '
+            'https://hail.is/docs/batch/api/batch/hailtop.batch.job.Job.html#hailtop.batch.job.Job.cpu'
         ),
     )
     parser.add_argument(
@@ -59,7 +59,7 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
 
     parser.add_argument(
         '-e',
-        '--environment-variables',
+        '--env',
         required=False,
         help='Environment variables e.g. -e SM_ENVIRONMENT=production -e OTHERVAR=value',
         action='append',
@@ -87,7 +87,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     image=None,
     cpu=None,
     memory=None,
-    environment_variables: List[str] = None,
+    env: List[str] = None,
     use_test_server=False,
 ):
     """
@@ -155,13 +155,13 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     if _cwd == '.':
         _cwd = None
 
-    _environment_variables = None
-    if environment_variables:
-        _environment_variables = {}
-        for env_var_pair in environment_variables:
+    _env = None
+    if env:
+        _env = {}
+        for env_var_pair in env:
             try:
                 pair = env_var_pair.split('=')
-                _environment_variables[pair[0]] = pair[1]
+                _env[pair[0]] = pair[1]
             except IndexError as e:
                 raise IndexError(
                     env_var_pair + ' does not conform to key=value format.'
@@ -185,7 +185,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'image': image,
             'cpu': cpu,
             'memory': memory,
-            'environmentVariables': _environment_variables,
+            'environmentVariables': _env,
         },
         headers={'Authorization': f'Bearer {_token}'},
     )
