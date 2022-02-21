@@ -44,7 +44,7 @@ setuptools.setup(
         'kubernetes',
         'pulumi-gcp',
         'requests',
-        'tabulate',
+        'tabulate==0.8.9',  # https://github.com/Azure/azure-cli/issues/20887
     ],
     entry_points={
         'console_scripts': ['analysis-runner=analysis_runner.cli:main_from_args']
