@@ -188,7 +188,4 @@ def validate_container(container: str, is_test: bool):
     """
     Check that the image is valid for the access_level
     """
-    if is_test:
-        return True
-
-    return container.startswith(CONTAINER_IMAGE_PREFIX)
+    return is_test or container.startswith(CONTAINER_IMAGE_PREFIX)
