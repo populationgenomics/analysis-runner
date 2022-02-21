@@ -23,7 +23,7 @@ from util import (
     write_metadata_to_bucket,
     run_batch_job_and_print_url,
     get_server_config,
-    validate_container,
+    validate_image,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -56,7 +56,7 @@ async def index(request):
     repo = params['repo']
     check_allowed_repos(server_config, dataset, repo)
 
-    container = params.get('container', DRIVER_IMAGE)
+    image = params.get('image', DRIVER_IMAGE)
     cpus = int(params.get('cpu', 1))
     mem = params.get('memory', '1G')
     environment_variables = params.get('environmentVariables')
@@ -67,8 +67,8 @@ async def index(request):
     if not hail_token:
         raise web.HTTPBadRequest(reason=f'Invalid access level "{access_level}"')
 
-    if not validate_container(container, is_test):
-        raise web.HTTPBadRequest(reason=f'Invalid container "{container}"')
+    if not validate_image(image, is_test):
+        raise web.HTTPBadRequest(reason=f'Invalid image "{image}"')
 
     hail_bucket = f'cpg-{dataset}-hail'
     backend = hb.ServiceBackend(
@@ -103,7 +103,7 @@ async def index(request):
         description=params['description'],
         output_suffix=output_suffix,
         hailVersion=hail_version,
-        driver_image=container,
+        driver_image=image,
         cwd=cwd,
     )
 
@@ -124,7 +124,7 @@ async def index(request):
         output_suffix=output_suffix,
         metadata_str=json.dumps(metadata),
     )
-    job.image(container)
+    job.image(image)
     if cpus:
         job.cpu(cpus)
     if mem:

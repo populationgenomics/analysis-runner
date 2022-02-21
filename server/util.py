@@ -184,7 +184,7 @@ def write_metadata_to_bucket(
     job.command(f'gsutil cp {METADATA_PREFIX}.json {quote(metadata_path)}')
 
 
-def validate_container(container: str, is_test: bool):
+def validate_image(container: str, is_test: bool):
     """
     Check that the image is valid for the access_level
     """
