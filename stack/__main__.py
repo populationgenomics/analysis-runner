@@ -601,7 +601,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    # Read access from the reference data.
+    # Read access to reference data.
     bucket_member(
         'access-group-reference-bucket-viewer',
         bucket=REFERENCE_BUCKET_NAME,
