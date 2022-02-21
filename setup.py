@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 """
-Setup script for the Python package
-- Used for development setup with `pip install --editable .`
-- Parsed by conda-build to extract version and metainfo
+Setup script for the Python package. Dependencies are listed separately
+in requirements.txt, and can be installed with `pip install -r requirements.txt`.
+For deev setup, you can use `pip install --editable .`
 """
 
 import setuptools
