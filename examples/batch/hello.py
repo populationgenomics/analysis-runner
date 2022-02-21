@@ -31,7 +31,7 @@ def main(name_to_print):
     # that will be collected at the end of a job
     stdout_of_j = j1.out
     string_to_print = f'Hello, {name_to_print}'
-    j1.command(f'echo {quote(string_to_print)}" > {stdout_of_j}')
+    j1.command(f'echo {quote(string_to_print)} > {stdout_of_j}')
 
     j2 = b.new_job('second job')
     # for the second job, using an f-string with the resource file
