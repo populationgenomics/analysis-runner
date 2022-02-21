@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 """
-Setup script for the Python package. Dependencies are listed separately
-in requirements.txt
+Setup script for the Python package.
 """
 
 import setuptools
@@ -28,6 +27,25 @@ setuptools.setup(
     packages=['analysis_runner'],
     include_package_data=True,
     zip_safe=False,
+    install_requires=[
+        'cpg-utils',
+        'click',
+        'airtable-python-wrapper',
+        'cpg-hail',
+        'flake8',
+        'flake8-bugbear',
+        'flask',
+        'google-api-python-client==2.10.0',
+        'google-auth==1.27.0',
+        'google-cloud-logging==3.0.0',
+        'google-cloud-pubsub==2.3.0',
+        'google-cloud-secret-manager==2.2.0',
+        'google-cloud-storage==1.25.0',
+        'kubernetes',
+        'pulumi-gcp',
+        'requests',
+        'tabulate',
+    ],
     entry_points={
         'console_scripts': ['analysis-runner=analysis_runner.cli:main_from_args']
     },

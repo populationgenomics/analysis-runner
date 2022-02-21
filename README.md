@@ -143,7 +143,7 @@ To set up a development environment for the analysis runner using pip, run
 the following:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 pre-commit install --install-hooks
 
