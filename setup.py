@@ -2,8 +2,7 @@
 
 """
 Setup script for the Python package. Dependencies are listed separately
-in requirements.txt, and can be installed with `pip install -r requirements.txt`.
-For deev setup, you can use `pip install --editable .`
+in requirements.txt
 """
 
 import setuptools
