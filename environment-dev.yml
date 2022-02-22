@@ -4,7 +4,7 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - python=3.9
+  - python=3.10
   - pip
   - cpg-utils  # Not yet in pypi.
   - pip:
