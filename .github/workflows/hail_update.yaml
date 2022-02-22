@@ -1,12 +1,12 @@
 # This workflow is triggered after a new version of Hail has been built, with a
-# corresponding conda package. It leads to new driver and server Docker images being
+# corresponding pip package. It leads to new driver and server Docker images being
 # built, followed by the deployment of the server.
 name: Deploy analysis-runner server after Hail update
 on:
   workflow_dispatch:
     inputs:
       hail_version:
-        description: 'Hail version (as uploaded to Anaconda)'
+        description: 'Hail version (as uploaded to PyPI)'
         required: true
 
 jobs:

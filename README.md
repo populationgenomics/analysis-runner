@@ -31,10 +31,10 @@ The analysis-runner is also integrated with our Cromwell server to run WDL based
 ## CLI
 
 The analysis-runner CLI can be used to start pipelines based on a GitHub repository,
-commit, and command to run. To install it, use mamba:
+commit, and command to run. To install it, use pip:
 
 ```bash
-mamba install -c cpg -c conda-forge analysis-runner
+pip install analysis-runner
 ```
 
 Run `analysis-runner --help` to see usage information.
@@ -139,15 +139,13 @@ To bring up a stack corresponding to a dataset as described in the
 [storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies),
 see the [stack](stack) directory.
 
-To set up a development environment for the analysis runner using mamba, run
+To set up a development environment for the analysis runner using pip, run
 the following:
 
 ```bash
-mamba env create --file environment-dev.yml
+pip install -r requirements-dev.txt
 
-conda activate analysis-runner
-
-pre-commit install
+pre-commit install --install-hooks
 
 pip install --editable .
 ```
@@ -156,21 +154,21 @@ pip install --editable .
 
 1. Add a Hail Batch service account for all supported datasets.
 1. [Copy the Hail tokens](tokens) to the Secret Manager.
-1. Deploy the [server](server) by invoking the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) manually, specifying the Hail package version in conda.
+1. Deploy the [server](server) by invoking the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) manually, specifying the Hail package version.
 1. Deploy the [Airtable](airtable) publisher.
-1. Publish the [CLI tool and library](analysis_runner) to conda.
+1. Publish the [CLI tool and library](analysis_runner) to PyPI.
 
-Note that the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) gets invoked whenever a new Hail package is published to conda. You can test this manually as follows:
+Note that the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) gets invoked whenever a new Hail package is published to PyPI. You can test this manually as follows:
 
 ```bash
 curl \
   -X POST \
   -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
   https://api.github.com/repos/populationgenomics/analysis-runner/actions/workflows/6364059/dispatches \
-  -d '{"ref": "main", "inputs": {"hail_version": "0.2.63.deveb7251e548b1"}}'
+  -d '{"ref": "main", "inputs": {"hail_version": "0.2.84"}}'
 ```
 
-The CLI tool is shipped as a conda package. To build a new version,
+The CLI tool is shipped as a pip package. To build a new version,
 we use [bump2version](https://pypi.org/project/bump2version/).
 For example, to increment the patch section of the version tag 1.0.0 and make
 it 1.0.1, run:
@@ -185,5 +183,4 @@ open "https://github.com/populationgenomics/analysis-runner/pull/new/add-new-ver
 
 It's important the pull request name start with "Bump version:" (which should happen
 by default). Once this is merged into `main`, a GitHub action workflow will build a
-new conda package that will be uploaded to the conda [CPG
-channel](https://anaconda.org/cpg/), and become available to install with `mamba install -c cpg -c conda-forge ...`
+new package that will be uploaded to PyPI, and become available to install with `pip install`.
