@@ -1,7 +1,7 @@
 name: Package
 on:
-  # Building on pull-requests, manual dispatch, and pushes to main; but restricting
-  # publishing only to main pushes and manual dispatch with `if`s in specific steps.
+  # Building on pull-requests, manual dispatch, and pushes to main. But restricting
+  # publishing only to main pushes and manual dispatch with `if`s in specific steps
   pull_request:
   workflow_dispatch:
   push:
@@ -30,12 +30,13 @@ jobs:
       - name: Run tests
         run: python -m unittest test/test_analysis_runner.py
 
+      # `skip_existing: true` makes sure that the package will be published
+      # only when new version is created
       - name: Publish the wheel to PyPI
-        # Run when merging into main with a commit that starts with "Bump version:"
-        # OR where the workflow was manually dispatched:
-        if: "${{ startsWith(github.event.head_commit.message, 'Bump version:') || github.event_name == 'workflow_dispatch' }}"
         uses: pypa/gh-action-pypi-publish@release/v1
+        if: ${{ github.event_name != 'pull_request' }}
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages_dir: dist/
+          skip_existing: true
