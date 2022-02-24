@@ -23,6 +23,7 @@ from util import (
     write_metadata_to_bucket,
     run_batch_job_and_print_url,
     get_server_config,
+    validate_image,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -54,12 +55,20 @@ async def index(request):
     check_dataset_and_group(server_config, dataset, email)
     repo = params['repo']
     check_allowed_repos(server_config, dataset, repo)
+
+    image = params.get('image') or DRIVER_IMAGE
+    cpu = params.get('cpu', 1)
+    memory = params.get('memory', '1G')
     environment_variables = params.get('environmentVariables')
 
     access_level = params['accessLevel']
+    is_test = access_level == 'test'
     hail_token = server_config[dataset].get(f'{access_level}Token')
     if not hail_token:
         raise web.HTTPBadRequest(reason=f'Invalid access level "{access_level}"')
+
+    if not validate_image(image, is_test):
+        raise web.HTTPBadRequest(reason=f'Invalid image "{image}"')
 
     hail_bucket = f'cpg-{dataset}-hail'
     backend = hb.ServiceBackend(
@@ -94,7 +103,7 @@ async def index(request):
         description=params['description'],
         output_suffix=output_suffix,
         hailVersion=hail_version,
-        driver_image=DRIVER_IMAGE,
+        driver_image=image,
         cwd=cwd,
     )
 
@@ -107,9 +116,7 @@ async def index(request):
     )
 
     job = batch.new_job(name='driver')
-    job = prepare_git_job(
-        job=job, repo_name=repo, commit=commit, is_test=access_level == 'test'
-    )
+    job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
     write_metadata_to_bucket(
         job,
         access_level=access_level,
@@ -117,7 +124,12 @@ async def index(request):
         output_suffix=output_suffix,
         metadata_str=json.dumps(metadata),
     )
-    job.image(DRIVER_IMAGE)
+    job.image(image)
+    if cpu:
+        job.cpu(cpu)
+    if memory:
+        job.memory(memory)
+
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
     job.env('DATASET', dataset)
     job.env('ACCESS_LEVEL', access_level)
