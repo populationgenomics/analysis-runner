@@ -39,7 +39,7 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         '--image',
         help=(
             'Image name, if using standard / full access levels, this must start with '
-            'australia-southeast1-docker.pkg.dev/cpg-common/*.'
+            'australia-southeast1-docker.pkg.dev/cpg-common/'
         ),
     )
     parser.add_argument(
@@ -160,7 +160,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         _env = {}
         for env_var_pair in env:
             try:
-                pair = env_var_pair.split('=')
+                pair = env_var_pair.split('=', maxsplit=1)
                 _env[pair[0]] = pair[1]
             except IndexError as e:
                 raise IndexError(

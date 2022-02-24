@@ -57,8 +57,8 @@ async def index(request):
     check_allowed_repos(server_config, dataset, repo)
 
     image = params.get('image') or DRIVER_IMAGE
-    cpus = params.get('cpu', 1)
-    mem = params.get('memory', '1G')
+    cpu = params.get('cpu', 1)
+    memory = params.get('memory', '1G')
     environment_variables = params.get('environmentVariables')
 
     access_level = params['accessLevel']
@@ -125,10 +125,10 @@ async def index(request):
         metadata_str=json.dumps(metadata),
     )
     job.image(image)
-    if cpus:
-        job.cpu(cpus)
-    if mem:
-        job.memory(mem)
+    if cpu:
+        job.cpu(cpu)
+    if memory:
+        job.memory(memory)
 
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
     job.env('DATASET', dataset)
