@@ -57,7 +57,7 @@ async def index(request):
     check_allowed_repos(server_config, dataset, repo)
 
     image = params.get('image', DRIVER_IMAGE)
-    cpus = int(params.get('cpu', 1))
+    cpus = params.get('cpu', 1)
     mem = params.get('memory', '1G')
     environment_variables = params.get('environmentVariables')
 
