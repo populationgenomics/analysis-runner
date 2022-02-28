@@ -28,6 +28,6 @@ RUN apt-get update && apt-get install -y git wget bash bzip2 zip && \
         cpg-hail==$HAIL_VERSION \
         cpg-utils==2.1.1 \
         analysis-runner \
-        sample-metadata==4.1.2 && \
+        sample-metadata==4.3.0 && \
     # hailctl dataproc uses gcloud beta dataproc.
     gcloud -q components install beta
