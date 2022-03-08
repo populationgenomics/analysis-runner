@@ -30,6 +30,4 @@ RUN apt-get update && apt-get install -y apt-transport-https bash bzip2 ca-certi
     cpg-hail==$HAIL_VERSION \
     cpg-utils==2.1.1 \
     analysis-runner \
-    sample-metadata==4.4.0 && \
-    # hailctl dataproc uses gcloud beta dataproc.
-    gcloud -q components install beta
+    sample-metadata==4.4.0
