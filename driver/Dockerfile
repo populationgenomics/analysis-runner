@@ -15,19 +15,19 @@ RUN apt-get update && apt-get install -y apt-transport-https bash bzip2 ca-certi
     wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.8.2/linux-64/micromamba-0.8.2-he9b6cbd_0.tar.bz2 | tar -xvj -C /usr/local bin/micromamba && \
     mkdir $MAMBA_ROOT_PREFIX && \
     micromamba install -y --prefix $MAMBA_ROOT_PREFIX \
-    -c cpg -c bioconda -c conda-forge \
-    bokeh \
-    phantomjs \
-    r-argparser \
-    r-base=4.1.1 \
-    r-essentials \
-    r-tidyverse \
-    selenium \
-    skopeo \
-    statsmodels && \
+        -c cpg -c bioconda -c conda-forge \
+        bokeh \
+        phantomjs \
+        r-argparser \
+        r-base=4.1.1 \
+        r-essentials \
+        r-tidyverse \
+        selenium \
+        skopeo \
+        statsmodels && \
     rm -r /root/micromamba/pkgs && \
     pip3 install \
-    cpg-hail==$HAIL_VERSION \
-    cpg-utils==2.1.1 \
-    analysis-runner \
-    sample-metadata==4.4.0
+        cpg-hail==$HAIL_VERSION \
+        cpg-utils==2.1.1 \
+        analysis-runner \
+        sample-metadata==4.4.0
