@@ -6,4 +6,4 @@ RUN apt update && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
     apt update && apt install -y google-cloud-sdk && \
     apt clean && rm -rf /var/lib/apt/lists/* && \
-    pip3 install cpg-hail
+    pip3 install cpg-hail==0.2.85
