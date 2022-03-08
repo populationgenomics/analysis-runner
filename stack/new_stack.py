@@ -2,7 +2,7 @@
 Create GCP project + stack file for Pulumi
 
 requirements:
-    - google-cloud-billing-budgets pyyaml click
+    - click pyyaml sample-metadata google-cloud-billing-budgets
 """
 # pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error
 import os
@@ -15,6 +15,8 @@ import subprocess
 import yaml
 import click
 import requests
+
+from sample_metadata.apis import ProjectApi
 
 from google.cloud.billing.budgets_v1.services.budget_service import (
     BudgetServiceClient,
@@ -60,13 +62,19 @@ for access_level in test standard full; do kubectl get secret {project}-$access_
 @click.option('--budget', type=int, help='Monthly budget in whole AUD', default=100)
 @click.option('--add-random-digits-to-gcp-id', required=False, is_flag=True)
 @click.option('--create-release-buckets', required=False, is_flag=True)
-@click.option('--perform-all', required=False, is_flag=True)
+@click.option(
+    '--perform-all',
+    required=False,
+    is_flag=True,
+    help='Set-up GCP project + billing, release stack and create SM project',
+)
 @click.option('--create-gcp-project', required=False, is_flag=True)
 @click.option('--setup-gcp-billing', required=False, is_flag=True)
 @click.option('--create-hail-service-accounts', required=False, is_flag=True)
 @click.option('--prepare-pulumi-stack', required=False, is_flag=True)
 @click.option('--add-to-seqr-stack', required=False, is_flag=True)
 @click.option('--release-stack', required=False, is_flag=True)
+@click.option('--create-sample-metadata-project', required=False, is_flag=True)
 @click.option('--generate-service-account-key', required=False, is_flag=True)
 @click.option('--no-commit', required=False, is_flag=True)
 def main(
@@ -82,6 +90,7 @@ def main(
     prepare_pulumi_stack=False,
     add_to_seqr_stack=False,
     release_stack=False,
+    create_sample_metadata_project=False,
     generate_service_account_key=False,
     no_commit=False,
 ):
@@ -93,6 +102,7 @@ def main(
         create_hail_service_accounts = True
         prepare_pulumi_stack = True
         release_stack = True
+        create_sample_metadata_project = True
 
     dataset = dataset.lower()
     _gcp_project = gcp_project
@@ -145,6 +155,13 @@ def main(
             # I think it makes sense to nest this in here, like
             if setup_gcp_billing:
                 create_budget(_gcp_project, amount=budget)
+
+    if create_sample_metadata_project:
+        papi = ProjectApi()
+        projects = papi.get_all_projects()
+        already_created = any(p.get('dataset') == dataset for p in projects)
+        if not already_created:
+            papi.create_project(name=dataset, dataset=dataset, gcp_id=_gcp_project, create_test_project=True)
 
     pulumi_config_fn = f'Pulumi.{dataset}.yaml'
     if prepare_pulumi_stack:
