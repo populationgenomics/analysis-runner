@@ -80,6 +80,12 @@ analysis-runner \
 For more examples (including for running an R script and dataproc), see the
 [examples](examples) directory.
 
+## Custom Docker images
+
+The default driver image that's used to run scripts comes with Hail and some statistics libraries preinstalled; see the `hail` stage in the [Dockerfile](driver/Dockerfile). It's possible to use any custom Docker image instead using the `--image` parameter. Note that any such image needs to contain the minimum dependencies as specified in the `base` stage though.
+
+For R scripts, we add the R-tidyverse set of packages to a non-default image, see the `r-tidyverse` stage and the [R example](examples/r) for more details.
+
 ## Helper for Hail Batch
 
 The analysis-runner package has a number of functions that make it easier to run reproducible analysis through Hail Batch.

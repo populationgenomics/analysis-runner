@@ -18,6 +18,7 @@ jobs:
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
       DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
+      DRIVER_R_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-r:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
       SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
 
     steps:
@@ -34,13 +35,15 @@ jobs:
       run: |
         gcloud auth configure-docker marketplace.gcr.io,australia-southeast1-docker.pkg.dev
 
-    - name: "build driver image"
+    - name: "build driver images"
       run: |
-        docker build --build-arg HAIL_VERSION=${{ github.event.inputs.hail_version }} --tag $DRIVER_IMAGE driver
+        docker build --target=hail --build-arg HAIL_VERSION=${{ github.event.inputs.hail_version }} --tag $DRIVER_IMAGE driver
+        docker build --target=r-tidyverse --build-arg HAIL_VERSION=${{ github.event.inputs.hail_version }} --tag $DRIVER_R_IMAGE driver
 
-    - name: "push driver image"
+    - name: "push driver images"
       run: |
         docker push $DRIVER_IMAGE
+        docker push $DRIVER_R_IMAGE
 
     - name: "build server image"
       run: |
