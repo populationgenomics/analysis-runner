@@ -13,7 +13,7 @@ FROM base as hail
 
 ARG HAIL_VERSION
 
-ENV HAIL_QUERY_BACKEND local
+ENV HAIL_QUERY_BACKEND service
 
 # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=863199#23 about the mkdir.
 RUN mkdir /usr/share/man/man1 && \
