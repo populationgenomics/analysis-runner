@@ -147,7 +147,8 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
 
         if not check_if_commit_is_on_remote(_commit_ref):
             if not confirm_choice(
-                f'The commit "{_commit_ref}" was not found on the remote (Github). \n'
+                f'The commit "{_commit_ref}" was not found on GitHub '
+                '(Did you forget to push your latest commit?) \n'
                 'Please confirm if you want to proceed anyway.'
             ):
                 raise SystemExit()
