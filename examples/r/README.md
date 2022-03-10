@@ -15,7 +15,7 @@ analysis-runner \
   --dataset ${dataset} \
   --description "testing R" \
   --output-dir ${outdir} \
-  --image australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-r:1.0.0
+  --image australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-r:1.0
   script.R
 
 # Check that the output GCS bucket contains the files:
