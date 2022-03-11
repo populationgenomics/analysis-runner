@@ -44,7 +44,7 @@ def get_server_config() -> dict:
 async def _get_hail_version() -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
     deploy_config = get_deploy_config()
-    url = deploy_config.url('query', f'/api/v1alpha/version')
+    url = deploy_config.url('batch', f'/api/v1alpha/version')
     async with ClientSession() as session:
         async with session.get(url) as resp:
             resp.raise_for_status()
