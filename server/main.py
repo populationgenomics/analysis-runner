@@ -3,6 +3,7 @@
 import datetime
 import json
 import logging
+import os
 from shlex import quote
 
 import hailtop.batch as hb
@@ -35,6 +36,10 @@ if USE_GCP_LOGGING:
     client = google.cloud.logging.Client()
     client.get_default_handler()
     client.setup_logging()
+
+HAIL_SHA = os.getenv('HAIL_SHA')
+assert HAIL_SHA
+HAIL_JAR_URL = f'gs://hail-query-daaf463550/jars/{HAIL_SHA}.jar'
 
 routes = web.RouteTableDef()
 
@@ -133,8 +138,10 @@ async def index(request):
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
     job.env('DATASET', dataset)
     job.env('ACCESS_LEVEL', access_level)
-    job.env('HAIL_BUCKET', hail_bucket)
     job.env('HAIL_BILLING_PROJECT', dataset)
+    job.env('HAIL_BUCKET', hail_bucket)
+    job.env('HAIL_JAR_URL', HAIL_JAR_URL)
+    job.env('HAIL_SHA', HAIL_SHA)
     job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
     job.env('OUTPUT', output_suffix)
 

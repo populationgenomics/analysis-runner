@@ -8,6 +8,9 @@ on:
       hail_version:
         description: 'Hail version (as uploaded to PyPI)'
         required: true
+      hail_sha:
+        description: 'Hail GitHub commit SHA'
+        required: true
 
 jobs:
   deploy_server:
@@ -17,8 +20,8 @@ jobs:
       DOCKER_BUILDKIT: 1
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
-      DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
-      SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
+      DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}-${{ github.event.inputs.hail_sha }}
+      SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}-${{ github.event.inputs.hail_sha }}
 
     steps:
     - name: "checkout repo"
@@ -52,7 +55,7 @@ jobs:
 
     - name: "deploy server-test"
       run: |
-        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $SERVER_IMAGE
+        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,TZ=Australia/Sydney,HAIL_SHA=${{ github.event.inputs.hail_sha }} --image $SERVER_IMAGE
 
     - name: "submit test batch"
       run: |
@@ -66,4 +69,4 @@ jobs:
 
     - name: "deploy server"
       run: |
-        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,TZ=Australia/Sydney --image $SERVER_IMAGE
+        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,TZ=Australia/Sydney,HAIL_SHA=${{ github.event.inputs.hail_sha }} --image $SERVER_IMAGE
