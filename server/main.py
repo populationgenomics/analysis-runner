@@ -135,6 +135,8 @@ async def index(request):
     if memory:
         job.memory(memory)
 
+    # NOTE: if you add an environment variable here, make sure to update
+    # the cpg_utils.hail.copy_common_env function!
     job.env('DRIVER_IMAGE', DRIVER_IMAGE)
     job.env('DATASET', dataset)
     job.env('ACCESS_LEVEL', access_level)
