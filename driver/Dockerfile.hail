@@ -13,7 +13,7 @@ RUN mkdir /usr/share/man/man1 && \
     pip3 install \
         analysis-runner \
         bokeh \
-        cpg-hail==$HAIL_VERSION \
+        hail==$HAIL_VERSION \
         cpg-utils \
         phantomjs \
         sample-metadata \

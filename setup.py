@@ -31,7 +31,7 @@ setuptools.setup(
         'cpg-utils',
         'click',
         'airtable-python-wrapper',
-        'cpg-hail',
+        'hail',
         'flake8',
         'flake8-bugbear',
         'flask',
