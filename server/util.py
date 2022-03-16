@@ -16,7 +16,10 @@ from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/tmp/metadata'
 PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
-CONTAINER_IMAGE_PREFIX = 'australia-southeast1-docker.pkg.dev/cpg-common/'
+ALLOWED_CONTAINER_IMAGE_PREFIXES = (
+    'australia-southeast1-docker.pkg.dev/analysis-runner/',
+    'australia-southeast1-docker.pkg.dev/cpg-common/',
+)
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
 
@@ -188,4 +191,6 @@ def validate_image(container: str, is_test: bool):
     """
     Check that the image is valid for the access_level
     """
-    return is_test or container.startswith(CONTAINER_IMAGE_PREFIX)
+    return is_test or any(
+        container.startswith(prefix) for prefix in ALLOWED_CONTAINER_IMAGE_PREFIXES
+    )
