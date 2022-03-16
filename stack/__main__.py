@@ -406,7 +406,8 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         for rs in ('read', 'write'):
             key = f'sample-metadata-{env}-{rs}'
 
-            group = create_group(group_mail(dataset, key))
+            sm_access_grp_email = group_mail(dataset, key)
+            group = create_group(sm_access_grp_email)
             sm_groups[f'{env}-{rs}'] = group
 
             gcp.cloudidentity.GroupMembership(
@@ -418,6 +419,8 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
                 opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
             )
+
+            pulumi.export(f'{dataset}-{key}-group-id', group.id)
 
             secret = create_secret(
                 f'{key}-group-cache-secret',
@@ -431,6 +434,26 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 role='roles/secretmanager.secretAccessor',
                 member=f'serviceAccount:{SAMPLE_METADATA_API_SERVICE_ACCOUNT}',
             )
+
+            # do depends_on for SM
+            for dependency in config.get_object('depends_on') or ():
+                sm_access_grp_id = f'{dependency}-{key}-group-id'
+                sm_dep_group_id = dependency_stacks[dependency].get_output(
+                    sm_access_grp_id
+                )
+
+                sm_dep_group = gcp.cloudidentity.Group.get(
+                    f'{dependency}-dep-{key}',
+                    sm_dep_group_id,
+                )
+
+                gcp.cloudidentity.GroupMembership(
+                    f'{dependency}-sm-{env}-{rs}-group-membership',
+                    group=sm_dep_group.id,
+                    preferred_member_key=group.group_key,
+                    roles=[gcp.cloudidentity.GroupMembershipRoleArgs(name='MEMBER')],
+                    opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+                )
 
     # Add cloud run invoker to analysis-runner for the access-group
     gcp.cloudrun.IamMember(
