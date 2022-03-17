@@ -160,19 +160,9 @@ pip install --editable .
 
 1. Add a Hail Batch service account for all supported datasets.
 1. [Copy the Hail tokens](tokens) to the Secret Manager.
-1. Deploy the [server](server) by invoking the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) manually, specifying the Hail package version.
+1. Deploy the [server](server) by invoking the [`deploy_server` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/deploy_server.yaml) manually.
 1. Deploy the [Airtable](airtable) publisher.
 1. Publish the [CLI tool and library](analysis_runner) to PyPI.
-
-Note that the [`hail_update` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/hail_update.yaml) gets invoked whenever a new Hail package is published to PyPI. You can test this manually as follows:
-
-```bash
-curl \
-  -X POST \
-  -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/populationgenomics/analysis-runner/actions/workflows/6364059/dispatches \
-  -d '{"ref": "main", "inputs": {"hail_version": "0.2.84"}}'
-```
 
 The CLI tool is shipped as a pip package. To build a new version,
 we use [bump2version](https://pypi.org/project/bump2version/).
