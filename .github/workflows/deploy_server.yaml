@@ -5,7 +5,7 @@ on:
       hail_sha:
         description: 'Hail GitHub commit SHA'
         required: true
-        default: 'HEAD'
+        default: "HEAD"
 
 jobs:
   deploy_server:
