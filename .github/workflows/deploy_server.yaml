@@ -2,10 +2,10 @@ name: Deploy analysis-runner server
 on:
   workflow_dispatch:
     inputs:
-      hail_sha:
-        description: 'Hail GitHub commit SHA'
+      hail_ref:
+        description: 'Hail repo ref (or commit SHA)'
         required: true
-        default: "HEAD"
+        default: "main"
 
 jobs:
   deploy_server:
@@ -15,8 +15,6 @@ jobs:
       DOCKER_BUILDKIT: 1
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
-      DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-${{ github.event.inputs.hail_sha }}
-      SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-${{ github.event.inputs.hail_sha }}
 
     steps:
     - name: "checkout analysis-runner repo"
@@ -26,14 +24,18 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: "populationgenomics/hail"
-        ref: ${{ github.event.inputs.hail_sha }}
+        ref: ${{ github.event.inputs.hail_ref }}
         path: "hail"
 
-    - name: "Determine Hail pip version"
+    - name: "Determine Hail SHA and pip version"
       run: |
-        cd hail/hail
+        cd hail
+        echo "HAIL_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+        cd hail
         make python/hail/hail_pip_version
         echo "HAIL_PIP_VERSION=$(cat python/hail/hail_pip_version)" >> $GITHUB_ENV
+        echo "DRIVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-$HAIL_SHA" >> $GITHUB_ENV
+        echo "SERVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-$HAIL_SHA" >> $GITHUB_ENV
 
     - name: "gcloud setup"
       uses: google-github-actions/setup-gcloud@master
@@ -63,7 +65,7 @@ jobs:
 
     - name: "deploy server-test"
       run: |
-        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,HAIL_SHA=${{ github.event.inputs.hail_sha }} --image $SERVER_IMAGE
+        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,HAIL_SHA=$HAIL_SHA --image $SERVER_IMAGE
 
     - name: "submit test batch"
       run: |
@@ -77,4 +79,4 @@ jobs:
 
     - name: "deploy server"
       run: |
-        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,HAIL_SHA=${{ github.event.inputs.hail_sha }} --image $SERVER_IMAGE
+        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,HAIL_SHA=$HAIL_SHA --image $SERVER_IMAGE
