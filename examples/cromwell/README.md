@@ -128,7 +128,7 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     workflow='hello_all_in_one_file.wdl',
     cwd='examples/cromwell',
     libs=[],  # hello_all_in_one_file is self-contained, so no dependencies
-    output_suffix=OUTPUT_SUFFIX,
+    output_prefix=OUTPUT_PREFIX,
     input_dict={'hello.inps': inputs},
     outputs_to_collect={'hello.outs': len(inputs), 'hello.joined_out': None},
 )

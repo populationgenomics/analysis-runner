@@ -129,7 +129,7 @@ def run_cromwell_workflow(
     workflow: str,
     cwd: Optional[str],
     libs: List[str],
-    output_suffix: str,
+    output_prefix: str,
     labels: Dict[str, str] = None,
     input_dict: Optional[Dict[str, Any]] = None,
     input_paths: List[str] = None,
@@ -180,10 +180,10 @@ def run_cromwell_workflow(
 
     if access_level == 'test':
         intermediate_dir = f'gs://cpg-{dataset}-test-tmp/cromwell'
-        workflow_output_dir = f'gs://cpg-{dataset}-test/{output_suffix}'
+        workflow_output_dir = f'gs://cpg-{dataset}-test/{output_prefix}'
     else:
         intermediate_dir = f'gs://cpg-{dataset}-main-tmp/cromwell'
-        workflow_output_dir = f'gs://cpg-{dataset}-main/{output_suffix}'
+        workflow_output_dir = f'gs://cpg-{dataset}-main/{output_prefix}'
 
     workflow_options = {
         'user_service_account_json': service_account_json,
@@ -238,7 +238,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     workflow: str,
     outputs_to_collect: Dict[str, CromwellOutputType],
     libs: List[str],
-    output_suffix: str,
+    output_prefix: str,
     labels: Dict[str, str] = None,
     input_dict: Optional[Dict[str, Any]] = None,
     input_paths: List[str] = None,
@@ -280,7 +280,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         workflow=workflow,
         cwd=cwd,
         libs=libs,
-        output_suffix=output_suffix,
+        output_prefix=output_prefix,
         input_dict=input_dict,
         input_paths=input_paths,
         labels=labels,

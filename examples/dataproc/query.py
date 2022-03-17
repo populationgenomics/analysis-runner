@@ -3,7 +3,7 @@
 import click
 import hail as hl
 from bokeh.io.export import get_screenshot_as_png
-from analysis_runner import output_path
+from cpg_utils.hail import output_path
 
 
 GNOMAD_HGDP_1KG_MT = (

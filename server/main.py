@@ -26,6 +26,7 @@ from util import (
     get_server_config,
     validate_image,
 )
+from cpg_utils.hail import remote_tmpdir
 
 logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
@@ -55,7 +56,7 @@ async def index(request):
     params = await request.json()
 
     server_config = get_server_config()
-    output_suffix = validate_output_dir(params['output'])
+    output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
     check_dataset_and_group(server_config, dataset, email)
     repo = params['repo']
@@ -78,7 +79,7 @@ async def index(request):
     hail_bucket = f'cpg-{dataset}-hail'
     backend = hb.ServiceBackend(
         billing_project=dataset,
-        bucket=hail_bucket,
+        remote_tmpdir=remote_tmpdir(hail_bucket),
         token=hail_token,
     )
 
@@ -106,7 +107,7 @@ async def index(request):
         commit=commit,
         script=' '.join(script),
         description=params['description'],
-        output_suffix=output_suffix,
+        output_prefix=output_prefix,
         hailVersion=hail_version,
         driver_image=image,
         cwd=cwd,
@@ -126,7 +127,7 @@ async def index(request):
         job,
         access_level=access_level,
         dataset=dataset,
-        output_suffix=output_suffix,
+        output_prefix=output_prefix,
         metadata_str=json.dumps(metadata),
     )
     job.image(image)
@@ -137,15 +138,15 @@ async def index(request):
 
     # NOTE: if you add an environment variable here, make sure to update
     # the cpg_utils.hail.copy_common_env function!
-    job.env('DRIVER_IMAGE', DRIVER_IMAGE)
-    job.env('DATASET', dataset)
-    job.env('ACCESS_LEVEL', access_level)
+    job.env('CPG_ACCESS_LEVEL', access_level)
+    job.env('CPG_DATASET', dataset)
+    job.env('CPG_DATASET_GCP_PROJECT', dataset_gcp_project)
+    job.env('CPG_DRIVER_IMAGE', DRIVER_IMAGE)
+    job.env('CPG_OUTPUT_PREFIX', output_prefix)
     job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('HAIL_BUCKET', hail_bucket)
     job.env('HAIL_JAR_URL', HAIL_JAR_URL)
     job.env('HAIL_SHA', HAIL_SHA)
-    job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
-    job.env('OUTPUT', output_suffix)
 
     if environment_variables:
         if not isinstance(environment_variables, dict):
