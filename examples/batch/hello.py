@@ -14,6 +14,7 @@ import os
 from shlex import quote
 import hailtop.batch as hb
 import click
+from cpg_utils.hail import remote_tmpdir
 
 
 @click.command()
@@ -22,7 +23,7 @@ def main(name_to_print):
     """Runs test hail batch workflow"""
     sb = hb.ServiceBackend(
         billing_project=os.getenv('HAIL_BILLING_PROJECT'),
-        bucket=os.getenv('HAIL_BUCKET'),
+        remote_tmpdir=remote_tmpdir(),
     )
     b = hb.Batch(backend=sb)
 

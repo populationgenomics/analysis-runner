@@ -119,7 +119,7 @@ def get_analysis_runner_metadata(
     commit,
     script,
     description,
-    output_suffix,
+    output_prefix,
     driver_image,
     cwd,
     **kwargs,
@@ -129,7 +129,7 @@ def get_analysis_runner_metadata(
     with some flexibility to provide your own keys (as **kwargs)
     """
     bucket_type = 'test' if access_level == 'test' else 'main'
-    output_dir = f'gs://cpg-{dataset}-{bucket_type}/{output_suffix}'
+    output_dir = f'gs://cpg-{dataset}-{bucket_type}/{output_prefix}'
 
     return {
         'timestamp': timestamp,
@@ -163,7 +163,7 @@ def run_batch_job_and_print_url(batch, wait):
 
 
 def write_metadata_to_bucket(
-    job, access_level: str, dataset: str, output_suffix: str, metadata_str: str
+    job, access_level: str, dataset: str, output_prefix: str, metadata_str: str
 ):
     """
     Copy analysis-runner.json to the metadata bucket
@@ -173,7 +173,7 @@ def write_metadata_to_bucket(
     """
 
     bucket_type = 'test' if access_level == 'test' else 'main'
-    metadata_path = f'gs://cpg-{dataset}-{bucket_type}-analysis/metadata/{output_suffix}/analysis-runner.json'
+    metadata_path = f'gs://cpg-{dataset}-{bucket_type}-analysis/metadata/{output_prefix}/analysis-runner.json'
     job.command(
         f'gsutil cp {quote(metadata_path)} {METADATA_PREFIX}_old.json '
         f'|| touch {METADATA_PREFIX}_old.json'

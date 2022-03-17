@@ -10,6 +10,8 @@ import hailtop.batch as hb
 import requests
 from aiohttp import web
 
+from cpg_utils.hail import remote_tmpdir
+
 from analysis_runner.constants import CROMWELL_URL
 from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
 from analysis_runner.git import prepare_git_job
@@ -76,10 +78,6 @@ def add_cromwell_routes(
                 reason=f"Invalid access level '{access_level}', couldn't find corresponding hail token"
             )
 
-        # use the email specified by the service_account_json again
-
-        hail_bucket = f'cpg-{dataset}-hail'
-
         commit = params['commit']
         if not commit or commit == 'HEAD':
             raise web.HTTPBadRequest(reason='Invalid commit parameter')
@@ -111,7 +109,7 @@ def add_cromwell_routes(
             commit=commit,
             script=wf,
             description=params['description'],
-            output_suffix=workflow_output_dir,
+            output_prefix=workflow_output_dir,
             driver_image=DRIVER_IMAGE,
             cwd=cwd,
             mode='cromwell',
@@ -119,9 +117,11 @@ def add_cromwell_routes(
 
         user_name = email.split('@')[0]
         batch_name = f'{user_name} {repo}:{commit}/cromwell/{wf}'
+
+        hail_bucket = f'cpg-{dataset}-hail'
         backend = hb.ServiceBackend(
             billing_project=dataset,
-            bucket=hail_bucket,
+            remote_tmpdir=remote_tmpdir(hail_bucket),
             token=hail_token,
         )
 
@@ -142,15 +142,15 @@ def add_cromwell_routes(
             job,
             access_level=access_level,
             dataset=dataset,
-            output_suffix=output_dir,
+            output_prefix=output_dir,
             metadata_str=json.dumps(metadata),
         )
         job.image(DRIVER_IMAGE)
 
-        job.env('DRIVER_IMAGE', DRIVER_IMAGE)
-        job.env('DATASET', dataset)
-        job.env('ACCESS_LEVEL', access_level)
-        job.env('OUTPUT', output_dir)
+        job.env('CPG_ACCESS_LEVEL', access_level)
+        job.env('CPG_DATASET', dataset)
+        job.env('CPG_DRIVER_IMAGE', DRIVER_IMAGE)
+        job.env('CPG_OUTPUT_PREFIX', output_dir)
 
         run_cromwell_workflow(
             job=job,
@@ -160,7 +160,7 @@ def add_cromwell_routes(
             cwd=cwd,
             libs=libs,
             labels=labels,
-            output_suffix=output_dir,
+            output_prefix=output_dir,
             input_dict=input_dict,
             input_paths=input_jsons,
             project=project,
