@@ -197,7 +197,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
             f'--secondary-worker-boot-disk-size={secondary_worker_boot_disk_size}'
         )
     if packages:
-        start_job_command.append(f'--packages={",".join(packages)}')
+        start_job_command.append(f'--packages=\'{",".join(packages)}\'')
     if init:
         start_job_command.append(f'--init={",".join(init)}')
     if vep:
