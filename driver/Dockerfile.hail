@@ -1,13 +1,18 @@
 # This image adds Hail and some other Python-based stats libraries to the base image.
-FROM australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-base:1.0
+FROM australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-base:1.1
 
 ARG HAIL_SHA
 
 ENV HAIL_QUERY_BACKEND service
 
-# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=863199#23 about the mkdir.
-RUN mkdir /usr/share/man/man1 && \
-    apt update && apt install -y g++ libopenblas-base liblapack3 openjdk-11-jre-headless python3-pip && \
+RUN apt update && \
+    DEBIAN_FRONTEND=noninteractive apt install -y \
+        g++ \
+        liblapack3 \
+        libopenblas-base \
+        openjdk-8-jdk-headless \
+        python3-pip \
+        rsync && \
     rm -r /var/lib/apt/lists/* && \
     rm -r /var/cache/apt/* && \
     pip3 install \
