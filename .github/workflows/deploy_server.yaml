@@ -31,9 +31,6 @@ jobs:
       run: |
         cd hail
         echo "HAIL_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
-        cd hail
-        make python/hail/hail_pip_version
-        echo "HAIL_PIP_VERSION=$(cat python/hail/hail_pip_version)" >> $GITHUB_ENV
 
     - name: "Set Docker image paths"
       run: |
@@ -52,7 +49,7 @@ jobs:
 
     - name: "build driver image"
       run: |
-        docker build -f driver/Dockerfile.hail --build-arg HAIL_PIP_VERSION=$HAIL_PIP_VERSION --tag $DRIVER_IMAGE driver
+        docker build -f driver/Dockerfile.hail --build-arg HAIL_SHA=$HAIL_SHA --tag $DRIVER_IMAGE driver
 
     - name: "push driver image"
       run: |
