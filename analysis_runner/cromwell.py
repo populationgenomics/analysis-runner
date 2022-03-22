@@ -171,7 +171,7 @@ def run_cromwell_workflow(
     service_account_email = service_account_dict.get('client_email')
     _project = (
         project
-        or os.getenv('DATASET_GCP_PROJECT')
+        or os.getenv('CPG_DATASET_GCP_PROJECT')
         or get_project_id_from_service_account_email(service_account_email)
     )
 
