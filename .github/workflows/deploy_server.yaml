@@ -38,7 +38,7 @@ jobs:
         echo "SERVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-$HAIL_SHA" >> $GITHUB_ENV
 
     - name: "gcloud setup"
-      uses: google-github-actions/setup-gcloud@main
+      uses: google-github-actions/setup-gcloud@v0
       with:
         project_id: analysis-runner
         service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
