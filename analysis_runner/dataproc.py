@@ -20,7 +20,7 @@ from analysis_runner.git import (
 DATAPROC_IMAGE = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.91'
 )
-GCLOUD_PROJECT = f'gcloud config set project {os.getenv("DATASET_GCP_PROJECT")}'
+GCLOUD_PROJECT = f'gcloud config set project {os.getenv("CPG_DATASET_GCP_PROJECT")}'
 DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
