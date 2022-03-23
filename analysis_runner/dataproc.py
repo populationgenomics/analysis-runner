@@ -17,9 +17,16 @@ from analysis_runner.git import (
 )
 
 
+HAIL_VERSION = '0.2.91'
 DATAPROC_IMAGE = (
-    'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.91'
+    f'australia-southeast1-docker.pkg.dev/analysis-runner/images/'
+    f'dataproc:hail-{HAIL_VERSION}'
 )
+# Wheel built from https://github.com/populationgenomics/hail
+# The difference from the official build is the version of ElasticSearch:
+# We use 8.x.x, and Hail is built for 7.x.x by default.
+WHEEL = f'gs://cpg-hail-ci/wheels/hail-{HAIL_VERSION}-py3-none-any.whl'
+
 GCLOUD_PROJECT = f'gcloud config set project {os.getenv("CPG_DATASET_GCP_PROJECT")}'
 DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
 PYFILES_DIR = '/tmp/pyfiles'
@@ -187,6 +194,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
         f'--labels={labels_formatted}',
+        f'--wheel={WHEEL}',
     ]
     if worker_machine_type:
         start_job_command.append(f'--worker-machine-type={worker_machine_type}')
