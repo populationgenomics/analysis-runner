@@ -92,5 +92,8 @@
     "sgs-somatic-mtn": [
         "sample-metadata",
         "sgs-somatic-mutation"
+    ],
+    "ravenscroft-arch": [
+        "sample-metadata"
     ]
 }
