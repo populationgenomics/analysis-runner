@@ -27,7 +27,7 @@ jobs:
         ref: ${{ github.event.inputs.hail_ref }}
         path: "hail"
 
-    - name: "Determine Hail SHA and pip version"
+    - name: "Determine Hail SHA"
       run: |
         cd hail
         echo "HAIL_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
