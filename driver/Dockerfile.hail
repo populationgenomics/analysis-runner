@@ -18,7 +18,7 @@ RUN apt update && \
     pip3 install \
         analysis-runner \
         bokeh \
-        cloudpathlib \
+        cloudpathlib[all] \
         cpg-utils \
         phantomjs \
         sample-metadata \
