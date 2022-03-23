@@ -4,20 +4,18 @@ Create GCP project + stack file for Pulumi
 requirements:
     - click pyyaml sample-metadata google-cloud-billing-budgets
 """
-# pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error
+# pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error,too-many-lines
 import os
 import random
 import re
 import json
 import logging
 import subprocess
+import time
 
 import yaml
 import click
 import requests
-
-from sample_metadata.apis import ProjectApi
-
 from google.cloud.billing.budgets_v1.services.budget_service import (
     BudgetServiceClient,
 )
@@ -32,6 +30,8 @@ from google.cloud.billing.budgets_v1 import (
 from google.api_core.client_options import ClientOptions
 from google.api_core.exceptions import GoogleAPICallError
 from google.type.money_pb2 import Money
+from sample_metadata.apis import ProjectApi
+
 
 TRUTHY_VALUES = ('y', '1', 't')
 DATASET_REGEX = r'^[a-z][a-z0-9-]{1,15}[a-z]$'
@@ -41,6 +41,10 @@ ORGANIZATION_ID = '648561325637'
 BILLING_ACCOUNT_ID = '01D012-20A6A2-CBD343'
 BILLING_PROJECT_ID = 'billing-admin-290403'
 HAIL_PROJECT = 'hail-295901'
+
+HAIL_AUTH_URL = 'https://auth.hail.populationgenomics.org.au'
+HAIL_CREATE_USER_PATH = HAIL_AUTH_URL + '/api/v1alpha/users/{username}/create'
+HAIL_GET_USER_PATH = HAIL_AUTH_URL + '/api/v1alpha/users/{username}'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -139,12 +143,7 @@ def main(
     logging.info(f'Creating dataset "{dataset}" with GCP id {_gcp_project}.')
 
     if create_hail_service_accounts:
-        inp = str(
-            input('Please confirm you have created the accounts in Hail Batch (y/n): ')
-        )
-        if inp not in TRUTHY_VALUES:
-            raise SystemExit
-        # create_hail_accounts(dataset)
+        create_hail_accounts(dataset)
 
     if create_gcp_project:
         # True if created, else False if it already existed
@@ -161,7 +160,12 @@ def main(
         projects = papi.get_all_projects()
         already_created = any(p.get('dataset') == dataset for p in projects)
         if not already_created:
-            papi.create_project(name=dataset, dataset=dataset, gcp_id=_gcp_project, create_test_project=True)
+            papi.create_project(
+                name=dataset,
+                dataset=dataset,
+                gcp_id=_gcp_project,
+                create_test_project=True,
+            )
 
     pulumi_config_fn = f'Pulumi.{dataset}.yaml'
     if prepare_pulumi_stack:
@@ -294,33 +298,87 @@ def get_hail_service_accounts(dataset: str):
     return hail_client_emails_by_level
 
 
+def _check_if_hail_account_exists(username, hail_auth_token):
+    url = HAIL_GET_USER_PATH.format(username=username)
+    resp = requests.get(
+        url,
+        headers={'Authorization': f'Bearer {hail_auth_token}'},
+    )
+
+    if resp.status_code == 404:
+        return False
+
+    resp.raise_for_status()
+
+    return resp.ok
+
+
+def _check_if_hail_account_is_active(username, hail_auth_token) -> bool:
+    """Check if a hail account is active"""
+
+    url = HAIL_GET_USER_PATH.format(username=username)
+    resp = requests.get(
+        url,
+        headers={'Authorization': f'Bearer {hail_auth_token}'},
+    )
+
+    if not resp.ok:
+        return False
+
+    j = resp.json()
+    return j['status'] == 'active'
+
+
+def _create_hail_service_account(username, hail_auth_token):
+    url = HAIL_CREATE_USER_PATH.format(username=username)
+    post_resp = requests.post(
+        url=url,
+        headers={'Authorization': f'Bearer {hail_auth_token}'},
+        data=json.dumps(
+            {
+                'user': username,
+                'login_id': None,
+                'is_developer': False,
+                'is_service_account': True,
+            }
+        ),
+    )
+    post_resp.raise_for_status()
+
+
 def create_hail_accounts(dataset):
     """
     Create 3 service accounts ${ds}-{test,standard,full} in Hail Batch
     """
-    raise NotImplementedError
+    # raise NotImplementedError
 
     # Based on: https://github.com/hail-is/hail/pull/11249
     with open(os.path.expanduser('~/.hail/tokens.json'), encoding='utf-8') as f:
         hail_auth_token = json.load(f)['default']
 
     username_suffixes = ['-test', '-standard', '-full']
-    for suffix in username_suffixes:
-        username = dataset + suffix
-        url = f'https://auth.hail.populationgenomics.org.au/api/v1alpha/user/{username}/create'
-        post_resp = requests.post(
-            url=url,
-            headers={'Authorization': f'Bearer {hail_auth_token}'},
-            data=json.dumps(
-                {
-                    'email': None,
-                    'login_id': '',
-                    'is_developer': False,
-                    'is_service_account': True,
-                }
-            ),
-        )
-        print(post_resp)
+    potential_usernames = [dataset + suffix for suffix in username_suffixes]
+
+    # check if it exists
+    usernames = []
+    for username in potential_usernames:
+        if not _check_if_hail_account_exists(username, hail_auth_token=hail_auth_token):
+            usernames.append(username)
+
+    for username in usernames:
+        _create_hail_service_account(username, hail_auth_token=hail_auth_token)
+
+    # wait for all to be done
+
+    for username in usernames:
+        counter = 0
+        while counter < 10:
+            if _check_if_hail_account_is_active(username, hail_auth_token):
+                print(f'Hail account {username} is active')
+                break
+
+            counter += 1
+            time.sleep(5.0)
 
 
 def get_client_emails_from_kubectl_output(output):
