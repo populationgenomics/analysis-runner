@@ -3,6 +3,17 @@ Create GCP project + stack file for Pulumi
 
 requirements:
     - click pyyaml sample-metadata google-cloud-billing-budgets
+
+
+Example usage:
+
+    cd stack
+    DATASET=""
+    python new_stack.py \
+        --dataset $DATASET \
+        --perform-all --no-commit \
+        --release-stack \
+        --generate-service-account-key
 """
 # pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error,too-many-lines
 import os
