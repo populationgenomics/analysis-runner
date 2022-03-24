@@ -105,7 +105,6 @@ def main(
         setup_gcp_billing = True
         create_hail_service_accounts = True
         prepare_pulumi_stack = True
-        release_stack = True
         create_sample_metadata_project = True
 
     dataset = dataset.lower()
@@ -160,12 +159,14 @@ def main(
         projects = papi.get_all_projects()
         already_created = any(p.get('dataset') == dataset for p in projects)
         if not already_created:
+            logging.info('Setting up sample-metadata project')
             papi.create_project(
                 name=dataset,
                 dataset=dataset,
                 gcp_id=_gcp_project,
                 create_test_project=True,
             )
+            logging.info('Set up sample-metadata project')
 
     pulumi_config_fn = f'Pulumi.{dataset}.yaml'
     if prepare_pulumi_stack:
@@ -210,7 +211,11 @@ def create_project(
         # exists
         if not return_if_already_exists:
             raise ValueError(f'Project {project_id} already exists')
+
+        logging.info('GCP project already exists, not creating')
         return False
+
+    logging.info(f'Creating GCP project {project_id}')
 
     command = [
         'gcloud',
@@ -228,6 +233,7 @@ def assign_billing_account(project_id, billing_account_id=BILLING_ACCOUNT_ID):
     """
     Assign a billing account to a GCP project
     """
+    logging.info('Assigning billing account')
 
     command = [
         'gcloud',
@@ -267,15 +273,17 @@ def create_budget(project_id: str, amount=100):
             schema_version='1.0',
         ),
     )
-    logging.info(f'Creating a budget for {project_id}')
+    logging.info(f'Creating budget (amount={budget}) for {project_id}')
     try:
         resp = BudgetServiceClient(
             client_options=ClientOptions(quota_project_id=BILLING_PROJECT_ID)
         ).create_budget(budget=budget, parent=f'billingAccounts/{BILLING_ACCOUNT_ID}')
         logging.info(f'Budget created successfully, {resp}')
     except GoogleAPICallError as rpc_error:
-        print(rpc_error)
+        logging.error(rpc_error)
         raise
+
+    logging.info(f'Created budget for {project_id}')
 
     return True
 
@@ -326,7 +334,7 @@ def _check_if_hail_account_is_active(username, hail_auth_token) -> bool:
         return False
 
     j = resp.json()
-    return j['status'] == 'active'
+    return j['state'] == 'active'
 
 
 def _create_hail_service_account(username, hail_auth_token):
@@ -350,8 +358,6 @@ def create_hail_accounts(dataset):
     """
     Create 3 service accounts ${ds}-{test,standard,full} in Hail Batch
     """
-    # raise NotImplementedError
-
     # Based on: https://github.com/hail-is/hail/pull/11249
     with open(os.path.expanduser('~/.hail/tokens.json'), encoding='utf-8') as f:
         hail_auth_token = json.load(f)['default']
@@ -370,11 +376,11 @@ def create_hail_accounts(dataset):
 
     # wait for all to be done
 
-    for username in usernames:
+    for username in potential_usernames:
         counter = 0
         while counter < 10:
             if _check_if_hail_account_is_active(username, hail_auth_token):
-                print(f'Hail account {username} is active')
+                logging.info(f'Hail account {username} is active')
                 break
 
             counter += 1
@@ -451,7 +457,7 @@ def generate_pulumi_stack_file(
     }
 
     with open(pulumi_config_fn, 'w+', encoding='utf-8') as fp:
-        print(f'Writing to {pulumi_config_fn}')
+        logging.info(f'Writing to {pulumi_config_fn}')
         yaml.dump(pulumi_stack, fp, default_flow_style=False)
 
     files_to_add = [pulumi_config_fn]
