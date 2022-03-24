@@ -150,7 +150,7 @@ def _perform_version_check():
                 f'{current_version} != {latest_version} (current vs latest).\n'
                 f'Your analysis will still be submitted, but may not work as expected.'
                 f' You can update the analysis-runner by running '
-                f'"conda install -c cpg analysis-runner={latest_version}".'
+                f'"pip install analysis-runner=={latest_version}".'
             )
             logger.warning(message)
         return

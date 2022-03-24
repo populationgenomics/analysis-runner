@@ -58,7 +58,7 @@ def handler(dataset=None, filename=None):
     if blob is None:
         abort(404)
 
-    response = Response(blob.download_as_bytes())
+    response = Response(blob.download_as_string())
     response.headers['Content-Type'] = (
         mimetypes.guess_type(filename)[0] or 'application/octet-stream'
     )

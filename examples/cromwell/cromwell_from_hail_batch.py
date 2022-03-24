@@ -4,19 +4,19 @@ from within a batch environment, and operate on the result(s)
 """
 import os
 import hailtop.batch as hb
+from cpg_utils.hail import output_path, remote_tmpdir
 from analysis_runner.cromwell import (
     run_cromwell_workflow_from_repo_and_get_outputs,
     CromwellOutputType,
 )
 
-OUTPUT_SUFFIX = 'mfranklin/analysis-runner-test/out/'
-DATASET = os.getenv('DATASET')
-BUCKET = os.getenv('HAIL_BUCKET')
-OUTPUT_PATH = os.path.join(f'gs://{BUCKET}', OUTPUT_SUFFIX)
+OUTPUT_PREFIX = 'mfranklin/analysis-runner-test/out/'
+OUTPUT_PATH = output_path(OUTPUT_PREFIX)
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
-ACCESS_LEVEL = os.getenv('ACCESS_LEVEL')
+DATASET = os.getenv('CPG_DATASET')
+ACCESS_LEVEL = os.getenv('CPG_ACCESS_LEVEL')
 
-sb = hb.ServiceBackend(billing_project=BILLING_PROJECT, bucket=BUCKET)
+sb = hb.ServiceBackend(billing_project=BILLING_PROJECT, remote_tmpdir=remote_tmpdir())
 b = hb.Batch(backend=sb, default_image=os.getenv('DRIVER_IMAGE'))
 
 inputs = ['Hello, analysis-runner ;)', 'Hello, second output!']
@@ -39,7 +39,7 @@ workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
         ),
     },
     libs=[],  # hello_all_in_one_file is self-contained, so no dependencies
-    output_suffix=OUTPUT_SUFFIX,
+    output_prefix=OUTPUT_PREFIX,
     dataset=DATASET,
     access_level=ACCESS_LEVEL,
 )

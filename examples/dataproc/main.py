@@ -4,10 +4,11 @@
 
 import os
 import hailtop.batch as hb
+from cpg_utils.hail import remote_tmpdir
 from analysis_runner import dataproc
 
 service_backend = hb.ServiceBackend(
-    billing_project=os.getenv('HAIL_BILLING_PROJECT'), bucket=os.getenv('HAIL_BUCKET')
+    billing_project=os.getenv('HAIL_BILLING_PROJECT'), remote_tmpdir=remote_tmpdir()
 )
 
 batch = hb.Batch(name='dataproc example', backend=service_backend)

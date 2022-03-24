@@ -1,13 +1,11 @@
-# This workflow is triggered after a new version of Hail has been built, with a
-# corresponding conda package. It leads to new driver and server Docker images being
-# built, followed by the deployment of the server.
-name: Deploy analysis-runner server after Hail update
+name: Deploy analysis-runner server
 on:
   workflow_dispatch:
     inputs:
-      hail_version:
-        description: 'Hail version (as uploaded to Anaconda)'
+      hail_ref:
+        description: 'Hail repo ref (or commit SHA)'
         required: true
+        default: "main"
 
 jobs:
   deploy_server:
@@ -17,15 +15,30 @@ jobs:
       DOCKER_BUILDKIT: 1
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
-      DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
-      SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-${{ github.event.inputs.hail_version }}
 
     steps:
-    - name: "checkout repo"
-      uses: actions/checkout@v2
+    - name: "checkout analysis-runner repo"
+      uses: actions/checkout@v3
+
+    - name: "checkout Hail repo"
+      uses: actions/checkout@v3
+      with:
+        repository: "populationgenomics/hail"
+        ref: ${{ github.event.inputs.hail_ref }}
+        path: "hail"
+
+    - name: "Determine Hail SHA"
+      run: |
+        cd hail
+        echo "HAIL_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+    - name: "Set Docker image paths"
+      run: |
+        echo "DRIVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-$HAIL_SHA" >> $GITHUB_ENV
+        echo "SERVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-$HAIL_SHA" >> $GITHUB_ENV
 
     - name: "gcloud setup"
-      uses: google-github-actions/setup-gcloud@master
+      uses: google-github-actions/setup-gcloud@v0
       with:
         project_id: analysis-runner
         service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
@@ -36,7 +49,7 @@ jobs:
 
     - name: "build driver image"
       run: |
-        docker build --build-arg HAIL_VERSION=${{ github.event.inputs.hail_version }} --tag $DRIVER_IMAGE driver
+        docker build -f driver/Dockerfile.hail --build-arg HAIL_SHA=$HAIL_SHA --tag $DRIVER_IMAGE driver
 
     - name: "push driver image"
       run: |
@@ -52,7 +65,7 @@ jobs:
 
     - name: "deploy server-test"
       run: |
-        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $SERVER_IMAGE
+        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,HAIL_SHA=$HAIL_SHA --image $SERVER_IMAGE
 
     - name: "submit test batch"
       run: |
@@ -66,4 +79,4 @@ jobs:
 
     - name: "deploy server"
       run: |
-        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,TZ=Australia/Sydney --image $SERVER_IMAGE
+        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,HAIL_SHA=$HAIL_SHA --image $SERVER_IMAGE

@@ -18,9 +18,9 @@ from analysis_runner.git import (
 
 
 DATAPROC_IMAGE = (
-    'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.73'
+    'australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.91'
 )
-GCLOUD_PROJECT = f'gcloud config set project {os.getenv("DATASET_GCP_PROJECT")}'
+GCLOUD_PROJECT = f'gcloud config set project {os.getenv("CPG_DATASET_GCP_PROJECT")}'
 DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
@@ -172,7 +172,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     # on the Dataproc cluster. We propagate some currently set environment variables
     # this way.
     spark_env = []
-    for env_var in 'DATASET', 'ACCESS_LEVEL', 'OUTPUT':
+    for env_var in 'CPG_DATASET', 'CPG_ACCESS_LEVEL', 'CPG_OUTPUT_PREFIX':
         value = os.getenv(env_var)
         assert value, f'environment variable "{env_var}" is not set'
         spark_env.append(f'spark-env:{env_var}={value}')
@@ -181,7 +181,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     # Using a space will break some options like --label
     start_job_command = [
         'hailctl dataproc start',
-        f'--service-account=dataproc-{os.getenv("ACCESS_LEVEL")}@{os.getenv("DATASET_GCP_PROJECT")}.iam.gserviceaccount.com',
+        f'--service-account=dataproc-{os.getenv("CPG_ACCESS_LEVEL")}@{os.getenv("CPG_DATASET_GCP_PROJECT")}.iam.gserviceaccount.com',
         f'--max-age={max_age}',
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',

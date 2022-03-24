@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
 """
-Setup script for the Python package
-- Used for development setup with `pip install --editable .`
-- Parsed by conda-build to extract version and metainfo
+Setup script for the Python package.
 """
 
 import setuptools
@@ -20,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='2.11.0',
+    version='2.24.0',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
@@ -29,6 +27,25 @@ setuptools.setup(
     packages=['analysis_runner'],
     include_package_data=True,
     zip_safe=False,
+    install_requires=[
+        'cpg-utils',
+        'click',
+        'airtable-python-wrapper',
+        'hail',
+        'flake8',
+        'flake8-bugbear',
+        'flask',
+        'google-api-python-client==2.10.0',
+        'google-auth==1.27.0',
+        'google-cloud-logging==3.0.0',
+        'google-cloud-pubsub==2.3.0',
+        'google-cloud-secret-manager==2.2.0',
+        'google-cloud-storage==1.25.0',
+        'kubernetes',
+        'pulumi-gcp',
+        'requests',
+        'tabulate==0.8.9',  # https://github.com/Azure/azure-cli/issues/20887
+    ],
     entry_points={
         'console_scripts': ['analysis-runner=analysis_runner.cli:main_from_args']
     },

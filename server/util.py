@@ -16,6 +16,10 @@ from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/tmp/metadata'
 PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
+ALLOWED_CONTAINER_IMAGE_PREFIXES = (
+    'australia-southeast1-docker.pkg.dev/analysis-runner/',
+    'australia-southeast1-docker.pkg.dev/cpg-common/',
+)
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
 
@@ -43,7 +47,7 @@ def get_server_config() -> dict:
 async def _get_hail_version() -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
     deploy_config = get_deploy_config()
-    url = deploy_config.url('query', f'/api/v1alpha/version')
+    url = deploy_config.url('batch', f'/api/v1alpha/version')
     async with ClientSession() as session:
         async with session.get(url) as resp:
             resp.raise_for_status()
@@ -115,7 +119,7 @@ def get_analysis_runner_metadata(
     commit,
     script,
     description,
-    output_suffix,
+    output_prefix,
     driver_image,
     cwd,
     **kwargs,
@@ -125,7 +129,7 @@ def get_analysis_runner_metadata(
     with some flexibility to provide your own keys (as **kwargs)
     """
     bucket_type = 'test' if access_level == 'test' else 'main'
-    output_dir = f'gs://cpg-{dataset}-{bucket_type}/{output_suffix}'
+    output_dir = f'gs://cpg-{dataset}-{bucket_type}/{output_prefix}'
 
     return {
         'timestamp': timestamp,
@@ -159,7 +163,7 @@ def run_batch_job_and_print_url(batch, wait):
 
 
 def write_metadata_to_bucket(
-    job, access_level: str, dataset: str, output_suffix: str, metadata_str: str
+    job, access_level: str, dataset: str, output_prefix: str, metadata_str: str
 ):
     """
     Copy analysis-runner.json to the metadata bucket
@@ -169,7 +173,7 @@ def write_metadata_to_bucket(
     """
 
     bucket_type = 'test' if access_level == 'test' else 'main'
-    metadata_path = f'gs://cpg-{dataset}-{bucket_type}-analysis/metadata/{output_suffix}/analysis-runner.json'
+    metadata_path = f'gs://cpg-{dataset}-{bucket_type}-analysis/metadata/{output_prefix}/analysis-runner.json'
     job.command(
         f'gsutil cp {quote(metadata_path)} {METADATA_PREFIX}_old.json '
         f'|| touch {METADATA_PREFIX}_old.json'
@@ -181,3 +185,12 @@ def write_metadata_to_bucket(
         f'{METADATA_PREFIX}_new.json > {METADATA_PREFIX}.json'
     )
     job.command(f'gsutil cp {METADATA_PREFIX}.json {quote(metadata_path)}')
+
+
+def validate_image(container: str, is_test: bool):
+    """
+    Check that the image is valid for the access_level
+    """
+    return is_test or any(
+        container.startswith(prefix) for prefix in ALLOWED_CONTAINER_IMAGE_PREFIXES
+    )

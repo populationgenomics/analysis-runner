@@ -3,6 +3,7 @@
 import datetime
 import json
 import logging
+import os
 from shlex import quote
 
 import hailtop.batch as hb
@@ -23,7 +24,9 @@ from util import (
     write_metadata_to_bucket,
     run_batch_job_and_print_url,
     get_server_config,
+    validate_image,
 )
+from cpg_utils.hail import remote_tmpdir
 
 logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
@@ -34,6 +37,10 @@ if USE_GCP_LOGGING:
     client = google.cloud.logging.Client()
     client.get_default_handler()
     client.setup_logging()
+
+HAIL_SHA = os.getenv('HAIL_SHA')
+assert HAIL_SHA
+HAIL_JAR_URL = f'gs://hail-query-daaf463550/jars/{HAIL_SHA}.jar'
 
 routes = web.RouteTableDef()
 
@@ -49,22 +56,30 @@ async def index(request):
     params = await request.json()
 
     server_config = get_server_config()
-    output_suffix = validate_output_dir(params['output'])
+    output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
     check_dataset_and_group(server_config, dataset, email)
     repo = params['repo']
     check_allowed_repos(server_config, dataset, repo)
+
+    image = params.get('image') or DRIVER_IMAGE
+    cpu = params.get('cpu', 1)
+    memory = params.get('memory', '1G')
     environment_variables = params.get('environmentVariables')
 
     access_level = params['accessLevel']
+    is_test = access_level == 'test'
     hail_token = server_config[dataset].get(f'{access_level}Token')
     if not hail_token:
         raise web.HTTPBadRequest(reason=f'Invalid access level "{access_level}"')
 
+    if not validate_image(image, is_test):
+        raise web.HTTPBadRequest(reason=f'Invalid image "{image}"')
+
     hail_bucket = f'cpg-{dataset}-hail'
     backend = hb.ServiceBackend(
         billing_project=dataset,
-        bucket=hail_bucket,
+        remote_tmpdir=remote_tmpdir(hail_bucket),
         token=hail_token,
     )
 
@@ -92,9 +107,9 @@ async def index(request):
         commit=commit,
         script=' '.join(script),
         description=params['description'],
-        output_suffix=output_suffix,
+        output_prefix=output_prefix,
         hailVersion=hail_version,
-        driver_image=DRIVER_IMAGE,
+        driver_image=image,
         cwd=cwd,
     )
 
@@ -107,24 +122,31 @@ async def index(request):
     )
 
     job = batch.new_job(name='driver')
-    job = prepare_git_job(
-        job=job, repo_name=repo, commit=commit, is_test=access_level == 'test'
-    )
+    job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
     write_metadata_to_bucket(
         job,
         access_level=access_level,
         dataset=dataset,
-        output_suffix=output_suffix,
+        output_prefix=output_prefix,
         metadata_str=json.dumps(metadata),
     )
-    job.image(DRIVER_IMAGE)
-    job.env('DRIVER_IMAGE', DRIVER_IMAGE)
-    job.env('DATASET', dataset)
-    job.env('ACCESS_LEVEL', access_level)
-    job.env('HAIL_BUCKET', hail_bucket)
+    job.image(image)
+    if cpu:
+        job.cpu(cpu)
+    if memory:
+        job.memory(memory)
+
+    # NOTE: if you add an environment variable here, make sure to update
+    # the cpg_utils.hail.copy_common_env function!
+    job.env('CPG_ACCESS_LEVEL', access_level)
+    job.env('CPG_DATASET', dataset)
+    job.env('CPG_DATASET_GCP_PROJECT', dataset_gcp_project)
+    job.env('CPG_DRIVER_IMAGE', DRIVER_IMAGE)
+    job.env('CPG_OUTPUT_PREFIX', output_prefix)
     job.env('HAIL_BILLING_PROJECT', dataset)
-    job.env('DATASET_GCP_PROJECT', dataset_gcp_project)
-    job.env('OUTPUT', output_suffix)
+    job.env('HAIL_BUCKET', hail_bucket)
+    job.env('HAIL_JAR_URL', HAIL_JAR_URL)
+    job.env('HAIL_SHA', HAIL_SHA)
 
     if environment_variables:
         if not isinstance(environment_variables, dict):
