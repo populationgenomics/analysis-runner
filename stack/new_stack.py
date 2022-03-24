@@ -528,14 +528,17 @@ def add_dataset_to_tokens(dataset: str):
     Add dataset to the tokens/repository-map.json to
     make permission related caches populate correctly
     """
-    with open('../tokens/repository-map.json', 'r+', encoding='utf-8') as f:
+    with open('../tokens/repository-map.json', 'r', encoding='utf-8') as f:
         d = json.load(f)
-        if dataset in d:
-            # It's already there!
-            return False
-        d[dataset] = ['sample-metadata']
-        f.seek(0)
-        json.dump(d, f, indent=4)
+
+    if dataset in d:
+        # It's already there!
+        return False
+    d[dataset] = ['sample-metadata']
+
+    with open('../tokens/repository-map.json', 'w+', encoding='utf-8') as f:
+        json.dump(d, f, indent=4, sort_keys=True)
+
     return True
 
 
