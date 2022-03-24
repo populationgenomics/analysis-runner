@@ -3,7 +3,8 @@ Create GCP project + stack file for Pulumi
 
 requirements:
     - click pyyaml sample-metadata google-cloud-billing-budgets
-
+    - kubectl needs to be installed in the environment
+        (due to subprocess call)
 
 Example usage:
 
