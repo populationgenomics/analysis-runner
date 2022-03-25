@@ -71,19 +71,21 @@ def handler(dataset=None, filename=None):
     ).split(',')
 
     if email not in members:
-        # Second chance: if there's a '.access' file in the file's directory,
+        # Second chance: if there's a '.access' file in the first subdirectory,
         # check if the email is listed there.
-        access_filename = os.path.join(os.path.dirname(filename), '.access')
-        blob = bucket.get_blob(access_filename)
-        if blob is None:
-            logger.warning(f'{email} is not a member of the {dataset} access group')
-            abort(403)
-        access_list = blob.download_as_string().splitlines()
-        if email not in access_list:
-            logger.warning(
-                f'{email} is not in {dataset} access group or {access_filename}'
-            )
-            abort(403)
+        split_subdir = filename.split('/', maxsplit=1)
+        if len(split_subdir) == 2 and split_subdir[0]:
+            access_list_filename = f'{split_subdir[0]}/.access'
+            blob = bucket.get_blob(access_list_filename)
+            if blob is None:
+                logger.warning(f'{email} is not a member of the {dataset} access group')
+                abort(403)
+            access_list = blob.download_as_string().splitlines()
+            if email not in access_list:
+                logger.warning(
+                    f'{email} is not in {dataset} access group or {access_list_filename}'
+                )
+                abort(403)
 
     logger.info(f'Fetching blob gs://{bucket_name}/{filename}')
     blob = bucket.get_blob(filename)
