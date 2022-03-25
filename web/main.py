@@ -6,7 +6,7 @@ import mimetypes
 import os
 from flask import Flask, abort, request, Response
 
-# from cpg_utils.cloud import read_secret
+from cpg_utils.cloud import read_secret
 import google.cloud.storage
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -38,12 +38,6 @@ def handler(dataset=None, filename=None):
         logger.warning('Missing x-goog-iap-jwt-assertion header')
         abort(403)
 
-    # TODO: remove
-    from google.auth import jwt
-
-    def read_secret(x, y):
-        return ''
-
     try:
         decoded_jwt = google.oauth2.id_token.verify_token(
             iap_jwt,
@@ -51,10 +45,6 @@ def handler(dataset=None, filename=None):
             audience=IAP_EXPECTED_AUDIENCE,
             certs_url='https://www.gstatic.com/iap/verify/public_key',
         )
-
-        logging.warning(f'x1 *** {decoded_jwt=}')
-        logging.warning(f'*** {jwt.decode(iap_jwt, verify=False)=}')
-
         email = decoded_jwt['email']
     except Exception:  # pylint: disable=broad-except
         logger.exception('Failed to extract email from ID token')

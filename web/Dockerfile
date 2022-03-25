@@ -4,12 +4,14 @@ ENV PYTHONUNBUFFERED True
 
 RUN pip3 install  \
     #cpg-utils==2.5.1 \
-    hail==0.2.91 \
+    #hail==0.2.91 \
+    #google-auth==1.27.0 \
     google-auth==2.6.2 \
     cryptography \
     flask \
     gunicorn \
     google-api-python-client==2.42.0 \
+    #google-cloud-storage==1.25.0 \
     google-cloud-storage==2.2.1 \
     google-cloud-secret-manager==2.9.2
 
