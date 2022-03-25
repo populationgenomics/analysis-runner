@@ -8,8 +8,7 @@ RUN pip3 install  \
     gunicorn \
     google-api-python-client==2.10.0 \
     google-cloud-storage==1.38.0 \
-    google-cloud-secret-manager==2.2.0 \
-    google-auth==2.6.2
+    google-cloud-secret-manager==2.2.0
 
 COPY main.py ./
 
