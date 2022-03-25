@@ -44,13 +44,14 @@ def handler(dataset=None, filename=None):
             audience=IAP_EXPECTED_AUDIENCE,
             certs_url='https://www.gstatic.com/iap/verify/public_key',
         )
+        logging.info(f'{decoded_jwt=}')
         email = decoded_jwt['email']
     except Exception as e:  # pylint: disable=broad-except
         logger.warning(f'Failed to extract email from ID token: {e}')
         abort(403)
 
     # Don't allow reading `.access` files.
-    if filename.endswith('/.access'):
+    if os.path.basename(filename) == '.access':
         abort(403)
 
     server_config = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
