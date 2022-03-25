@@ -41,6 +41,7 @@ setuptools.setup(
         'google-cloud-pubsub==2.3.0',
         'google-cloud-secret-manager==2.2.0',
         'google-cloud-storage==1.25.0',
+        'Jinja2==3.0.3',
         'kubernetes',
         'pulumi-gcp',
         'requests',
