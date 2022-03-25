@@ -4,6 +4,7 @@ ENV PYTHONUNBUFFERED True
 
 RUN pip3 install  \
     cpg-utils==2.5.1 \
+    cryptography \
     flask \
     gunicorn \
     google-api-python-client==2.10.0 \
