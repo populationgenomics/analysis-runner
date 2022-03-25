@@ -45,6 +45,8 @@ def handler(dataset=None, filename=None):
             audience=IAP_EXPECTED_AUDIENCE,
             certs_url='https://www.gstatic.com/iap/verify/public_key',
         )
+        # Use allAuthenticatedUsers for the IAP configuration to make this
+        # work for arbitrary users.
         email = decoded_jwt['email']
     except Exception:  # pylint: disable=broad-except
         logger.exception('Failed to extract email from ID token')
