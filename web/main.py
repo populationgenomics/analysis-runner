@@ -44,10 +44,16 @@ def handler(dataset=None, filename=None):
             audience=IAP_EXPECTED_AUDIENCE,
             certs_url='https://www.gstatic.com/iap/verify/public_key',
         )
+
+        # TODO: remove
+        from google.auth import jwt
+
         logging.warning(f'*** {decoded_jwt=}')
+        logging.warning(f'*** {jwt.decode(iap_jwt, verify=False)=}')
+
         email = decoded_jwt['email']
-    except Exception as e:  # pylint: disable=broad-except
-        logger.warning(f'Failed to extract email from ID token: {e}')
+    except Exception:  # pylint: disable=broad-except
+        logger.exception('Failed to extract email from ID token')
         abort(403)
 
     # Don't allow reading `.access` files.
