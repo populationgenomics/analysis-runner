@@ -34,8 +34,8 @@ jobs:
 
     - name: "deploy test-web"
       run: |
-        gcloud run deploy test-web --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=BUCKET_SUFFIX=test-web --image $DOCKER_IMAGE
+        gcloud run deploy test-web --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=BUCKET_SUFFIX=test-web,IAP_EXPECTED_AUDIENCE=/projects/370374240567/global/backendServices/3174620063505845348 --image $DOCKER_IMAGE
 
     - name: "deploy main-web"
       run: |
-        gcloud run deploy main-web --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=BUCKET_SUFFIX=main-web --image $DOCKER_IMAGE
+        gcloud run deploy main-web --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=BUCKET_SUFFIX=main-web,IAP_EXPECTED_AUDIENCE=/projects/370374240567/global/backendServices/1864569452412538381 --image $DOCKER_IMAGE
