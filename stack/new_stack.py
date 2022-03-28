@@ -61,17 +61,6 @@ HAIL_GET_USER_PATH = HAIL_AUTH_URL + '/api/v1alpha/users/{username}'
 logging.basicConfig(level=logging.INFO)
 
 
-RE_CLIENT_EMAIL_MATCHER = re.compile(
-    f'[A-z0-9-]+@{HAIL_PROJECT}.iam.gserviceaccount.com'
-)
-
-GET_HAIL_TOKENS = (
-    lambda project: f"""
-for access_level in test standard full; do kubectl get secret {project}-$access_level-gsa-key -o json | jq '.data | map_values(@base64d)'; done
-"""
-)
-
-
 @click.command()
 @click.option('--dataset')
 @click.option('--gcp-project', required=False, help='If different to the dataset name')
@@ -312,10 +301,20 @@ def get_hail_service_accounts(dataset: str):
             'vdc',
         ]
     )
-    hail_tokens = subprocess.check_output(GET_HAIL_TOKENS(dataset), shell=True).decode()
-    hail_client_emails_by_level = get_client_emails_from_kubectl_output(hail_tokens)
+    hail_client_emails_by_level = {}
+    for access_level in ('test', 'standard', 'full'):
+        hail_token = subprocess.check_output(
+            _kubectl_hail_token_command(dataset, access_level), shell=True
+        ).decode()
+        # The hail_token from kubectl looks like: { "key.json": "<service-account-json-string>" }
+        sa_key = json.loads(json.loads(hail_token)['key.json'])
+        hail_client_emails_by_level[access_level] = sa_key['client_email']
 
     return hail_client_emails_by_level
+
+
+def _kubectl_hail_token_command(project, access_level: str):
+    return f"kubectl get secret {project}-{access_level}-gsa-key -o json | jq '.data | map_values(@base64d)'"
 
 
 def _check_if_hail_account_exists(username, hail_auth_token):
@@ -397,18 +396,6 @@ def create_hail_accounts(dataset):
 
             counter += 1
             time.sleep(5.0)
-
-
-def get_client_emails_from_kubectl_output(output):
-    """
-    Kubectl gives us 3 json blobs, so use a regex to find the hail emails
-    """
-    responses = RE_CLIENT_EMAIL_MATCHER.findall(output)
-    if len(responses) != 3:
-        raise ValueError(
-            f'There was an error finding the hail client emails in the response, only found {responses} responses.'
-        )
-    return {'test': responses[0], 'standard': responses[1], 'full': responses[2]}
 
 
 def generate_pulumi_stack_file(
