@@ -65,7 +65,7 @@ jobs:
 
     - name: "deploy server-test"
       run: |
-        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,HAIL_SHA=$HAIL_SHA --image $SERVER_IMAGE
+        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $SERVER_IMAGE
 
     - name: "submit test batch"
       run: |
@@ -79,4 +79,4 @@ jobs:
 
     - name: "deploy server"
       run: |
-        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE,HAIL_SHA=$HAIL_SHA --image $SERVER_IMAGE
+        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $SERVER_IMAGE
