@@ -12,6 +12,7 @@ from analysis_runner.git import prepare_git_job
 from cromwell import add_cromwell_routes
 from util import (
     DRIVER_IMAGE,
+    IMAGE_REGISTRY_PREFIX,
     PUBSUB_TOPIC,
     get_analysis_runner_metadata,
     get_email_from_request,
@@ -137,6 +138,7 @@ async def index(request):
     job.env('CPG_DATASET', dataset)
     job.env('CPG_DATASET_GCP_PROJECT', dataset_gcp_project)
     job.env('CPG_DRIVER_IMAGE', DRIVER_IMAGE)
+    job.env('CPG_IMAGE_REGISTRY_PREFIX', IMAGE_REGISTRY_PREFIX)
     job.env('CPG_OUTPUT_PREFIX', output_prefix)
     job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('HAIL_BUCKET', hail_bucket)

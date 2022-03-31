@@ -20,6 +20,7 @@ from analysis_runner.git import prepare_git_job
 from util import (
     PUBSUB_TOPIC,
     DRIVER_IMAGE,
+    IMAGE_REGISTRY_PREFIX,
     get_server_config,
     get_analysis_runner_metadata,
     get_email_from_request,
@@ -150,6 +151,7 @@ def add_cromwell_routes(
         job.env('CPG_ACCESS_LEVEL', access_level)
         job.env('CPG_DATASET', dataset)
         job.env('CPG_DRIVER_IMAGE', DRIVER_IMAGE)
+        job.env('CPG_IMAGE_REGISTRY_PREFIX', IMAGE_REGISTRY_PREFIX)
         job.env('CPG_OUTPUT_PREFIX', output_dir)
 
         run_cromwell_workflow(
