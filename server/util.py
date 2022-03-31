@@ -22,6 +22,7 @@ ALLOWED_CONTAINER_IMAGE_PREFIXES = (
 )
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
+IMAGE_REGISTRY_PREFIX = 'australia-southeast1-docker.pkg.dev/cpg-common/images'
 
 COMBINE_METADATA = """
 import json
