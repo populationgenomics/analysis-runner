@@ -12,7 +12,7 @@
     ],
     "brain-malf": [
         "sample-metadata",
-        "fewgenomes"
+        "rare-disease"
     ],
     "circa": [
         "sample-metadata"
@@ -47,14 +47,14 @@
     ],
     "leukodystrophies": [
         "sample-metadata",
-        "fewgenomes"
+        "rare-disease"
     ],
     "mgrb": [
         "sample-metadata"
     ],
     "mito-disease": [
         "sample-metadata",
-        "fewgenomes"
+        "rare-disease"
     ],
     "nagim": [
         "sample-metadata"
