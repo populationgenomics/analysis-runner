@@ -11,7 +11,8 @@
         "ancestry"
     ],
     "brain-malf": [
-        "sample-metadata"
+        "sample-metadata",
+        "fewgenomes"
     ],
     "circa": [
         "sample-metadata"
@@ -45,13 +46,15 @@
         "analysis-runner"
     ],
     "leukodystrophies": [
-        "sample-metadata"
+        "sample-metadata",
+        "fewgenomes"
     ],
     "mgrb": [
         "sample-metadata"
     ],
     "mito-disease": [
-        "sample-metadata"
+        "sample-metadata",
+        "fewgenomes"
     ],
     "nagim": [
         "sample-metadata"
