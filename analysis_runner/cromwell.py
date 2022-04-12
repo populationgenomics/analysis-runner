@@ -302,7 +302,7 @@ class CromwellError(Exception):
     """Cromwell status error"""
 
 
-def _watch_workflow(
+def watch_workflow(
     workflow_id_file,
     max_sequential_exception_count,
     max_poll_interval,
@@ -423,7 +423,7 @@ def watch_workflow_and_get_output(
     watch_job.image(_driver_image)  # need an image with python3 + requests
 
     rdict = watch_job.call(
-        _watch_workflow,
+        watch_workflow,
         workflow_id_file,
         max_sequential_exception_count,
         max_poll_interval,
