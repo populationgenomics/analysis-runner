@@ -7,6 +7,7 @@ import os
 from flask import Flask, abort, request, Response
 
 from cpg_utils.cloud import read_secret
+from cpg_utils.permissions import get_group_members
 import google.cloud.storage
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -65,10 +66,7 @@ def handler(dataset=None, filename=None):
     bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     bucket = storage_client.bucket(bucket_name)
 
-    dataset_project_id = dataset_config['projectId']
-    members = read_secret(
-        dataset_project_id, f'{dataset}-web-access-members-cache'
-    ).split(',')
+    members = get_group_members(f'{dataset}-access@populationgenomics.org.au')
 
     if email not in members:
         # Second chance: if there's a '.access' file in the first subdirectory,

@@ -10,6 +10,7 @@ from hailtop.config import get_deploy_config
 from google.cloud import secretmanager, pubsub_v1
 
 from cpg_utils.cloud import email_from_id_token, read_secret
+from cpg_utils.permissions import get_group_members
 
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
@@ -90,20 +91,9 @@ def validate_output_dir(output_dir: str):
     return output_dir.rstrip('/')  # Strip trailing slash.
 
 
-def check_dataset_and_group(server_config, dataset, email):
+def check_dataset_and_group(dataset, email):
     """Check that the email address is a member of the {dataset}-access@popgen group"""
-    dataset_config = server_config.get(dataset)
-    if not dataset_config:
-        raise web.HTTPForbidden(
-            reason=(
-                f'Dataset "{dataset}" is not part of: '
-                f'{", ".join(server_config.keys())}'
-            )
-        )
-
-    group_members = read_secret(
-        dataset_config['projectId'], f'{dataset}-access-members-cache'
-    ).split(',')
+    group_members = get_group_members(f'dataset-access@populationgenomics.org.au')
     if email not in group_members:
         raise web.HTTPForbidden(
             reason=f'{email} is not a member of the {dataset} access group'

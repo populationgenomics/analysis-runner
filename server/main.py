@@ -54,7 +54,7 @@ async def index(request):
     server_config = get_server_config()
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
-    check_dataset_and_group(server_config, dataset, email)
+    check_dataset_and_group(dataset, email)
     repo = params['repo']
     check_allowed_repos(server_config, dataset, repo)
 
