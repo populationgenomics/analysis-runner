@@ -1,4 +1,41 @@
-"""Pulumi stack to set up buckets and permission groups."""
+"""
+Pulumi stack to set up buckets and permission groups.
+
+Convenience groups:
+    - `access`: For persons, also gives access to analysis-runner
+    - `web`: For persons, also gives access to web buckets
+
+Service account levels for Hail, Cromwell, Dataproc:
+    - `test`: Full access to test buckets
+    - `standard`: Read + Append access to main buckets
+    - `full`: Full access to test + main buckets
+
+Depends on relationships:
+    - Full: groups get equivalent access in sub-datasets
+    - Readonly: groups get readonly access in sub-datasets
+
+Sample-metadata:
+    - Now use `test-read`, `test-full`, `main-list`, `main-append`
+
+Groups:
+    - `test-read`: Read only access to the test bucket
+        - self: `test-full` (no self SAs or groups have read-only access to test)
+            Adding test-full here makes sample-metadata groups easier)
+        - depends-read-only: `test-read-only`, `test-full`
+    - `test-full`: Full access to the test bucket:
+        - self: `access` group, full SAs, testSAs (not standard)
+        - readonly-depends: none
+    - `main-list`: List only access to the bucket.
+        - self: `access` group
+        - readonly-depends: `main-list`
+    - `main-read`: List + read access to the main bucket.
+        - self: `main-read-append`, `main-full`
+        - readonly-depends: `read-only`, `read-append`, `full`
+    - `main-append`: Append access to the main bucket.:
+        - self: standard SAs, `main-full`
+    - `main-full`: Full access to both test + main buckets.
+        - self: full SAs
+"""
 
 from collections import defaultdict, namedtuple
 import base64
