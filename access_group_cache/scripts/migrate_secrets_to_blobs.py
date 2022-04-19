@@ -41,14 +41,14 @@ def migrate_and_destroy_secrets(project_id, secret_name, should_delete=False):
     for version in secret_manager.list_secret_versions(request={'parent': secret_path}):
         create_time = version.create_time
         if version.state == secretmanager.SecretVersion.State.DISABLED:
-            secret_manager.enable_secret_version(request={"name": version.name})
+            secret_manager.enable_secret_version(request={'name': version.name})
         elif version.state == secretmanager.SecretVersion.State.DESTROYED:
             logging.info(f'Skipping {version.name} because it is already destroyed')
             continue
 
         # should be enabled now
         members = (
-            secret_manager.access_secret_version(request={"name": version.name})
+            secret_manager.access_secret_version(request={'name': version.name})
             .payload.data.decode('UTF-8')
             .split(',')
         )
@@ -108,4 +108,4 @@ def main():
 
 
 if __name__ == '__main__':
-    migrate_and_destroy_secrets('acute-care-321904', 'acute-care-access-members-cache')
+    main()
