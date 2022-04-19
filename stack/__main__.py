@@ -7,7 +7,7 @@ Convenience groups:
 
 Service account levels for Hail, Cromwell, Dataproc:
     - `test`: Full access to test buckets
-    - `standard`: Read + Append access to main buckets
+    - `standard`: Read + append access to main buckets
     - `full`: Full access to test + main buckets
 
 Depends on relationships:
@@ -15,7 +15,7 @@ Depends on relationships:
     - Readonly: groups get readonly access in sub-datasets
 
 Sample-metadata:
-    - Now use `test-read`, `test-full`, `main-list`, `main-append`
+    - Now use `test-read`, `test-full`, `main-list`, `main-create`
 
 Groups:
     - `test-read`: Read only access to the test bucket
@@ -29,11 +29,11 @@ Groups:
         - self: `access` group
         - readonly-depends: `main-list`
     - `main-read`: List + read access to the main bucket.
-        - self: `main-read-append`, `main-full`
-        - readonly-depends: `read-only`, `read-append`, `full`
-    - `main-append`: Append access to the main bucket.:
-        - self: standard SAs, `main-full`
-    - `main-full`: Full access to both test + main buckets.
+        - self: `main-create`, `full`
+        - readonly-depends: `main-read`, `main-create`, `full`
+    - `main-create`: Append access to the main bucket.:
+        - self: standard SAs, `full`
+    - `full`: Full access to both test + main buckets.
         - self: full SAs
 """
 
