@@ -3,7 +3,6 @@
 from typing import List, Optional, Tuple, Dict, Set
 import asyncio
 from datetime import datetime
-import subprocess
 from collections import defaultdict
 from graphlib import TopologicalSorter
 import json
@@ -92,7 +91,7 @@ def _write_group_membership_list(group: str, members: List[str]):
     versions = ['latest', datetime.now().isoformat().split('.')[0]]
 
     for version in versions:
-        filename = cpg_utils.permissions._group_name_to_filename(group, version)
+        filename = cpg_utils.permissions.group_name_to_filename(group, version)
         f = AnyPath(filename).open('w+')
         f.write(','.join(members))
         f.close()
@@ -100,11 +99,6 @@ def _write_group_membership_list(group: str, members: List[str]):
 
 async def _get_service_account_access_token() -> str:
     # https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances#applications
-    return (
-        subprocess.check_output(['gcloud', 'auth', 'print-access-token'])
-        .decode()
-        .strip()
-    )
     async with aiohttp.ClientSession() as session:
         async with session.get(
             'http://metadata.google.internal/computeMetadata/v1/instance/'
@@ -245,6 +239,10 @@ async def get_group_members(
 
         remaining_groups = [grp for grp in _next_groups if grp not in group_parents_map]
 
+    logging.info(
+        f'Looked up {len(groups)} (total={len(group_parents_map)}) groups in {rounds} rounds in {(datetime.now() - start).total_seconds():.2f} seconds'
+    )
+
     # resolve
     ordered_groups = TopologicalSorter(group_dependencies)
 
@@ -265,9 +263,6 @@ async def get_group_members(
             for group, members in resolved_members.items()
             if group in requested_groups
         }
-
-            cpg_utils.cloud.write_secret(project_id, secret_name, secret_value)
-            print(f'Updated secret {secret_name}')
 
     return resolved_members
 
