@@ -1,16 +1,24 @@
 """Stores group membership information as secrets, for faster lookups."""
 
+from typing import List, Optional, Tuple, Dict, Set
 import asyncio
+from datetime import datetime
+import subprocess
+from collections import defaultdict
+from graphlib import TopologicalSorter
 import json
 import logging
 import urllib
+
 import os
-from typing import List, Optional, Union, Tuple
 import aiohttp
 import cpg_utils.cloud
+import cpg_utils.permissions
 from flask import Flask
+from cloudpathlib import AnyPath
 
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
@@ -31,8 +39,10 @@ async def _get_group_parent(access_token: str, group_name: str) -> Optional[str]
             headers={'Authorization': f'Bearer {access_token}'},
         ) as resp:
             if resp.status == 403:
-                # This is the "email isn't actually a google group" case
                 # Probably a 403 to stop any unauthorized info leakage
+                # This covers two unfortunate cases:
+                #   1. The "email isn't actually a google group"
+                #   2. The analysis-runner-cache SA is not in the group to resolve it
                 return None
 
             resp.raise_for_status()
@@ -77,58 +87,24 @@ async def _groups_memberships_list(
     return child_groups, members
 
 
-async def _transitive_group_members(
-    access_token: str, group_name: str
-) -> Union[List[str], Exception]:
-    groups = [group_name]
-    seen = set()
-    result = set()
+def _write_group_membership_list(group: str, members: List[str]):
 
-    while groups:
-        remaining_groups = []
-        for group in groups:
-            if group in seen:
-                continue  # Break cycles.
-            seen.add(group)
-            remaining_groups.append(group)
+    versions = ['latest', datetime.now().isoformat().split('.')[0]]
 
-        group_parents = await asyncio.gather(
-            *(_get_group_parent(access_token, group) for group in remaining_groups),
-            return_exceptions=True,
-        )
-
-        memberships_aws = []
-        for group, group_parent in zip(remaining_groups, group_parents):
-            if isinstance(group_parent, Exception):
-                return group_parent
-
-            if group_parent is None:
-                # Group couldn't be resolved, which usually means it's an individual.
-                result.add(group)
-            else:
-                # It's a group, so add its members for the next round.
-                memberships_aws.append(
-                    _groups_memberships_list(access_token, group_parent)
-                )
-
-        memberships = await asyncio.gather(*memberships_aws, return_exceptions=True)
-
-        groups = []
-        for membership_result in memberships:
-            if isinstance(membership_result, Exception):
-                # if any membership checked, fail the whole group
-                return membership_result
-
-            child_groups, members = membership_result
-
-            result.update(members)
-            groups.extend(child_groups)
-
-    return sorted(list(result))
+    for version in versions:
+        filename = cpg_utils.permissions._group_name_to_filename(group, version)
+        f = AnyPath(filename).open('w+')
+        f.write(','.join(members))
+        f.close()
 
 
 async def _get_service_account_access_token() -> str:
     # https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances#applications
+    return (
+        subprocess.check_output(['gcloud', 'auth', 'print-access-token'])
+        .decode()
+        .strip()
+    )
     async with aiohttp.ClientSession() as session:
         async with session.get(
             'http://metadata.google.internal/computeMetadata/v1/instance/'
@@ -139,23 +115,14 @@ async def _get_service_account_access_token() -> str:
             return json.loads(content)['access_token']
 
 
-async def _get_group_members(
-    group_names: List[str],
-) -> List[Union[List[str], Exception]]:
-    access_token = await _get_service_account_access_token()
-
-    return await asyncio.gather(
-        *(
-            _transitive_group_members(access_token, group_name)
-            for group_name in group_names
-        ),
-        return_exceptions=True,
-    )
-
-
 @app.route('/', methods=['POST'])
 def index():
     """Cloud Run entry point."""
+    main()
+
+
+def main():
+    """Entry point, more convenient to test"""
 
     config = json.loads(
         cpg_utils.cloud.read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config')
@@ -186,31 +153,123 @@ def index():
     # Google Groups API queries are ridiculously slow, on the order of a few hundred ms
     # per query. That's why we use async processing here to keep processing times low.
     all_group_members = asyncio.run(
-        _get_group_members([f'{group}@populationgenomics.org.au' for group in groups])
+        get_group_members([f'{group}@populationgenomics.org.au' for group in groups])
     )
 
-    for group, group_members in zip(groups, all_group_members):
-        if isinstance(group_members, Exception):
-            logging.error(
-                f'Skipping update for "{group}" due to exception: {group_members}'
-            )
-            continue
-        secret_value = ','.join(group_members)
-
-        dataset = dataset_by_group[group]
-        project_id = config[dataset]['projectId']
+    for group, group_members in all_group_members.items():
 
         # Check whether the current secret version is up-to-date.
-        secret_name = f'{group}-members-cache'
-        current_secret = cpg_utils.cloud.read_secret(project_id, secret_name)
+        try:
+            current_grp = cpg_utils.permissions.get_group_members(group)
+        except FileNotFoundError:
+            # doesn't exist, so we need to create it
+            current_grp = []
 
-        if current_secret == secret_value:
-            print(f'Secret {secret_name} is up-to-date')
+        shorted_group_name = group.split('@')[0]
+        if current_grp == group_members:
+            print(f'Group cache {shorted_group_name} is up-to-date')
         else:
+            _write_group_membership_list(group, group_members)
+            print(f'Updated group cache {shorted_group_name}')
+
+    return ('', 204)
+
+
+async def get_group_members(
+    groups: List[str], filter_to_requested=True
+) -> Dict[str, List[str]]:
+    """
+    This function (iteratively) gets group members
+    and avoids hitting the Google Groups API too many times by
+    caching subgroups.
+    """
+
+    group_parents_map: Dict[str, Optional[str]] = {}
+    group_members_list: Dict[str, Set[str]] = defaultdict(set)
+    group_dependencies: Dict[str, Set[str]] = defaultdict(set)
+
+    access_token = await _get_service_account_access_token()
+
+    rounds = 0
+    start = datetime.now()
+
+    remaining_groups = groups
+    while remaining_groups:
+        rounds += 1
+        # group_parents are group IDs
+        group_parents = await asyncio.gather(
+            *(_get_group_parent(access_token, group) for group in remaining_groups),
+            return_exceptions=True,
+        )
+
+        membership_coroutine_map = {}
+        for group, group_parent in zip(remaining_groups, group_parents):
+            if isinstance(group_parent, Exception):
+                # this feels bad
+                # return group_parent
+                raise Exception(f'Could not resolve group "{group}": {group_parent}')
+
+            group_parents_map[group] = group_parent
+            if group_parent is None:
+                # Group couldn't be resolved, which usually means it's an individual.
+                logging.warning(f'Warning: group is unresolvable: {group}')
+                if group not in group_members_list:
+                    group_members_list[group] = set()
+
+            else:
+                # It's a group, so add its members for the next round.
+                membership_coroutine_map[group] = _groups_memberships_list(
+                    access_token, group_parent
+                )
+
+        _next_groups = set()
+        if membership_coroutine_map:
+
+            membership_group_names, membership_coroutines = list(
+                zip(*membership_coroutine_map.items())
+            )
+            memberships = await asyncio.gather(
+                *membership_coroutines, return_exceptions=True
+            )
+
+            for group, result in zip(membership_group_names, memberships):
+                if isinstance(result, Exception):
+                    # if any membership checked, fail the whole group
+                    raise Exception(f'Could not resolve group {group}')
+
+                child_groups, members = result
+                # group_dependencies help us resolve groups later
+                group_dependencies[group] = child_groups
+                group_members_list[group].update(members)
+                _next_groups.update(child_groups)
+
+        remaining_groups = [grp for grp in _next_groups if grp not in group_parents_map]
+
+    # resolve
+    ordered_groups = TopologicalSorter(group_dependencies)
+
+    resolved_members = {}
+
+    for group in ordered_groups.static_order():
+        resolved = list(group_members_list.get(group, []))
+        for dep in group_dependencies.get(group, []):
+            if dep in group_members_list:
+                resolved.extend(group_members_list[dep])
+
+        resolved_members[group] = sorted(resolved)
+
+    if filter_to_requested:
+        requested_groups = set(groups)
+        resolved_members = {
+            group: members
+            for group, members in resolved_members.items()
+            if group in requested_groups
+        }
+
             cpg_utils.cloud.write_secret(project_id, secret_name, secret_value)
             print(f'Updated secret {secret_name}')
 
-    return ('', 204)
+    return resolved_members
 
 
 if __name__ == '__main__':
