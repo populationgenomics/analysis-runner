@@ -309,6 +309,21 @@ def watch_workflow(
     exponential_decrease_seconds,
 ) -> Dict[str, any]:
     """INNER Python function to watch workflow, and return outputs"""
+    # Re-importing subprocess here, otherwise dill would fail to serialise the
+    # function for Hail python job. Also, re-defining get_cromwell_oauth_token that
+    # uses subprocess as well, for the same reason.
+    import subprocess  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
+
+    def get_cromwell_oauth_token():  # pylint: disable=redefined-outer-name
+        """Get oath token for cromwell, specific to audience"""
+        token_command = [
+            'gcloud',
+            'auth',
+            'print-identity-token',
+            f'--audiences={CROMWELL_AUDIENCE}',
+        ]
+        token = subprocess.check_output(token_command).decode().strip()
+        return token
 
     def get_wait_interval(
         start, max_poll_interval, exponential_decrease_seconds
