@@ -343,10 +343,10 @@ def watch_workflow_and_get_output(
     watch_job.image(_driver_image)  # need an image with python3 + requests
 
     def watch_workflow(
-        workflow_id_file: ResourceFile,
-        max_sequential_exception_count: int,
-        max_poll_interval: int,
-        exponential_decrease_seconds: int,
+        workflow_id_file,
+        max_sequential_exception_count,
+        max_poll_interval,
+        exponential_decrease_seconds,
     ) -> Dict[str, any]:
         """INNER Python function to watch workflow, and return outputs"""
 
