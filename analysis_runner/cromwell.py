@@ -6,11 +6,11 @@ jobs from within Hail batch.
 import json
 import math
 import os
-import subprocess
 import time
 from datetime import datetime
 from shlex import quote
 from typing import List, Dict, Optional, Any
+from hailtop.batch import ResourceFile
 
 import requests
 
@@ -134,7 +134,7 @@ def run_cromwell_workflow(
     input_dict: Optional[Dict[str, Any]] = None,
     input_paths: List[str] = None,
     project: Optional[str] = None,
-):
+) -> ResourceFile:
     """
     Run a cromwell workflow, and return a Batch.ResourceFile
     that contains the workflow ID
@@ -302,105 +302,10 @@ class CromwellError(Exception):
     """Cromwell status error"""
 
 
-def watch_workflow(
-    workflow_id_file,
-    max_sequential_exception_count,
-    max_poll_interval,
-    exponential_decrease_seconds,
-) -> Dict[str, any]:
-    """INNER Python function to watch workflow, and return outputs"""
-    # Re-importing subprocess here, otherwise dill would fail to serialise the
-    # function for Hail python job. Also, re-defining get_cromwell_oauth_token that
-    # uses subprocess as well, for the same reason.
-    import subprocess  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
-
-    def get_cromwell_oauth_token():  # pylint: disable=redefined-outer-name
-        """Get oath token for cromwell, specific to audience"""
-        token_command = [
-            'gcloud',
-            'auth',
-            'print-identity-token',
-            f'--audiences={CROMWELL_AUDIENCE}',
-        ]
-        token = subprocess.check_output(token_command).decode().strip()
-        return token
-
-    def get_wait_interval(
-        start, max_poll_interval, exponential_decrease_seconds
-    ) -> int:
-        """
-        Get wait time between 5s and {max_poll_interval},
-        curved between 0s and {exponential_decrease_seconds}.
-        """
-        factor = (datetime.now() - start).total_seconds() / exponential_decrease_seconds
-        if factor > 1:
-            return max_poll_interval
-        return max(5, int((1 - math.cos(math.pi * factor)) * max_poll_interval // 2))
-
-    with open(workflow_id_file, encoding='utf-8') as f:
-        workflow_id = f.read().strip()
-
-    logger.info(f'Received workflow ID: {workflow_id}')
-    final_statuses = {'failed', 'aborted'}
-    subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
-    url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
-    _remaining_exceptions = max_sequential_exception_count
-    start = datetime.now()
-
-    while True:
-        if _remaining_exceptions <= 0:
-            raise CromwellError('Unreachable')
-        wait_time = get_wait_interval(
-            start, max_poll_interval, exponential_decrease_seconds
-        )
-        try:
-            token = get_cromwell_oauth_token()
-            r = requests.get(url, headers={'Authorization': f'Bearer {token}'})
-            if not r.ok:
-                _remaining_exceptions -= 1
-                logger.warning(
-                    f'Received "not okay" (status={r.status_code}) from cromwell '
-                    f'(waiting={wait_time}): {r.text}'
-                )
-                time.sleep(wait_time)
-                continue
-            status = r.json().get('status')
-            _remaining_exceptions = max_sequential_exception_count
-            if status.lower() == 'succeeded':
-                logger.info(f'Cromwell workflow moved to succeeded state')
-                # process outputs here
-                outputs_url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/outputs'
-                r_outputs = requests.get(
-                    outputs_url, headers={'Authorization': f'Bearer {token}'}
-                )
-                if not r_outputs.ok:
-                    logger.warning(
-                        'Received error when fetching cromwell outputs, will retry in 15 seconds'
-                    )
-                    continue
-                outputs = r_outputs.json()
-                logger.info(f'Received outputs from Cromwell: {outputs}')
-                return outputs.get('outputs')
-            if status.lower() in final_statuses:
-                logger.error(f'Got failed cromwell status: {status}')
-                raise CromwellError(status)
-            logger.info(f'Got cromwell status: {status} (sleeping={wait_time})')
-            time.sleep(wait_time)
-        except CromwellError:
-            # pass through
-            raise
-        except Exception as e:
-            _remaining_exceptions -= 1
-            logger.error(
-                f'Cromwell status watch caught general exception (sleeping={wait_time}): {e}'
-            )
-            time.sleep(wait_time)
-
-
 def watch_workflow_and_get_output(
     b,
     job_prefix: str,
-    workflow_id_file,
+    workflow_id_file: ResourceFile,
     outputs_to_collect: Dict[str, CromwellOutputType],
     driver_image: Optional[str] = None,
     max_poll_interval=60,  # 1 minute
@@ -436,6 +341,109 @@ def watch_workflow_and_get_output(
     watch_job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
     watch_job.env('PYTHONUNBUFFERED', '1')  # makes the logs go quicker
     watch_job.image(_driver_image)  # need an image with python3 + requests
+
+    def watch_workflow(
+        workflow_id_file: ResourceFile,
+        max_sequential_exception_count: int,
+        max_poll_interval: int,
+        exponential_decrease_seconds: int,
+    ) -> Dict[str, any]:
+        """INNER Python function to watch workflow, and return outputs"""
+
+        # Re-importing subprocess here, otherwise dill would fail to serialise the
+        # function for Hail python job.
+        import subprocess  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
+
+        # Also re-defining this function that uses subprocess, for the same reason.
+        def get_cromwell_oauth_token():  # pylint: disable=redefined-outer-name
+            """Get oath token for cromwell, specific to audience"""
+            token_command = [
+                'gcloud',
+                'auth',
+                'print-identity-token',
+                f'--audiences={CROMWELL_AUDIENCE}',
+            ]
+            token = subprocess.check_output(token_command).decode().strip()
+            return token
+
+        def get_wait_interval(
+            start, max_poll_interval, exponential_decrease_seconds
+        ) -> int:
+            """
+            Get wait time between 5s and {max_poll_interval},
+            curved between 0s and {exponential_decrease_seconds}.
+            """
+            factor = (
+                datetime.now() - start
+            ).total_seconds() / exponential_decrease_seconds
+            if factor > 1:
+                return max_poll_interval
+            return max(
+                5, int((1 - math.cos(math.pi * factor)) * max_poll_interval // 2)
+            )
+
+        with open(workflow_id_file, encoding='utf-8') as f:
+            workflow_id = f.read().strip()
+
+        logger.info(f'Received workflow ID: {workflow_id}')
+        final_statuses = {'failed', 'aborted'}
+        subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
+        url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
+        _remaining_exceptions = max_sequential_exception_count
+        start = datetime.now()
+
+        while True:
+            if _remaining_exceptions <= 0:
+                raise CromwellError('Unreachable')
+            wait_time = get_wait_interval(
+                start, max_poll_interval, exponential_decrease_seconds
+            )
+            try:
+                token = get_cromwell_oauth_token()
+                r = requests.get(url, headers={'Authorization': f'Bearer {token}'})
+                if not r.ok:
+                    _remaining_exceptions -= 1
+                    logger.warning(
+                        f'Received "not okay" (status={r.status_code}) from cromwell '
+                        f'(waiting={wait_time}): {r.text}'
+                    )
+                    time.sleep(wait_time)
+                    continue
+                status = r.json().get('status')
+                _remaining_exceptions = max_sequential_exception_count
+                if status.lower() == 'succeeded':
+                    logger.info(f'Cromwell workflow moved to succeeded state')
+                    # process outputs here
+                    outputs_url = (
+                        f'https://cromwell.populationgenomics.org.au/api/workflows'
+                        f'/v1/{workflow_id}/outputs'
+                    )
+                    r_outputs = requests.get(
+                        outputs_url, headers={'Authorization': f'Bearer {token}'}
+                    )
+                    if not r_outputs.ok:
+                        logger.warning(
+                            'Received error when fetching cromwell outputs, '
+                            'will retry in 15 seconds'
+                        )
+                        continue
+                    outputs = r_outputs.json()
+                    logger.info(f'Received outputs from Cromwell: {outputs}')
+                    return outputs.get('outputs')
+                if status.lower() in final_statuses:
+                    logger.error(f'Got failed cromwell status: {status}')
+                    raise CromwellError(status)
+                logger.info(f'Got cromwell status: {status} (sleeping={wait_time})')
+                time.sleep(wait_time)
+            except CromwellError:
+                # pass through
+                raise
+            except Exception as e:
+                _remaining_exceptions -= 1
+                logger.error(
+                    f'Cromwell status watch caught general exception (sleeping={wait_time}): {e}'
+                )
+                time.sleep(wait_time)
 
     rdict = watch_job.call(
         watch_workflow,
@@ -629,15 +637,3 @@ def _copy_resource_group_into_batch(
         )
 
     return output_filename
-
-
-def get_cromwell_oauth_token():
-    """Get oath token for cromwell, specific to audience"""
-    token_command = [
-        'gcloud',
-        'auth',
-        'print-identity-token',
-        f'--audiences={CROMWELL_AUDIENCE}',
-    ]
-    token = subprocess.check_output(token_command).decode().strip()
-    return token
