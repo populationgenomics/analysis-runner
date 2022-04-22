@@ -10,7 +10,6 @@ import time
 from datetime import datetime
 from shlex import quote
 from typing import List, Dict, Optional, Any
-from hailtop.batch import ResourceFile
 
 import requests
 
@@ -134,7 +133,7 @@ def run_cromwell_workflow(
     input_dict: Optional[Dict[str, Any]] = None,
     input_paths: List[str] = None,
     project: Optional[str] = None,
-) -> ResourceFile:
+):
     """
     Run a cromwell workflow, and return a Batch.ResourceFile
     that contains the workflow ID
@@ -305,7 +304,7 @@ class CromwellError(Exception):
 def watch_workflow_and_get_output(
     b,
     job_prefix: str,
-    workflow_id_file: ResourceFile,
+    workflow_id_file,
     outputs_to_collect: Dict[str, CromwellOutputType],
     driver_image: Optional[str] = None,
     max_poll_interval=60,  # 1 minute
