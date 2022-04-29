@@ -10,14 +10,15 @@ import hailtop.batch as hb
 import requests
 from aiohttp import web
 
+from cpg_utils.git import prepare_git_job
 from cpg_utils.hail_batch import remote_tmpdir
 
 from analysis_runner.constants import CROMWELL_URL
 from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
-from analysis_runner.git import prepare_git_job
 
 # pylint: disable=wrong-import-order
-from util import (
+from server.util import (
+    GITHUB_ORG,
     PUBSUB_TOPIC,
     DRIVER_IMAGE,
     IMAGE_REGISTRY_PREFIX,
@@ -131,12 +132,15 @@ def add_cromwell_routes(
         )
 
         job = batch.new_job(name='driver')
-        job = prepare_git_job(
+
+        # pull the relevant git repository
+        prepare_git_job(
             job=job,
             repo_name=repo,
             commit=commit,
             print_all_statements=False,
             is_test=access_level == 'test',
+            organisation=GITHUB_ORG
         )
 
         write_metadata_to_bucket(

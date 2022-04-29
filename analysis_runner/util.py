@@ -9,6 +9,7 @@ import requests
 from analysis_runner._version import __version__
 
 BRANCH = 'main'
+GITHUB_ORG = 'populationgenomics'
 
 logger = logging.getLogger('analysis_runner')
 logger.addHandler(logging.StreamHandler())

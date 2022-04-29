@@ -8,10 +8,10 @@ from shlex import quote
 import hailtop.batch as hb
 from aiohttp import web
 
-from analysis_runner.git import prepare_git_job
 from cromwell import add_cromwell_routes
-from util import (
+from server.util import (
     DRIVER_IMAGE,
+    GITHUB_ORG,
     IMAGE_REGISTRY_PREFIX,
     PUBSUB_TOPIC,
     get_analysis_runner_metadata,
@@ -26,7 +26,10 @@ from util import (
     get_server_config,
     validate_image,
 )
-from cpg_utils.hail_batch import remote_tmpdir
+
+from cpg_utils.git import prepare_git_job
+from cpg_utils.hail_batch import remote_tmpdir, authenticate_cloud_credentials_in_job
+
 
 logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
@@ -118,7 +121,14 @@ async def index(request):
     )
 
     job = batch.new_job(name='driver')
-    job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
+    authenticate_cloud_credentials_in_job(job=job)
+    prepare_git_job(
+        job=job,
+        repo_name=repo,
+        commit=commit,
+        is_test=is_test,
+        organisation=GITHUB_ORG
+    )
     write_metadata_to_bucket(
         job,
         access_level=access_level,

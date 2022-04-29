@@ -8,15 +8,17 @@ from typing import List, Dict, Optional
 
 import requests
 
-from analysis_runner.constants import get_server_endpoint, SERVER_ENDPOINT
-from analysis_runner.cromwell_model import WorkflowMetadataModel
-from analysis_runner.git import (
+from cpg_utils.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
     get_relative_path_from_git_root,
     check_if_commit_is_on_remote,
+    get_organisation_name_from_current_directory
 )
+
+from analysis_runner.constants import get_server_endpoint, SERVER_ENDPOINT
+from analysis_runner.cromwell_model import WorkflowMetadataModel
 from analysis_runner.util import (
     logger,
     add_general_args,
@@ -182,6 +184,11 @@ def _run_cromwell(
     _repository = repository
     _commit_ref = commit
     _cwd = cwd
+
+    # inserting a check here that the current repository is from
+    # within the populationgenomics organisation
+    assert get_organisation_name_from_current_directory() == 'populationgenomics', \
+        'currently the Analysis-Runner only supports repositories within PopulationGenomics'
 
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())

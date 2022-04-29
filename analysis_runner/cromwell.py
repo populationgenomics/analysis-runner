@@ -14,21 +14,23 @@ from typing import List, Dict, Optional, Any
 
 import requests
 
-from analysis_runner.constants import (
-    CROMWELL_URL,
-    ANALYSIS_RUNNER_PROJECT_ID,
-    CROMWELL_AUDIENCE,
-    GCLOUD_ACTIVATE_AUTH,
-)
-from analysis_runner.git import (
+from cpg_utils.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
     prepare_git_job,
 )
+from cpg_utils.hail_batch import GCLOUD_AUTH_COMMAND
+
+from analysis_runner.constants import (
+    CROMWELL_URL,
+    ANALYSIS_RUNNER_PROJECT_ID,
+    CROMWELL_AUDIENCE,
+)
 from analysis_runner.util import (
     logger,
     get_project_id_from_service_account_email,
+    GITHUB_ORG
 )
 
 
@@ -271,6 +273,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         repo_name=(repo or get_repo_name_from_remote(get_git_default_remote())),
         commit=(commit or get_git_commit_ref_of_current_repository()),
         is_test=access_level == 'test',
+        organisation=GITHUB_ORG
     )
 
     workflow_id_file = run_cromwell_workflow(
@@ -342,7 +345,7 @@ def watch_workflow(
 
     logger.info(f'Received workflow ID: {workflow_id}')
     final_statuses = {'failed', 'aborted'}
-    subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
+    subprocess.check_output(GCLOUD_AUTH_COMMAND, shell=True)
     url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
     _remaining_exceptions = max_sequential_exception_count
     start = datetime.now()
@@ -408,6 +411,7 @@ def watch_workflow_and_get_output(
     max_sequential_exception_count=25,
 ):
     """
+
     This is a little bit tricky, but the process is:
 
     - Wait for a cromwell workflow to finish,
@@ -426,7 +430,14 @@ def watch_workflow_and_get_output(
     If the starts with "gs://", we'll copy it as a resource file,
     otherwise write the value into a file which will be a batch resource.
 
+    :param b: Hail Batch
+    :param job_prefix:
+    :param workflow_id_file:
+    :param outputs_to_collect:
     :param driver_image: If specified, must contain python3 (w/ requests), gcloud, jq
+    :param max_poll_interval:
+    :param exponential_decrease_seconds:
+    :param max_sequential_exception_count:
     """
 
     _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
@@ -532,7 +543,7 @@ def _copy_basic_file_into_batch(
     # activate to gsutil cp
     j.image(driver_image)
     j.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
-    j.command(GCLOUD_ACTIVATE_AUTH)
+    j.command(GCLOUD_AUTH_COMMAND)
 
     # this has to be in bash unfortunately :(
     # we want to check that the output we get is a string
@@ -596,7 +607,7 @@ def _copy_resource_group_into_batch(
 
     # activate to gsutil cp
     j.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
-    j.command(GCLOUD_ACTIVATE_AUTH)
+    j.command(GCLOUD_AUTH_COMMAND)
 
     # this has to be in bash unfortunately :(
     # we want to check that the output we get is a string

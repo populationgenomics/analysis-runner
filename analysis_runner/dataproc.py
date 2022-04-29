@@ -6,15 +6,17 @@ import uuid
 from shlex import quote
 from typing import Optional, List, Dict, Tuple
 import hailtop.batch as hb
-from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
 
-from analysis_runner.git import (
+from cpg_utils.git import (
     get_git_default_remote,
     get_git_commit_ref_of_current_repository,
     get_repo_name_from_remote,
     prepare_git_job,
     get_relative_path_from_git_root,
 )
+
+from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
+from analysis_runner.util import GITHUB_ORG
 
 
 HAIL_VERSION = '0.2.91'
@@ -253,6 +255,7 @@ def _add_submit_job(
         job=main_job,
         repo_name=get_repo_name_from_remote(get_git_default_remote()),
         commit=get_git_commit_ref_of_current_repository(),
+        organisation=GITHUB_ORG
     )
     cwd = get_relative_path_from_git_root()
     if cwd:
