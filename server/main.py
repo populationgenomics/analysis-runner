@@ -26,7 +26,7 @@ from util import (
     get_server_config,
     validate_image,
 )
-from cpg_utils.hail import remote_tmpdir
+from cpg_utils.hail_batch import remote_tmpdir
 
 logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
@@ -133,7 +133,7 @@ async def index(request):
         job.memory(memory)
 
     # NOTE: if you add an environment variable here, make sure to update
-    # the cpg_utils.hail.copy_common_env function!
+    # the cpg_utils.hail_batch.copy_common_env function!
     job.env('CPG_ACCESS_LEVEL', access_level)
     job.env('CPG_DATASET', dataset)
     job.env('CPG_DATASET_GCP_PROJECT', dataset_gcp_project)

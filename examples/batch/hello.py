@@ -14,7 +14,7 @@ import os
 from shlex import quote
 import hailtop.batch as hb
 import click
-from cpg_utils.hail import remote_tmpdir
+from cpg_utils.hail_batch import remote_tmpdir
 
 
 @click.command()
