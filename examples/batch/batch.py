@@ -6,7 +6,7 @@ Example of running Batch script with analysis-runner.
 import os
 import hailtop.batch as hb
 import click
-from cpg_utils.hail import output_path, remote_tmpdir
+from cpg_utils.hail_batch import output_path, remote_tmpdir
 
 BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
 assert BILLING_PROJECT

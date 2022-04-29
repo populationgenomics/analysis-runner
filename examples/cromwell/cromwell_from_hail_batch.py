@@ -4,7 +4,7 @@ from within a batch environment, and operate on the result(s)
 """
 import os
 import hailtop.batch as hb
-from cpg_utils.hail import output_path, remote_tmpdir
+from cpg_utils.hail_batch import output_path, remote_tmpdir
 from analysis_runner.cromwell import (
     run_cromwell_workflow_from_repo_and_get_outputs,
     CromwellOutputType,
