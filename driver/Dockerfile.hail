@@ -19,6 +19,7 @@ RUN apt update && \
         analysis-runner \
         bokeh \
         cloudpathlib[all] \
+        cpg-pipes \
         cpg-utils \
         phantomjs \
         sample-metadata \
