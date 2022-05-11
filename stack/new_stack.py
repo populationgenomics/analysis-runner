@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Create GCP project + stack file for Pulumi
 
@@ -9,13 +11,14 @@ requirements:
 Example usage:
 
     cd stack
-    DATASET=""
+    DATASET="my-dataset"
     python new_stack.py \
         --dataset $DATASET \
         --perform-all --no-commit \
         --release-stack \
         --generate-service-account-key
 """
+
 # pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error,too-many-lines
 import os
 import random
@@ -42,6 +45,7 @@ from google.cloud.billing.budgets_v1 import (
 from google.api_core.client_options import ClientOptions
 from google.api_core.exceptions import GoogleAPICallError
 from google.type.money_pb2 import Money
+from stack_utils import get_pulumi_config_passphrase
 from sample_metadata.apis import ProjectApi
 
 
@@ -167,7 +171,6 @@ def main(
                 gcp_id=_gcp_project,
                 create_test_project=True,
             )
-            logging.info('Set up sample-metadata project')
 
     pulumi_config_fn = f'Pulumi.{dataset}.yaml'
     if prepare_pulumi_stack:
@@ -184,7 +187,7 @@ def main(
         raise ValueError(f'Expected to find {pulumi_config_fn}, but it did not exist')
 
     if release_stack:
-        env = {**os.environ, 'PULUMI_CONFIG_PASSPHRASE': ''}
+        env = {**os.environ, 'PULUMI_CONFIG_PASSPHRASE': get_pulumi_config_passphrase()}
         subprocess.check_output(
             ['pulumi', 'stack', 'select', '--create', dataset], env=env
         )
@@ -299,6 +302,7 @@ def get_hail_service_accounts(dataset: str):
             'clusters',
             'get-credentials',
             'vdc',
+            '--zone=australia-southeast1-b',
         ]
     )
     hail_client_emails_by_level = {}
@@ -443,7 +447,6 @@ def generate_pulumi_stack_file(
         for access_level, value in hail_client_emails_by_level.items()
     }
     pulumi_stack = {
-        'encryptionsalt': 'v1:SPQXlVggjxw=:v1:X1sTpViNuyK+Wcom:3GANI8gZOKtk0gG7BklsyHeNU5uVLw==',
         'config': {
             'datasets:archive_age': '90',
             'datasets:customer_id': 'C010ys3gt',
@@ -469,7 +472,7 @@ def generate_pulumi_stack_file(
     files_to_add.append('../tokens/repository-map.json')
 
     if should_commit:
-        logging.info('Preparing GIT commit')
+        logging.info('Preparing git commit')
 
         subprocess.check_output(['git', 'add', *files_to_add])
 
@@ -481,7 +484,7 @@ def generate_pulumi_stack_file(
             ['git', 'commit', '-m', commit_message or default_commit_message]
         )
         logging.info(
-            f'Created stack, you can push this WITH:\n\n'
+            f'Created stack, you can push this with:\n\n'
             f'\tgit push --set-upstream origin {branch_name}'
         )
     else:
@@ -543,6 +546,7 @@ def add_dataset_to_tokens(dataset: str):
 
     with open('../tokens/repository-map.json', 'w+', encoding='utf-8') as f:
         json.dump(d, f, indent=4, sort_keys=True)
+        f.write('\n')  # Make the inter happy.
 
     return True
 
