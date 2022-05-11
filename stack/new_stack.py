@@ -82,7 +82,7 @@ logging.basicConfig(level=logging.INFO)
 @click.option('--create-hail-service-accounts', required=False, is_flag=True)
 @click.option('--create-pulumi-stack', required=False, is_flag=True)
 @click.option('--add-to-seqr-stack', required=False, is_flag=True)
-@click.option('--deploy-stack', required=False, is_flag=True, help='Runs pulumi up')
+@click.option('--deploy-stack', required=False, is_flag=True, help='Runs `pulumi up`')
 @click.option('--create-sample-metadata-project', required=False, is_flag=True)
 @click.option('--generate-service-account-key', required=False, is_flag=True)
 @click.option('--no-commit', required=False, is_flag=True)
@@ -467,7 +467,7 @@ def create_stack(
     add_dataset_to_tokens(dataset)
     files_to_add.append('../tokens/repository-map.json')
 
-    # Creating the stack updates the config passphrase encryption salt.
+    # Creating the stack sets the config passphrase encryption salt.
     env = {**os.environ, 'PULUMI_CONFIG_PASSPHRASE': get_pulumi_config_passphrase()}
     subprocess.check_output(['pulumi', 'stack', 'select', '--create', dataset], env=env)
 
