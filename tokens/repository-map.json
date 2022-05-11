@@ -18,7 +18,8 @@
         "sample-metadata"
     ],
     "constraint": [
-        "sample-metadata"
+        "sample-metadata",
+        "structural-constraint"
     ],
     "fewgenomes": [
         "automated-interpretation-pipeline",
