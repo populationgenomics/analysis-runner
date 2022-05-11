@@ -15,7 +15,7 @@ Example usage:
     python new_stack.py \
         --dataset $DATASET \
         --perform-all --no-commit \
-        --release-stack \
+        --deploy-stack \
         --generate-service-account-key
 """
 
@@ -75,14 +75,14 @@ logging.basicConfig(level=logging.INFO)
     '--perform-all',
     required=False,
     is_flag=True,
-    help='Set-up GCP project + billing, release stack and create SM project',
+    help='Set-up GCP project + billing, deploy stack and create SM project',
 )
 @click.option('--create-gcp-project', required=False, is_flag=True)
 @click.option('--setup-gcp-billing', required=False, is_flag=True)
 @click.option('--create-hail-service-accounts', required=False, is_flag=True)
-@click.option('--prepare-pulumi-stack', required=False, is_flag=True)
+@click.option('--create-pulumi-stack', required=False, is_flag=True)
 @click.option('--add-to-seqr-stack', required=False, is_flag=True)
-@click.option('--release-stack', required=False, is_flag=True)
+@click.option('--deploy-stack', required=False, is_flag=True, help='Runs pulumi up')
 @click.option('--create-sample-metadata-project', required=False, is_flag=True)
 @click.option('--generate-service-account-key', required=False, is_flag=True)
 @click.option('--no-commit', required=False, is_flag=True)
@@ -96,9 +96,9 @@ def main(
     create_gcp_project=False,
     setup_gcp_billing=False,
     create_hail_service_accounts=False,
-    prepare_pulumi_stack=False,
+    create_pulumi_stack=False,
     add_to_seqr_stack=False,
-    release_stack=False,
+    deploy_stack=False,
     create_sample_metadata_project=False,
     generate_service_account_key=False,
     no_commit=False,
@@ -109,7 +109,7 @@ def main(
         create_gcp_project = True
         setup_gcp_billing = True
         create_hail_service_accounts = True
-        prepare_pulumi_stack = True
+        create_pulumi_stack = True
         create_sample_metadata_project = True
 
     dataset = dataset.lower()
@@ -155,7 +155,6 @@ def main(
         if created_gcp_project:
             assign_billing_account(_gcp_project)
 
-            # I think it makes sense to nest this in here, like
             if setup_gcp_billing:
                 create_budget(_gcp_project, amount=budget)
 
@@ -173,8 +172,8 @@ def main(
             )
 
     pulumi_config_fn = f'Pulumi.{dataset}.yaml'
-    if prepare_pulumi_stack:
-        generate_pulumi_stack_file(
+    if create_pulumi_stack:
+        create_stack(
             pulumi_config_fn=pulumi_config_fn,
             gcp_project=_gcp_project,
             add_to_seqr_stack=add_to_seqr_stack,
@@ -186,11 +185,8 @@ def main(
     if not os.path.exists(pulumi_config_fn):
         raise ValueError(f'Expected to find {pulumi_config_fn}, but it did not exist')
 
-    if release_stack:
+    if deploy_stack:
         env = {**os.environ, 'PULUMI_CONFIG_PASSPHRASE': get_pulumi_config_passphrase()}
-        subprocess.check_output(
-            ['pulumi', 'stack', 'select', '--create', dataset], env=env
-        )
         rc = subprocess.call(['pulumi', 'up', '-y'], env=env)
         if rc != 0:
             raise ValueError(f'The stack {dataset} did not deploy correctly')
@@ -402,7 +398,7 @@ def create_hail_accounts(dataset):
             time.sleep(5.0)
 
 
-def generate_pulumi_stack_file(
+def create_stack(
     pulumi_config_fn: str,
     gcp_project: str,
     dataset: str,
@@ -470,6 +466,10 @@ def generate_pulumi_stack_file(
 
     add_dataset_to_tokens(dataset)
     files_to_add.append('../tokens/repository-map.json')
+
+    # Creating the stack updates the config passphrase encryption salt.
+    env = {**os.environ, 'PULUMI_CONFIG_PASSPHRASE': get_pulumi_config_passphrase()}
+    subprocess.check_output(['pulumi', 'stack', 'select', '--create', dataset], env=env)
 
     if should_commit:
         logging.info('Preparing git commit')
