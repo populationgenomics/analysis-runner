@@ -4,7 +4,7 @@
 
 import os
 import hailtop.batch as hb
-from cpg_utils.hail import remote_tmpdir
+from cpg_utils.hail_batch import remote_tmpdir
 from analysis_runner import dataproc
 
 service_backend = hb.ServiceBackend(

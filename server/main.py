@@ -13,6 +13,7 @@ from cromwell import add_cromwell_routes
 from util import (
     DRIVER_IMAGE,
     IMAGE_REGISTRY_PREFIX,
+    REFERENCE_PREFIX,
     PUBSUB_TOPIC,
     get_analysis_runner_metadata,
     get_email_from_request,
@@ -26,7 +27,7 @@ from util import (
     get_server_config,
     validate_image,
 )
-from cpg_utils.hail import remote_tmpdir
+from cpg_utils.hail_batch import remote_tmpdir
 
 logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
@@ -133,12 +134,13 @@ async def index(request):
         job.memory(memory)
 
     # NOTE: if you add an environment variable here, make sure to update
-    # the cpg_utils.hail.copy_common_env function!
+    # the cpg_utils.hail_batch.copy_common_env function!
     job.env('CPG_ACCESS_LEVEL', access_level)
     job.env('CPG_DATASET', dataset)
     job.env('CPG_DATASET_GCP_PROJECT', dataset_gcp_project)
     job.env('CPG_DRIVER_IMAGE', DRIVER_IMAGE)
     job.env('CPG_IMAGE_REGISTRY_PREFIX', IMAGE_REGISTRY_PREFIX)
+    job.env('CPG_REFERENCE_PREFIX', REFERENCE_PREFIX)
     job.env('CPG_OUTPUT_PREFIX', output_prefix)
     job.env('HAIL_BILLING_PROJECT', dataset)
     job.env('HAIL_BUCKET', hail_bucket)

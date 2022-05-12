@@ -81,10 +81,26 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     )
 
     # Enable Dataproc until the Hail Query Service is ready.
-    _ = gcp.projects.Service(
+    gcp.projects.Service(
         'dataproc-service',
         service='dataproc.googleapis.com',
         disable_on_destroy=False,
+        opts=pulumi.resource.ResourceOptions(depends_on=[cloudresourcemanager]),
+    )
+
+    # The Life Sciences API depends on the Service Usage API.
+    serviceusage = gcp.projects.Service(
+        'serviceusage-service',
+        service='serviceusage.googleapis.com',
+        disable_on_destroy=False,
+    )
+
+    # Cromwell uses the Life Sciences API.
+    gcp.projects.Service(
+        'lifesciences-service',
+        service='lifesciences.googleapis.com',
+        disable_on_destroy=False,
+        opts=pulumi.resource.ResourceOptions(depends_on=[serviceusage]),
     )
 
     service_accounts = defaultdict(list)
@@ -370,6 +386,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         'secretmanager-service',
         service='secretmanager.googleapis.com',
         disable_on_destroy=False,
+        opts=pulumi.resource.ResourceOptions(depends_on=[cloudresourcemanager]),
     )
 
     # These secrets are used as a fast cache for checking memberships in the above groups.
@@ -596,6 +613,15 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     gcp.artifactregistry.RepositoryIamMember(
         f'access-group-images-reader-in-cpg-common',
         project=CPG_COMMON_PROJECT,
+        location=REGION,
+        repository='images',
+        role='roles/artifactregistry.reader',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
+    )
+
+    gcp.artifactregistry.RepositoryIamMember(
+        f'access-group-images-reader-in-analysis-runner',
+        project=ANALYSIS_RUNNER_PROJECT,
         location=REGION,
         repository='images',
         role='roles/artifactregistry.reader',
