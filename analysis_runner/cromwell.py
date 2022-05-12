@@ -4,15 +4,12 @@ jobs from within Hail batch.
 """
 # pylint: disable=too-many-arguments,too-many-return-statements,broad-except
 import json
-import math
 import os
 import subprocess
-import time
-from datetime import datetime
+import textwrap
+import inspect
 from shlex import quote
 from typing import List, Dict, Optional, Any
-
-import requests
 
 from analysis_runner.constants import (
     CROMWELL_URL,
@@ -27,7 +24,6 @@ from analysis_runner.git import (
     prepare_git_job,
 )
 from analysis_runner.util import (
-    logger,
     get_project_id_from_service_account_email,
 )
 
@@ -298,23 +294,40 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     return outputs_dict
 
 
-class CromwellError(Exception):
-    """Cromwell status error"""
-
-
 def watch_workflow(
     workflow_id_file,
     max_sequential_exception_count,
     max_poll_interval,
     exponential_decrease_seconds,
-) -> Dict[str, any]:
-    """INNER Python function to watch workflow, and return outputs"""
-    # Re-importing subprocess here, otherwise dill would fail to serialise the
-    # function for Hail python job. Also, re-defining get_cromwell_oauth_token that
-    # uses subprocess as well, for the same reason.
-    import subprocess  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
+    output_json_path,
+):
+    """
+    INNER Python function to watch workflow status, and write
+    output paths `output_json_path` on success.
+    """
+    # Re-importing dependencies here so the function is self-contained
+    # and can be run in a Hail bash job.
+    # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
+    import subprocess
+    import requests
+    import time
+    import math
+    import json
+    from datetime import datetime
+    from cloudpathlib.anypath import to_anypath
+    from analysis_runner.util import logger
+    from analysis_runner.constants import (
+        CROMWELL_AUDIENCE,
+        GCLOUD_ACTIVATE_AUTH,
+    )
 
-    def get_cromwell_oauth_token():  # pylint: disable=redefined-outer-name
+    # pylint: enable=redefined-outer-name,reimported,import-outside-toplevel
+
+    class CromwellError(Exception):
+        """Cromwell status error"""
+
+    # Also re-defining this function that uses subprocess, for the same reason.
+    def _get_cromwell_oauth_token():  # pylint: disable=redefined-outer-name
         """Get oath token for cromwell, specific to audience"""
         token_command = [
             'gcloud',
@@ -325,7 +338,7 @@ def watch_workflow(
         token = subprocess.check_output(token_command).decode().strip()
         return token
 
-    def get_wait_interval(
+    def _get_wait_interval(
         start, max_poll_interval, exponential_decrease_seconds
     ) -> int:
         """
@@ -339,8 +352,8 @@ def watch_workflow(
 
     with open(workflow_id_file, encoding='utf-8') as f:
         workflow_id = f.read().strip()
-
     logger.info(f'Received workflow ID: {workflow_id}')
+
     final_statuses = {'failed', 'aborted'}
     subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
     url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
@@ -350,11 +363,11 @@ def watch_workflow(
     while True:
         if _remaining_exceptions <= 0:
             raise CromwellError('Unreachable')
-        wait_time = get_wait_interval(
+        wait_time = _get_wait_interval(
             start, max_poll_interval, exponential_decrease_seconds
         )
         try:
-            token = get_cromwell_oauth_token()
+            token = _get_cromwell_oauth_token()
             r = requests.get(url, headers={'Authorization': f'Bearer {token}'})
             if not r.ok:
                 _remaining_exceptions -= 1
@@ -369,18 +382,23 @@ def watch_workflow(
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
                 # process outputs here
-                outputs_url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/outputs'
+                outputs_url = (
+                    f'https://cromwell.populationgenomics.org.au/api/workflows'
+                    f'/v1/{workflow_id}/outputs'
+                )
                 r_outputs = requests.get(
                     outputs_url, headers={'Authorization': f'Bearer {token}'}
                 )
                 if not r_outputs.ok:
                     logger.warning(
-                        'Received error when fetching cromwell outputs, will retry in 15 seconds'
+                        'Received error when fetching cromwell outputs, '
+                        'will retry in 15 seconds'
                     )
                     continue
                 outputs = r_outputs.json()
                 logger.info(f'Received outputs from Cromwell: {outputs}')
-                return outputs.get('outputs')
+                with to_anypath(output_json_path).open('w') as fh:
+                    json.dump(outputs.get('outputs'), fh)
             if status.lower() in final_statuses:
                 logger.error(f'Got failed cromwell status: {status}')
                 raise CromwellError(status)
@@ -431,19 +449,37 @@ def watch_workflow_and_get_output(
 
     _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
 
-    watch_job = b.new_python_job(job_prefix + '_watch')
+    watch_job = b.new_job(job_prefix + '_watch')
 
     watch_job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
     watch_job.env('PYTHONUNBUFFERED', '1')  # makes the logs go quicker
     watch_job.image(_driver_image)  # need an image with python3 + requests
 
-    rdict = watch_job.call(
-        watch_workflow,
-        workflow_id_file,
-        max_sequential_exception_count,
-        max_poll_interval,
-        exponential_decrease_seconds,
-    ).as_json()
+    python_cmd = f"""
+{textwrap.dedent(inspect.getsource(watch_workflow))}
+{watch_workflow.__name__}(
+    "{workflow_id_file}",
+    {max_sequential_exception_count},
+    {max_poll_interval},
+    {exponential_decrease_seconds},
+    "{watch_job.output_json_path}",
+)
+    """
+    cmd = f"""
+set -o pipefail
+set -ex
+{GCLOUD_ACTIVATE_AUTH}
+
+pip3 install analysis-runner requests 'cloudpathlib[all]'
+
+cat << EOT >> script.py
+{python_cmd}
+EOT
+python3 script.py
+    """
+    rdict = watch_job.output_json_path
+    watch_job.command(cmd)
+
     out_file_map = {}
     for oname, output in outputs_to_collect.items():
         output_name = output.name
