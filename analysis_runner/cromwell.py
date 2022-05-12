@@ -125,10 +125,11 @@ def watch_workflow(
     output_json_path,
 ):
     """
-    INNER Python function to watch workflow, and return outputs
+    INNER Python function to watch workflow status, and write
+    output paths `output_json_path` on success.
     """
-    # Re-importing dependencies here so the function is self-contained and can
-    # be run in a Hail job.
+    # Re-importing dependencies here so the function is self-contained
+    # and can be run in a Hail bash job.
     # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
     import subprocess
     import requests
