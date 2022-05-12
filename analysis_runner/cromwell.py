@@ -5,6 +5,7 @@ jobs from within Hail batch.
 # pylint: disable=too-many-arguments,too-many-return-statements,broad-except
 import json
 import os
+import subprocess
 import textwrap
 import inspect
 from shlex import quote
@@ -664,3 +665,15 @@ def _copy_resource_group_into_batch(
         )
 
     return output_filename
+
+
+def get_cromwell_oauth_token():
+    """Get oath token for cromwell, specific to audience"""
+    token_command = [
+        'gcloud',
+        'auth',
+        'print-identity-token',
+        f'--audiences={CROMWELL_AUDIENCE}',
+    ]
+    token = subprocess.check_output(token_command).decode().strip()
+    return token
