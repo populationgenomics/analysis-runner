@@ -18,17 +18,19 @@ from analysis_runner.git import prepare_git_job
 
 # pylint: disable=wrong-import-order
 from util import (
-    PUBSUB_TOPIC,
     DRIVER_IMAGE,
     IMAGE_REGISTRY_PREFIX,
-    get_server_config,
+    PUBSUB_TOPIC,
+    REFERENCE_PREFIX,
+    check_allowed_repos,
+    check_dataset_and_group,
     get_analysis_runner_metadata,
     get_email_from_request,
-    validate_output_dir,
-    check_dataset_and_group,
-    check_allowed_repos,
+    get_server_config,
     publisher,
     run_batch_job_and_print_url,
+    validate_output_dir,
+    write_config,
     write_metadata_to_bucket,
 )
 
@@ -148,11 +150,19 @@ def add_cromwell_routes(
         )
         job.image(DRIVER_IMAGE)
 
-        job.env('CPG_ACCESS_LEVEL', access_level)
-        job.env('CPG_DATASET', dataset)
-        job.env('CPG_DRIVER_IMAGE', DRIVER_IMAGE)
-        job.env('CPG_IMAGE_REGISTRY_PREFIX', IMAGE_REGISTRY_PREFIX)
-        job.env('CPG_OUTPUT_PREFIX', output_dir)
+        config = {
+            'workflow': {
+                'access_level': access_level,
+                'dataset': dataset,
+                'dataset_gcp_project': project,
+                'driver_image': DRIVER_IMAGE,
+                'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
+                'reference_prefix': REFERENCE_PREFIX,
+                'output_prefix': output_dir,
+            },
+        }
+
+        job.env('CPG_CONFIG_PATH', write_config(config))
 
         run_cromwell_workflow(
             job=job,

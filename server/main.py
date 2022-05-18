@@ -4,28 +4,27 @@ import datetime
 import json
 import logging
 from shlex import quote
-
 import hailtop.batch as hb
 from aiohttp import web
-
 from analysis_runner.git import prepare_git_job
 from cromwell import add_cromwell_routes
 from util import (
     DRIVER_IMAGE,
     IMAGE_REGISTRY_PREFIX,
-    REFERENCE_PREFIX,
     PUBSUB_TOPIC,
+    REFERENCE_PREFIX,
+    _get_hail_version,
+    check_allowed_repos,
+    check_dataset_and_group,
     get_analysis_runner_metadata,
     get_email_from_request,
-    _get_hail_version,
-    validate_output_dir,
-    check_dataset_and_group,
-    check_allowed_repos,
-    publisher,
-    write_metadata_to_bucket,
-    run_batch_job_and_print_url,
     get_server_config,
+    publisher,
+    run_batch_job_and_print_url,
     validate_image,
+    validate_output_dir,
+    write_config,
+    write_metadata_to_bucket,
 )
 from cpg_utils.hail_batch import remote_tmpdir
 
@@ -133,17 +132,27 @@ async def index(request):
     if memory:
         job.memory(memory)
 
-    # NOTE: if you add an environment variable here, make sure to update
-    # the cpg_utils.hail_batch.copy_common_env function!
-    job.env('CPG_ACCESS_LEVEL', access_level)
-    job.env('CPG_DATASET', dataset)
-    job.env('CPG_DATASET_GCP_PROJECT', dataset_gcp_project)
-    job.env('CPG_DRIVER_IMAGE', DRIVER_IMAGE)
-    job.env('CPG_IMAGE_REGISTRY_PREFIX', IMAGE_REGISTRY_PREFIX)
-    job.env('CPG_REFERENCE_PREFIX', REFERENCE_PREFIX)
-    job.env('CPG_OUTPUT_PREFIX', output_prefix)
-    job.env('HAIL_BILLING_PROJECT', dataset)
-    job.env('HAIL_BUCKET', hail_bucket)
+    # Prepare the job's configuration, which will be written to a blob.
+    config = {
+        'hail': {
+            'billing_project': dataset,
+            'bucket': hail_bucket,
+        },
+        'workflow': {
+            'access_level': access_level,
+            'dataset': dataset,
+            'dataset_gcp_project': dataset_gcp_project,
+            'driver_image': DRIVER_IMAGE,
+            'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
+            'reference_prefix': REFERENCE_PREFIX,
+            'output_prefix': output_prefix,
+        },
+    }
+
+    # NOTE: Prefer using config variables instead of environment variables.
+    # In case you need to add an environment variable here, make sure to update the
+    # cpg_utils.hail_batch.copy_common_env function!
+    job.env('CPG_CONFIG_PATH', write_config(config))
 
     if environment_variables:
         if not isinstance(environment_variables, dict):

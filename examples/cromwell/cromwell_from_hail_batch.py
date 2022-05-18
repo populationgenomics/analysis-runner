@@ -2,8 +2,8 @@
 Test script, to demonstrate how you can run a cromwell workflow
 from within a batch environment, and operate on the result(s)
 """
-import os
 import hailtop.batch as hb
+from cpg_utils.config import get_config
 from cpg_utils.hail_batch import output_path, remote_tmpdir
 from analysis_runner.cromwell import (
     run_cromwell_workflow_from_repo_and_get_outputs,
@@ -12,12 +12,14 @@ from analysis_runner.cromwell import (
 
 OUTPUT_PREFIX = 'mfranklin/analysis-runner-test/out/'
 OUTPUT_PATH = output_path(OUTPUT_PREFIX)
-BILLING_PROJECT = os.getenv('HAIL_BILLING_PROJECT')
-DATASET = os.getenv('CPG_DATASET')
-ACCESS_LEVEL = os.getenv('CPG_ACCESS_LEVEL')
+
+_config = get_config()
+BILLING_PROJECT = _config['hail']['billing_project']
+DATASET = _config['workflow']['dataset']
+ACCESS_LEVEL = _config['workflow']['access_level']
 
 sb = hb.ServiceBackend(billing_project=BILLING_PROJECT, remote_tmpdir=remote_tmpdir())
-b = hb.Batch(backend=sb, default_image=os.getenv('DRIVER_IMAGE'))
+b = hb.Batch(backend=sb, default_image=_config['workflow']['driver_image'])
 
 inputs = ['Hello, analysis-runner ;)', 'Hello, second output!']
 
