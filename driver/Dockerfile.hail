@@ -3,7 +3,8 @@ FROM australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-base:1.1
 
 ARG HAIL_SHA
 
-ENV HAIL_QUERY_BACKEND service
+ENV HAIL_QUERY_BACKEND service \
+    TZ=Australia
 
 RUN apt update && \
     DEBIAN_FRONTEND=noninteractive apt install -y \
@@ -12,10 +13,18 @@ RUN apt update && \
         libopenblas-base \
         openjdk-8-jdk-headless \
         python3-pip \
-        rsync && \
+        rsync \
+        software-properties-common \
+        gcc \
+        build-essential \
+        curl && \
     rm -r /var/lib/apt/lists/* && \
     rm -r /var/cache/apt/* && \
-    pip3 install \
+    add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get install -y --no-install-recommends python3.10 python3.10-distutils python3-apt python3.10-dev  && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10 && \
+    rm $(which python3) && ln $(which python3.10) /usr/bin/python3 && \
+    pip --no-cache-dir install \
         analysis-runner \
         bokeh \
         cloudpathlib[all] \
