@@ -20,6 +20,8 @@ readr::write_tsv(d, file = mtcars_tsv)
 system("gcloud -q auth activate-service-account --key-file=/gsa-key/key.json")
 
 # copy to GCS bucket
+# TODO(#415): update this to read from the TOML config blob, instead of using
+# environment variables. Also see the cpg_utils.config Python module.
 dataset_env <- Sys.getenv("CPG_DATASET")
 output_env <- Sys.getenv("CPG_OUTPUT_PREFIX")
 gcs_outdir <- glue("gs://cpg-{dataset_env}-test-tmp/{output_env}")

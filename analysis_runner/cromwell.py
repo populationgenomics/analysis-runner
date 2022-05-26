@@ -10,7 +10,7 @@ import textwrap
 import inspect
 from shlex import quote
 from typing import List, Dict, Optional, Any
-
+from cpg_utils.config import get_config
 from analysis_runner.constants import (
     CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
@@ -165,11 +165,12 @@ def run_cromwell_workflow(
     # use the email specified by the service_account_json again
     service_account_dict = json.loads(service_account_json)
     service_account_email = service_account_dict.get('client_email')
-    _project = (
-        project
-        or os.getenv('CPG_DATASET_GCP_PROJECT')
-        or get_project_id_from_service_account_email(service_account_email)
-    )
+    _project = project
+    if _project is None:
+        if os.getenv('CPG_CONFIG_PATH'):
+            _project = get_config()['workflow']['dataset_gcp_project']
+        else:
+            _project = get_project_id_from_service_account_email(service_account_email)
 
     if not service_account_email:
         raise ValueError("The service_account didn't contain an entry for client_email")

@@ -4,13 +4,15 @@ Utility methods for analysis-runner server
 import os
 import json
 from shlex import quote
+from typing import Any, MutableMapping
+import uuid
+import toml
 
 from aiohttp import web, ClientSession
+from cloudpathlib import AnyPath
 from hailtop.config import get_deploy_config
 from google.cloud import secretmanager, pubsub_v1
-
 from cpg_utils.cloud import email_from_id_token, read_secret
-
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
 GITHUB_ORG = 'populationgenomics'
@@ -24,6 +26,7 @@ DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
 IMAGE_REGISTRY_PREFIX = 'australia-southeast1-docker.pkg.dev/cpg-common/images'
 REFERENCE_PREFIX = 'gs://cpg-reference'
+CONFIG_PATH_PREFIX = 'gs://cpg-config'
 WEB_URL_TEMPLATE = 'https://{namespace}-web.populationgenomics.org.au/{dataset}'
 
 COMBINE_METADATA = """
@@ -197,3 +200,11 @@ def validate_image(container: str, is_test: bool):
     return is_test or any(
         container.startswith(prefix) for prefix in ALLOWED_CONTAINER_IMAGE_PREFIXES
     )
+
+
+def write_config(config: MutableMapping[str, Any]) -> str:
+    """Writes the given config dictionary to a blob and returns its unique path."""
+    config_path = AnyPath(CONFIG_PATH_PREFIX) / (str(uuid.uuid4()) + '.toml')
+    with config_path.open('w') as f:
+        toml.dump(config, f)
+    return str(config_path)
