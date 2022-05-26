@@ -18,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='2.27.1',
+    version='2.27.2',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
@@ -37,7 +37,7 @@ setuptools.setup(
         'flask',
         'google-api-python-client==2.10.0',
         'google-auth==1.27.0',
-        'google-cloud-logging==3.0.0',
+        'google-cloud-logging==3.1.1',
         'google-cloud-pubsub==2.3.0',
         'google-cloud-secret-manager==2.2.0',
         'google-cloud-storage==1.25.0',
