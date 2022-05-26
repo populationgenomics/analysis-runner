@@ -18,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='2.27.2',
+    version='2.27.3',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
@@ -43,6 +43,7 @@ setuptools.setup(
         'google-cloud-storage==1.25.0',
         'Jinja2==3.0.3',
         'kubernetes',
+        'protobuf==3.20.1',
         'pulumi-gcp',
         'requests',
         'tabulate==0.8.9',  # https://github.com/Azure/azure-cli/issues/20887

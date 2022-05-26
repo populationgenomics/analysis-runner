@@ -8,7 +8,7 @@ RUN pip install \
     google-cloud-pubsub==2.3.0 \
     google-cloud-logging==3.1.1 \
     gunicorn \
-    requests
+    protobuf==3.20.1
 
 # Allow statements and log messages to immediately appear in the Knative logs.
 ENV PYTHONUNBUFFERED 1
