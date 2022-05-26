@@ -37,7 +37,7 @@ setuptools.setup(
         'flask',
         'google-api-python-client==2.10.0',
         'google-auth==1.27.0',
-        'google-cloud-logging==3.0.0',
+        'google-cloud-logging==3.1.1',
         'google-cloud-pubsub==2.3.0',
         'google-cloud-secret-manager==2.2.0',
         'google-cloud-storage==1.25.0',
