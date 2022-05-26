@@ -2,7 +2,13 @@
 ARG DRIVER_IMAGE
 FROM ${DRIVER_IMAGE}
 
-RUN pip install gunicorn requests
+RUN pip install \
+    google-api-python-client==2.10.0 \
+    google-cloud-secret-manager==2.2.0 \
+    google-cloud-pubsub==2.3.0 \
+    google-cloud-logging==3.1.1 \
+    gunicorn \
+    protobuf==3.20.1
 
 # Allow statements and log messages to immediately appear in the Knative logs.
 ENV PYTHONUNBUFFERED 1
