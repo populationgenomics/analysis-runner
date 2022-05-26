@@ -13,6 +13,7 @@ from util import (
     IMAGE_REGISTRY_PREFIX,
     PUBSUB_TOPIC,
     REFERENCE_PREFIX,
+    WEB_URL_TEMPLATE,
     _get_hail_version,
     check_allowed_repos,
     check_dataset_and_group,
@@ -146,6 +147,7 @@ async def index(request):
             'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
             'reference_prefix': REFERENCE_PREFIX,
             'output_prefix': output_prefix,
+            'web_url_template': WEB_URL_TEMPLATE,
         },
     }
 

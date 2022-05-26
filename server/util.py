@@ -27,6 +27,7 @@ assert DRIVER_IMAGE
 IMAGE_REGISTRY_PREFIX = 'australia-southeast1-docker.pkg.dev/cpg-common/images'
 REFERENCE_PREFIX = 'gs://cpg-reference'
 CONFIG_PATH_PREFIX = 'gs://cpg-config'
+WEB_URL_TEMPLATE = 'https://{namespace}-web.populationgenomics.org.au/{dataset}'
 
 COMBINE_METADATA = """
 import json

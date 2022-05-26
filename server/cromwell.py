@@ -22,6 +22,7 @@ from util import (
     IMAGE_REGISTRY_PREFIX,
     PUBSUB_TOPIC,
     REFERENCE_PREFIX,
+    WEB_URL_TEMPLATE,
     check_allowed_repos,
     check_dataset_and_group,
     get_analysis_runner_metadata,
@@ -159,6 +160,7 @@ def add_cromwell_routes(
                 'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
                 'reference_prefix': REFERENCE_PREFIX,
                 'output_prefix': output_dir,
+                'web_url_template': WEB_URL_TEMPLATE,
             },
         }
 
