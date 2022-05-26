@@ -649,7 +649,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     bucket_member(
         'access-group-analysis-runner-config-viewer',
         bucket=ANALYSIS_RUNNER_CONFIG_BUCKET_NAME,
-        roler=viewer_role_id,
+        role=viewer_role_id,
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
@@ -736,7 +736,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         bucket_member(
             f'{access_level}-analysis-runner-config-viewer',
             bucket=ANALYSIS_RUNNER_CONFIG_BUCKET_NAME,
-            roler=viewer_role_id,
+            role=viewer_role_id,
             member=pulumi.Output.concat('group:', group.group_key.id),
         )
 
