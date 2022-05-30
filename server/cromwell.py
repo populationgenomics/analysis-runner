@@ -30,6 +30,7 @@ from util import (
     get_server_config,
     publisher,
     run_batch_job_and_print_url,
+    update_dict,
     validate_output_dir,
     write_config,
     write_metadata_to_bucket,
@@ -104,18 +105,22 @@ def add_cromwell_routes(
 
         timestamp = datetime.now().astimezone().isoformat()
 
-        config = {
-            'workflow': {
-                'access_level': access_level,
-                'dataset': dataset,
-                'dataset_gcp_project': project,
-                'driver_image': DRIVER_IMAGE,
-                'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
-                'reference_prefix': REFERENCE_PREFIX,
-                'output_prefix': output_dir,
-                'web_url_template': WEB_URL_TEMPLATE,
+        config = params.get('config', {})
+        update_dict(
+            config,
+            {
+                'workflow': {
+                    'access_level': access_level,
+                    'dataset': dataset,
+                    'dataset_gcp_project': project,
+                    'driver_image': DRIVER_IMAGE,
+                    'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
+                    'reference_prefix': REFERENCE_PREFIX,
+                    'output_prefix': output_dir,
+                    'web_url_template': WEB_URL_TEMPLATE,
+                },
             },
-        }
+        )
 
         config_path = write_config(config)
 

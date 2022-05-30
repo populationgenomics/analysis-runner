@@ -4,7 +4,6 @@ Utility methods for analysis-runner server
 import os
 import json
 from shlex import quote
-from typing import Any, MutableMapping
 import uuid
 import toml
 
@@ -204,9 +203,19 @@ def validate_image(container: str, is_test: bool):
     )
 
 
-def write_config(config: MutableMapping[str, Any]) -> str:
+def write_config(config: dict) -> str:
     """Writes the given config dictionary to a blob and returns its unique path."""
     config_path = AnyPath(CONFIG_PATH_PREFIX) / (str(uuid.uuid4()) + '.toml')
     with config_path.open('w') as f:
         toml.dump(config, f)
     return str(config_path)
+
+
+def update_dict(d1: dict, d2: dict) -> None:
+    """Updates the d1 dict with the values from the d2 dict recursively in-place."""
+    for k, v2 in d2.items():
+        v1 = d1.get(k)
+        if isinstance(v1, dict) and isinstance(v2, dict):
+            update_dict(v1, v2)
+        else:
+            d1[k] = v2
