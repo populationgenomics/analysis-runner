@@ -127,6 +127,7 @@ def get_analysis_runner_metadata(
     description,
     output_prefix,
     driver_image,
+    config_path,
     cwd,
     **kwargs,
 ):
@@ -148,6 +149,7 @@ def get_analysis_runner_metadata(
         'description': description,
         'output': output_dir,
         'driverImage': driver_image,
+        'configPath': config_path,
         'cwd': cwd,
         **kwargs,
     }
