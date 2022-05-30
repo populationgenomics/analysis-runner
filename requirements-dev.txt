@@ -1,4 +1,6 @@
 black
 bump2version
+cloudpathlib[all]
 pre-commit
 pylint
+toml

@@ -18,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='2.28.0',
+    version='2.29.0',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
@@ -28,6 +28,7 @@ setuptools.setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        'cloudpathlib[all]',
         'cpg-utils',
         'click',
         'airtable-python-wrapper',
@@ -47,6 +48,7 @@ setuptools.setup(
         'pulumi-gcp',
         'requests',
         'tabulate==0.8.9',  # https://github.com/Azure/azure-cli/issues/20887
+        'toml',
     ],
     entry_points={
         'console_scripts': ['analysis-runner=analysis_runner.cli:main_from_args']
