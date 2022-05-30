@@ -7,7 +7,9 @@ import argparse
 from shutil import which
 from typing import List
 
+from cloudpathlib import AnyPath
 import requests
+import toml
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     get_git_default_remote,
@@ -16,7 +18,6 @@ from analysis_runner.git import (
     get_relative_path_from_git_root,
     check_if_commit_is_on_remote,
 )
-
 from analysis_runner.util import (
     add_general_args,
     _perform_version_check,
@@ -65,6 +66,17 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         action='append',
     )
 
+    parser.add_argument(
+        '--config',
+        required=False,
+        help=(
+            'A file path to a configuration dictionary in TOML format '
+            '(cloudpathlib.AnyPath-compatible paths are supported). '
+            'The analysis-runner will add the default environment-related options to '
+            'this dictionary and make it available to the batch.'
+        ),
+    )
+
     parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
 
     return parser
@@ -87,6 +99,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     image=None,
     cpu=None,
     memory=None,
+    config=None,
     env: List[str] = None,
     use_test_server=False,
 ):
@@ -168,6 +181,11 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
                     env_var_pair + ' does not conform to key=value format.'
                 ) from e
 
+    _config = None
+    if config:
+        with AnyPath(config).open() as f:
+            _config = toml.load(f)
+
     _token = get_google_identity_token()
 
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
@@ -187,6 +205,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'cpu': cpu,
             'memory': memory,
             'environmentVariables': _env,
+            'config': _config,
         },
         headers={'Authorization': f'Bearer {_token}'},
     )
