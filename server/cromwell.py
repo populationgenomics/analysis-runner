@@ -102,8 +102,24 @@ def add_cromwell_routes(
         else:
             workflow_output_dir = f'gs://cpg-{dataset}-main/{output_dir}'
 
-        # This metadata dictionary gets stored at the output_dir location.
         timestamp = datetime.now().astimezone().isoformat()
+
+        config = {
+            'workflow': {
+                'access_level': access_level,
+                'dataset': dataset,
+                'dataset_gcp_project': project,
+                'driver_image': DRIVER_IMAGE,
+                'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
+                'reference_prefix': REFERENCE_PREFIX,
+                'output_prefix': output_dir,
+                'web_url_template': WEB_URL_TEMPLATE,
+            },
+        }
+
+        config_path = write_config(config)
+
+        # This metadata dictionary gets stored at the output_dir location.
         metadata = get_analysis_runner_metadata(
             timestamp=timestamp,
             dataset=dataset,
@@ -115,6 +131,7 @@ def add_cromwell_routes(
             description=params['description'],
             output_prefix=workflow_output_dir,
             driver_image=DRIVER_IMAGE,
+            config_path=config_path,
             cwd=cwd,
             mode='cromwell',
         )
@@ -151,20 +168,7 @@ def add_cromwell_routes(
         )
         job.image(DRIVER_IMAGE)
 
-        config = {
-            'workflow': {
-                'access_level': access_level,
-                'dataset': dataset,
-                'dataset_gcp_project': project,
-                'driver_image': DRIVER_IMAGE,
-                'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
-                'reference_prefix': REFERENCE_PREFIX,
-                'output_prefix': output_dir,
-                'web_url_template': WEB_URL_TEMPLATE,
-            },
-        }
-
-        job.env('CPG_CONFIG_PATH', write_config(config))
+        job.env('CPG_CONFIG_PATH', config_path)
 
         run_cromwell_workflow(
             job=job,

@@ -95,43 +95,7 @@ async def index(request):
     # This metadata dictionary gets stored in the metadata bucket, at the output_dir location.
     hail_version = await _get_hail_version()
     timestamp = datetime.datetime.now().astimezone().isoformat()
-    metadata = get_analysis_runner_metadata(
-        timestamp=timestamp,
-        dataset=dataset,
-        user=email,
-        access_level=access_level,
-        repo=repo,
-        commit=commit,
-        script=' '.join(script),
-        description=params['description'],
-        output_prefix=output_prefix,
-        hailVersion=hail_version,
-        driver_image=image,
-        cwd=cwd,
-    )
-
-    user_name = email.split('@')[0]
-    batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
-
     dataset_gcp_project = server_config[dataset]['projectId']
-    batch = hb.Batch(
-        backend=backend, name=batch_name, requester_pays_project=dataset_gcp_project
-    )
-
-    job = batch.new_job(name='driver')
-    job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
-    write_metadata_to_bucket(
-        job,
-        access_level=access_level,
-        dataset=dataset,
-        output_prefix=output_prefix,
-        metadata_str=json.dumps(metadata),
-    )
-    job.image(image)
-    if cpu:
-        job.cpu(cpu)
-    if memory:
-        job.memory(memory)
 
     # Prepare the job's configuration, which will be written to a blob.
     config = {
@@ -151,10 +115,50 @@ async def index(request):
         },
     }
 
+    config_path = write_config(config)
+
+    metadata = get_analysis_runner_metadata(
+        timestamp=timestamp,
+        dataset=dataset,
+        user=email,
+        access_level=access_level,
+        repo=repo,
+        commit=commit,
+        script=' '.join(script),
+        description=params['description'],
+        output_prefix=output_prefix,
+        hailVersion=hail_version,
+        driver_image=image,
+        config_path=config_path,
+        cwd=cwd,
+    )
+
+    user_name = email.split('@')[0]
+    batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
+
+    batch = hb.Batch(
+        backend=backend, name=batch_name, requester_pays_project=dataset_gcp_project
+    )
+
+    job = batch.new_job(name='driver')
+    job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
+    write_metadata_to_bucket(
+        job,
+        access_level=access_level,
+        dataset=dataset,
+        output_prefix=output_prefix,
+        metadata_str=json.dumps(metadata),
+    )
+    job.image(image)
+    if cpu:
+        job.cpu(cpu)
+    if memory:
+        job.memory(memory)
+
     # NOTE: Prefer using config variables instead of environment variables.
     # In case you need to add an environment variable here, make sure to update the
     # cpg_utils.hail_batch.copy_common_env function!
-    job.env('CPG_CONFIG_PATH', write_config(config))
+    job.env('CPG_CONFIG_PATH', config_path)
 
     if environment_variables:
         if not isinstance(environment_variables, dict):
