@@ -22,6 +22,7 @@ from util import (
     get_server_config,
     publisher,
     run_batch_job_and_print_url,
+    update_dict,
     validate_image,
     validate_output_dir,
     write_config,
@@ -98,22 +99,27 @@ async def index(request):
     dataset_gcp_project = server_config[dataset]['projectId']
 
     # Prepare the job's configuration, which will be written to a blob.
-    config = {
-        'hail': {
-            'billing_project': dataset,
-            'bucket': hail_bucket,
+    # We overwrite any conflicting entries with the analysis-runner values.
+    config = params.get('config', {})
+    update_dict(
+        config,
+        {
+            'hail': {
+                'billing_project': dataset,
+                'bucket': hail_bucket,
+            },
+            'workflow': {
+                'access_level': access_level,
+                'dataset': dataset,
+                'dataset_gcp_project': dataset_gcp_project,
+                'driver_image': DRIVER_IMAGE,
+                'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
+                'reference_prefix': REFERENCE_PREFIX,
+                'output_prefix': output_prefix,
+                'web_url_template': WEB_URL_TEMPLATE,
+            },
         },
-        'workflow': {
-            'access_level': access_level,
-            'dataset': dataset,
-            'dataset_gcp_project': dataset_gcp_project,
-            'driver_image': DRIVER_IMAGE,
-            'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
-            'reference_prefix': REFERENCE_PREFIX,
-            'output_prefix': output_prefix,
-            'web_url_template': WEB_URL_TEMPLATE,
-        },
-    }
+    )
 
     config_path = write_config(config)
 
