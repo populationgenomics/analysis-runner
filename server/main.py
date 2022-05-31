@@ -100,7 +100,7 @@ async def index(request):
 
     # Prepare the job's configuration, which will be written to a blob.
     # We overwrite any conflicting entries with the analysis-runner values.
-    config = params.get('config', {})
+    config = params.get('config') or {}
     update_dict(
         config,
         {
