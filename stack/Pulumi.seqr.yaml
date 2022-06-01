@@ -2,7 +2,9 @@ encryptionsalt: v1:JIitg3R5A/c=:v1:hPajMZhTI/odqPKm:jcEFAXCJJ9/CuLercsF8npIkBffC
 config:
   datasets:archive_age: "30"
   datasets:customer_id: C010ys3gt
-  datasets:depends_on: '["acute-care", "perth-neuro", "rdnow", "heartkids", "ravenscroft-rdstudy",
+  # cost-aggregation uses this file to determine which datasets belong to seqr
+  datasets:depends_on:
+    '["acute-care", "perth-neuro", "rdnow", "heartkids", "ravenscroft-rdstudy",
     "ohmr3-mendelian", "ohmr4-epilepsy", "flinders-ophthal", "circa", "schr-neuro",
     "brain-malf", "leukodystrophies", "mito-disease", "epileptic-enceph", "ravenscroft-arch",
     "hereditary-neuro", "validation"]'
