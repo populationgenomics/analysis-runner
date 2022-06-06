@@ -7,9 +7,7 @@ import argparse
 from shutil import which
 from typing import List
 
-from cloudpathlib import AnyPath
 import requests
-import toml
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     get_git_default_remote,
@@ -25,6 +23,7 @@ from analysis_runner.util import (
     logger,
     get_google_identity_token,
 )
+from cpg_utils.config import read_config
 
 
 def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
@@ -70,7 +69,7 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         '--config',
         required=False,
         help=(
-            'A file path to a configuration dictionary in TOML format '
+            'A list of comma-separated paths to a configurations in TOML format '
             '(cloudpathlib.AnyPath-compatible paths are supported). '
             'The analysis-runner will add the default environment-related options to '
             'this dictionary and make it available to the batch.'
@@ -183,8 +182,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
 
     _config = None
     if config:
-        with AnyPath(config).open() as f:
-            _config = toml.load(f)
+        _config = read_config(config)
 
     _token = get_google_identity_token()
 
