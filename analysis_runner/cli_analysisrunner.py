@@ -8,6 +8,7 @@ from shutil import which
 from typing import List
 
 import requests
+from cpg_utils.config import read_configs
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     get_git_default_remote,
@@ -23,7 +24,6 @@ from analysis_runner.util import (
     logger,
     get_google_identity_token,
 )
-from cpg_utils.config import read_config
 
 
 def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
@@ -69,11 +69,12 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         '--config',
         required=False,
         help=(
-            'A list of comma-separated paths to a configurations in TOML format '
-            '(cloudpathlib.AnyPath-compatible paths are supported). '
+            'Paths to a configurations in TOML format, which will be merged from left '
+            'to right order (cloudpathlib.AnyPath-compatible paths are supported). '
             'The analysis-runner will add the default environment-related options to '
             'this dictionary and make it available to the batch.'
         ),
+        action='append',
     )
 
     parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
@@ -98,7 +99,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     image=None,
     cpu=None,
     memory=None,
-    config=None,
+    config: List[str] = None,
     env: List[str] = None,
     use_test_server=False,
 ):
@@ -182,7 +183,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
 
     _config = None
     if config:
-        _config = read_config(config)
+        _config = read_configs(config)
 
     _token = get_google_identity_token()
 
