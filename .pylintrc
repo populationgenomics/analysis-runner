@@ -6,19 +6,16 @@
 # 3. inherit-non-class ("Inheriting 'NamedTuple', which is not a class" false
 #    positive, see: https://github.com/PyCQA/pylint/issues/3876)
 # 4. too-few-public-methods (produces false positives)
-# 5. inspections incompatible with Black (see https://github.com/psf/black/blob/master/docs/compatible_configs.md#why-those-options-above-2):
-#    C0330: Wrong hanging indentation before block (add 4 spaces)
-#    C0326: Bad whitespace
-# 6. fixme (left 'TODO' lines)
-# 7. line-too-long
-# 8. too-many-statements
-# 9. too-many-lines
-# 10. R0801 (duplicate-code)
-# 11. similar lines
-# 12. import-error
+# 5. fixme (left 'TODO' lines)
+# 6. line-too-long
+# 7. too-many-statements
+# 8. too-many-lines
+# 9. R0801 (duplicate-code)
+# 10. similar lines
+# 11. import-error
 
 disable=f-string-without-interpolation,logging-fstring-interpolation,inherit-non-class,
-            too-few-public-methods,C0330,C0326,fixme,line-too-long,too-many-statements,
+            too-few-public-methods,fixme,line-too-long,too-many-statements,
             too-many-lines,R0801,import-error,c-extension-no-member,no-member
 
 

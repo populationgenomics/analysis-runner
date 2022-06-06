@@ -25,16 +25,17 @@ from analysis_runner.util import (
     get_google_identity_token,
 )
 
-# lambda so we don't see ordering definition errors
-# flake8: noqa
-CROMWELL_MODES = lambda: {
-    'submit': (_add_cromwell_submit_args_to, _run_cromwell),
-    'status': (_add_cromwell_status_args, _check_cromwell_status),
-    'visualise': (
-        _add_cromwell_metadata_visualier_args,
-        _visualise_cromwell_metadata_from_file,
-    ),
-}
+
+def cromwell_modes() -> dict:
+    """This is a function instead of a constant so we don't see ordering definition errors."""
+    return {
+        'submit': (_add_cromwell_submit_args_to, _run_cromwell),
+        'status': (_add_cromwell_status_args, _check_cromwell_status),
+        'visualise': (
+            _add_cromwell_metadata_visualier_args,
+            _visualise_cromwell_metadata_from_file,
+        ),
+    }
 
 
 def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
@@ -44,7 +45,7 @@ def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest='cromwell_mode')
 
-    for mode, (add_args, _) in CROMWELL_MODES().items():
+    for mode, (add_args, _) in cromwell_modes().items():
         add_args(subparsers.add_parser(mode))
 
     return parser
@@ -52,14 +53,14 @@ def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
 
 def run_cromwell_from_args(args):
     """Run cromwell CLI mode from argparse.args"""
-    cromwell_modes = CROMWELL_MODES()
+    _cromwell_modes = cromwell_modes()
 
     kwargs = vars(args)
     cromwell_mode = kwargs.pop('cromwell_mode')
-    if cromwell_mode not in cromwell_modes:
+    if cromwell_mode not in _cromwell_modes:
         raise NotImplementedError(cromwell_mode)
 
-    return cromwell_modes[cromwell_mode][1](**kwargs)
+    return _cromwell_modes[cromwell_mode][1](**kwargs)
 
 
 def _add_generic_cromwell_visualiser_args(parser: argparse.ArgumentParser):
