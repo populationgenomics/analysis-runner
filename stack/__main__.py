@@ -4,8 +4,8 @@ Pulumi stack to set up buckets and permission groups.
 You can add the following keys to the config to allow
 extra service accounts to read / write data from SM.
 Note: Adding WRITE also gives you READ access.
-- sm_read_sas
-- sm_write_sas
+- sm_read_only_sas
+- sm_read_write_sas
 """
 
 import re
@@ -504,8 +504,8 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     ]
 
     # extra custom SAs
-    extra_sm_read_sas = config.get_object('sm_read_sas') or []
-    extra_sm_write_sas = config.get_object('sm_write_sas') or []
+    extra_sm_read_sas = config.get_object('sm_read_only_sas') or []
+    extra_sm_write_sas = config.get_object('sm_read_write_sas') or []
 
     for sa in extra_sm_read_sas:
         sm_access_levels.append(
