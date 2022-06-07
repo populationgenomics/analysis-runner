@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,no-self-use
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 import unittest
 
 from unittest.mock import patch, MagicMock
