@@ -51,7 +51,7 @@ SampleMetadataAccessorMembership = namedtuple(
     ['name', 'member_key', 'permissions'],
 )
 
-NON_NAME_REGEX = re.compile(r'[^A-z0-9_-]')
+NON_NAME_REGEX = re.compile(r'[^A-Za-z0-9_-]')
 
 
 def main():  # pylint: disable=too-many-locals,too-many-branches
