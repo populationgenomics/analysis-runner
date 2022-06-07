@@ -1127,13 +1127,23 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
 def _get_name_from_external_sa(email: str, suffix='.iam.gserviceaccount.com'):
     """
-    Convert service account email to name + some filterin
+    Convert service account email to name + some filtering.
 
+    >>> _get_name_from_external_sa('my-service-account@project.iam.gserviceaccount.com')
+    'my-service-account-project'
+
+    >>> _get_name_from_external_sa('yourname@populationgenomics.org.au')
+    'yourname'
+
+    >>> _get_name_from_external_sa('my.service-account+extra@domain.com')
+    'my-service-account-extra'
     """
-    if not email.endswith(suffix):
-        return email.split('@')[0]
+    if email.endswith(suffix):
+        base = email[: -len(suffix)]
+    else:
+        base = email.split('@')[0]
 
-    return NON_NAME_REGEX.sub('-', email[: len(suffix)]).replace('--', '-')
+    return NON_NAME_REGEX.sub('-', base).replace('--', '-')
 
 
 if __name__ == '__main__':
