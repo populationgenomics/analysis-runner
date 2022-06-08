@@ -6,6 +6,9 @@ import logging
 from shlex import quote
 import hailtop.batch as hb
 from aiohttp import web
+from cpg_utils.config import update_dict
+from cpg_utils.hail_batch import remote_tmpdir
+
 from analysis_runner.git import prepare_git_job
 from cromwell import add_cromwell_routes
 from util import (
@@ -22,13 +25,11 @@ from util import (
     get_server_config,
     publisher,
     run_batch_job_and_print_url,
-    update_dict,
     validate_image,
     validate_output_dir,
     write_config,
     write_metadata_to_bucket,
 )
-from cpg_utils.hail_batch import remote_tmpdir
 
 logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
