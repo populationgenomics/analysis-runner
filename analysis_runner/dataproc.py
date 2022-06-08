@@ -54,13 +54,14 @@ class DataprocCluster:
         script: str,
         job_name: Optional[str] = None,
         pyfiles: Optional[List[str]] = None,
+        attributes: Optional[Dict] = None,
     ) -> hb.batch.job.Job:
         """
         Create a job that submits the `script` to the cluster
         """
         if self._start_job is None:
             self._start_job, self._cluster_id = _add_start_job(
-                batch=self._batch, **self._startup_params
+                batch=self._batch, attributes=attributes, **self._startup_params
             )
             if self._depends_on:
                 self._start_job.depends_on(*self._depends_on)
@@ -70,6 +71,7 @@ class DataprocCluster:
                 cluster_id=self._cluster_id,
                 job_name=job_name,
                 cluster_name=self._cluster_name,
+                attributes=attributes,
             )
             self._stop_job.depends_on(self._start_job)
 
@@ -80,6 +82,7 @@ class DataprocCluster:
             pyfiles=pyfiles,
             job_name=job_name,
             cluster_name=self._cluster_name,
+            attributes=attributes,
         )
         job.depends_on(self._start_job)
         self._stop_job.depends_on(job)
@@ -122,6 +125,7 @@ def hail_dataproc_job(
     script: str,
     pyfiles: Optional[List[str]] = None,
     job_name: Optional[str] = None,
+    attributes: Optional[Dict] = None,
     **kwargs,
 ) -> hb.batch.job.Job:
     """
@@ -129,7 +133,7 @@ def hail_dataproc_job(
     """
     kwargs['job_name'] = job_name
     cluster = setup_dataproc(batch, **kwargs)
-    return cluster.add_job(script, job_name, pyfiles)
+    return cluster.add_job(script, job_name, pyfiles, attributes=attributes)
 
 
 def _add_start_job(  # pylint: disable=too-many-arguments
@@ -149,6 +153,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     job_name: Optional[str] = None,
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
+    attributes: Optional[Dict] = None,
 ) -> Tuple[hb.batch.job.Job, str]:
     """
     Returns a Batch job which starts a Dataproc cluster, and the name of the cluster.
@@ -171,7 +176,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     labels['compute-category'] = 'dataproc'
     labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
 
-    start_job = batch.new_job(name=job_name)
+    start_job = batch.new_job(name=job_name, attributes=attributes)
     start_job.image(DATAPROC_IMAGE)
     start_job.command(GCLOUD_ACTIVATE_AUTH)
     start_job.command(GCLOUD_CONFIG_SET_PROJECT)
@@ -229,6 +234,7 @@ def _add_submit_job(
     pyfiles: Optional[List[str]] = None,
     job_name: Optional[str] = None,
     cluster_name: Optional[str] = None,
+    attributes: Optional[Dict] = None,
 ) -> hb.batch.job.Job:
     """
     Returns a job that submits a script to the Dataproc cluster
@@ -240,7 +246,7 @@ def _add_submit_job(
     if cluster_name:
         job_name += f' "{cluster_name}"'
 
-    main_job = batch.new_job(name=job_name)
+    main_job = batch.new_job(name=job_name, attributes=attributes)
     main_job.image(DATAPROC_IMAGE)
     main_job.command(GCLOUD_ACTIVATE_AUTH)
     main_job.command(GCLOUD_CONFIG_SET_PROJECT)
@@ -276,6 +282,7 @@ def _add_stop_job(
     cluster_id: str,
     job_name: Optional[str] = None,
     cluster_name: Optional[str] = None,
+    attributes: Optional[Dict] = None,
 ) -> hb.batch.job.Job:
     """
     Returns a job that stops the Dataproc cluster specified by `cluster_id`
@@ -285,7 +292,7 @@ def _add_stop_job(
     if cluster_name:
         job_name += f' "{cluster_name}"'
 
-    stop_job = batch.new_job(name=job_name)
+    stop_job = batch.new_job(name=job_name, attributes=attributes)
     stop_job.always_run()  # Always clean up.
     stop_job.image(DATAPROC_IMAGE)
     stop_job.command(GCLOUD_ACTIVATE_AUTH)
