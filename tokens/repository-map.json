@@ -89,6 +89,9 @@
         "sample-metadata"
     ],
     "rdnow": [],
+    "reference": [
+        "rare-disease"
+    ],
     "schr-neuro": [
         "sample-metadata"
     ],
