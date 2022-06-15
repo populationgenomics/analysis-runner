@@ -12,11 +12,10 @@
 # 8. too-many-lines
 # 9. R0801 (duplicate-code)
 # 10. similar lines
-# 11. import-error
 
 disable=f-string-without-interpolation,logging-fstring-interpolation,inherit-non-class,
             too-few-public-methods,fixme,line-too-long,too-many-statements,
-            too-many-lines,R0801,import-error,c-extension-no-member,no-member
+            too-many-lines,R0801,c-extension-no-member,no-member
 
 
 # Overriding variable name patterns to allow short 1- or 2-letter variables
