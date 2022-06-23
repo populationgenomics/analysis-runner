@@ -34,6 +34,7 @@ RUN apt update && \
         sample-metadata \
         selenium \
         statsmodels && \
+        pyarrow && \
     # Install Hail from the CPG fork.
     git clone https://github.com/populationgenomics/hail.git && \
     cd hail && \
