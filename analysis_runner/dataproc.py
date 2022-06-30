@@ -55,6 +55,7 @@ class DataprocCluster:
         job_name: Optional[str] = None,
         pyfiles: Optional[List[str]] = None,
         attributes: Optional[Dict] = None,
+        depends_on: Optional[List] = None,
     ) -> hb.batch.job.Job:
         """
         Create a job that submits the `script` to the cluster
@@ -86,6 +87,10 @@ class DataprocCluster:
         )
         job.depends_on(self._start_job)
         self._stop_job.depends_on(job)
+
+        if depends_on:
+            job.depends_on(*depends_on)
+
         return job
 
 
