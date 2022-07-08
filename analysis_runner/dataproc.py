@@ -30,7 +30,7 @@ WHEEL = f'gs://cpg-hail-ci/wheels/hail-{HAIL_VERSION}-py3-none-any.whl'
 _config = get_config()
 DATASET_GCP_PROJECT = _config['workflow']['dataset_gcp_project']
 GCLOUD_CONFIG_SET_PROJECT = f'gcloud config set project {DATASET_GCP_PROJECT}'
-DATAPROC_REGION = 'gcloud config set dataproc/region australia-southeast1'
+DATAPROC_REGION_TEMPLATE = 'gcloud config set dataproc/region {region}'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
 
@@ -44,6 +44,7 @@ class DataprocCluster:
         self._batch = kwargs.pop('batch')
         self._depends_on = kwargs.pop('depends_on', None)
         self._cluster_name = kwargs.get('cluster_name', None)
+        self._region = kwargs.pop('region')
         self._cluster_id = None
         self._start_job = None
         self._stop_job = None
@@ -62,7 +63,10 @@ class DataprocCluster:
         """
         if self._start_job is None:
             self._start_job, self._cluster_id = _add_start_job(
-                batch=self._batch, attributes=attributes, **self._startup_params
+                batch=self._batch,
+                attributes=attributes,
+                region=self._region,
+                **self._startup_params,
             )
             if self._depends_on:
                 self._start_job.depends_on(*self._depends_on)
@@ -73,6 +77,7 @@ class DataprocCluster:
                 job_name=job_name,
                 cluster_name=self._cluster_name,
                 attributes=attributes,
+                region=self._region,
             )
             self._stop_job.depends_on(self._start_job)
 
@@ -84,6 +89,7 @@ class DataprocCluster:
             job_name=job_name,
             cluster_name=self._cluster_name,
             attributes=attributes,
+            region=self._region,
         )
         job.depends_on(self._start_job)
         self._stop_job.depends_on(job)
@@ -99,6 +105,7 @@ def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
     max_age: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
+    region: str = 'australia-southeast1',
     worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
@@ -144,6 +151,7 @@ def hail_dataproc_job(
 def _add_start_job(  # pylint: disable=too-many-arguments
     batch: hb.Batch,
     max_age: str,
+    region: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
     autoscaling_policy: Optional[str] = None,
@@ -185,7 +193,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     start_job.image(DATAPROC_IMAGE)
     start_job.command(GCLOUD_ACTIVATE_AUTH)
     start_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    start_job.command(DATAPROC_REGION)
+    start_job.command(DATAPROC_REGION_TEMPLATE.format(region))
 
     # The spark-env property can be used to set environment variables in jobs that run
     # on the Dataproc cluster. We propagate some currently set environment variables
@@ -236,6 +244,7 @@ def _add_submit_job(
     batch: hb.Batch,
     cluster_id: str,
     script: str,
+    region: str,
     pyfiles: Optional[List[str]] = None,
     job_name: Optional[str] = None,
     cluster_name: Optional[str] = None,
@@ -255,7 +264,7 @@ def _add_submit_job(
     main_job.image(DATAPROC_IMAGE)
     main_job.command(GCLOUD_ACTIVATE_AUTH)
     main_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    main_job.command(DATAPROC_REGION)
+    main_job.command(DATAPROC_REGION_TEMPLATE.format(region))
 
     # Clone the repository to pass scripts to the cluster.
     prepare_git_job(
@@ -285,6 +294,7 @@ def _add_submit_job(
 def _add_stop_job(
     batch: hb.Batch,
     cluster_id: str,
+    region: str,
     job_name: Optional[str] = None,
     cluster_name: Optional[str] = None,
     attributes: Optional[Dict] = None,
@@ -302,7 +312,7 @@ def _add_stop_job(
     stop_job.image(DATAPROC_IMAGE)
     stop_job.command(GCLOUD_ACTIVATE_AUTH)
     stop_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    stop_job.command(DATAPROC_REGION)
+    stop_job.command(DATAPROC_REGION_TEMPLATE.format(region))
     stop_job.command(f'hailctl dataproc stop {cluster_id}')
 
     return stop_job
