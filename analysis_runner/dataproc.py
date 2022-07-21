@@ -193,7 +193,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     start_job.image(DATAPROC_IMAGE)
     start_job.command(GCLOUD_ACTIVATE_AUTH)
     start_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    start_job.command(DATAPROC_REGION_TEMPLATE.format(region))
+    start_job.command(DATAPROC_REGION_TEMPLATE.format(region=region))
 
     # The spark-env property can be used to set environment variables in jobs that run
     # on the Dataproc cluster. We propagate some currently set environment variables
@@ -264,7 +264,7 @@ def _add_submit_job(
     main_job.image(DATAPROC_IMAGE)
     main_job.command(GCLOUD_ACTIVATE_AUTH)
     main_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    main_job.command(DATAPROC_REGION_TEMPLATE.format(region))
+    main_job.command(DATAPROC_REGION_TEMPLATE.format(region=region))
 
     # Clone the repository to pass scripts to the cluster.
     prepare_git_job(
@@ -312,7 +312,7 @@ def _add_stop_job(
     stop_job.image(DATAPROC_IMAGE)
     stop_job.command(GCLOUD_ACTIVATE_AUTH)
     stop_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    stop_job.command(DATAPROC_REGION_TEMPLATE.format(region))
+    stop_job.command(DATAPROC_REGION_TEMPLATE.format(region=region))
     stop_job.command(f'hailctl dataproc stop {cluster_id}')
 
     return stop_job
