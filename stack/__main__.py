@@ -316,7 +316,13 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     access_group_mail = group_mail(dataset, 'access')
     access_group = create_group(access_group_mail)
     web_access_group = create_group(group_mail(dataset, 'web-access'))
-
+    notebook_account = gcp.serviceaccount.Account(
+        'notebook-account',
+        project=NOTEBOOKS_PROJECT,
+        account_id=f'notebook-{dataset}',
+        display_name=f'Notebook service account for dataset {dataset}',
+        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+    )
     # other stacks require the access group to exist
     pulumi.export(access_group_mail.split('@')[0] + '-group-id', access_group.id)
 
@@ -495,6 +501,11 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             name='analysis-runner-logger',
             member_key=ANALYSIS_RUNNER_LOGGER_SERVICE_ACCOUNT,
             permissions=sm_groups.keys(),
+        ),
+        SampleMetadataAccessorMembership(
+            name='notebooks',
+            member_key=notebook_account,
+            permissions=('main-read', 'test-read', 'test-write'),
         ),
     ]
 
@@ -956,13 +967,6 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 )
 
     # Notebook permissions
-    notebook_account = gcp.serviceaccount.Account(
-        'notebook-account',
-        project=NOTEBOOKS_PROJECT,
-        account_id=f'notebook-{dataset}',
-        display_name=f'Notebook service account for dataset {dataset}',
-        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
-    )
 
     gcp.projects.IAMMember(
         'notebook-account-compute-admin',
