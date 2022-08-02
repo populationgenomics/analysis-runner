@@ -3,8 +3,8 @@ FROM australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-base:1.2
 
 ARG HAIL_SHA
 
-ENV HAIL_QUERY_BACKEND service \
-    TZ=Australia
+ENV HAIL_QUERY_BACKEND service
+ENV TZ Australia
 
 RUN apt update && \
     DEBIAN_FRONTEND=noninteractive apt install -y \
