@@ -91,6 +91,7 @@
         "rare-disease"
     ],
     "nagim": [
+        "automated-interpretation-pipeline",
         "sample-metadata"
     ],
     "ohmr3-mendelian": [
