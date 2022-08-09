@@ -152,7 +152,8 @@
         "tob-wgs",
         "sv-workflows",
         "production-pipelines",
-        "sample-metadata"
+        "sample-metadata",
+        "CellRegMap_pipeline"
     ],
     "tx-adapt": [
         "sample-metadata",
