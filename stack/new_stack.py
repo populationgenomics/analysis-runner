@@ -16,7 +16,8 @@ Example usage:
         --dataset $DATASET \
         --perform-all --no-commit \
         --deploy-stack \
-        --generate-service-account-key
+        --generate-service-account-key \
+        [--add-to-seqr-stack]
 """
 
 # pylint: disable=unreachable,too-many-arguments,no-name-in-module,import-error,too-many-lines

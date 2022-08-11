@@ -159,6 +159,9 @@
         "sample-metadata",
         "tx-adapt"
     ],
+    "udn-aus": [
+        "sample-metadata"
+    ],
     "validation": [
         "sample-metadata",
         "production-pipelines",
