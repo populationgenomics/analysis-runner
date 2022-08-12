@@ -413,8 +413,9 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     access_group_cache_secrets = {}
     for group_prefix in ('access', 'web-access') + ACCESS_LEVELS:
         access_secret = create_secret(
-            f'{group_prefix}-group-cache-secret',
+            f'{dataset}-{group_prefix}-members-cache',
             secret_id=f'{dataset}-{group_prefix}-members-cache',
+            alias=f'{group_prefix}-group-cache-secret',
         )
 
         add_access_group_cache_as_secret_member(access_secret, group_prefix)
@@ -458,7 +459,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             )
 
             secret = create_secret(
-                f'{dataset}-sample-metadata-{key}-members-cache',
+                f'{dataset}-{key}-members-cache',
                 secret_id=f'{dataset}-{key}-members-cache',
                 alias=f'{key}-group-cache-secret',
             )
@@ -1097,9 +1098,10 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         )
 
         secret = create_secret(
-            f'cromwell-service-account-{access_level}-secret',
+            f'{dataset}-cromwell-{access_level}-key',
             secret_id=f'{dataset}-cromwell-{access_level}-key',
             project=ANALYSIS_RUNNER_PROJECT,
+            alias=f'cromwell-service-account-{access_level}-secret',
         )
 
         gcp.secretmanager.SecretVersion(
