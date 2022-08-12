@@ -970,7 +970,6 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
     # Notebook permissions
     notebook_account = gcp.serviceaccount.Account(
-        # rename with alias for dataset refactor
         f'service-account-notebook-{dataset}',
         project=NOTEBOOKS_PROJECT,
         account_id=f'notebook-{dataset}',
