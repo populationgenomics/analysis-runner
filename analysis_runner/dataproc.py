@@ -262,16 +262,9 @@ def _add_submit_job(
     if cwd:
         main_job.command(f'cd {quote(cwd)}')
 
-    if pyfiles:
-        main_job.command(f'mkdir {PYFILES_DIR}')
-        main_job.command(f'cp -r {" ".join(pyfiles)} {PYFILES_DIR}')
-        main_job.command(f'cd {PYFILES_DIR}')
-        main_job.command(f'zip -r {PYFILES_ZIP} .')
-        main_job.command(f'cd -')
-
     main_job.command(
         f'hailctl dataproc submit '
-        + (f'--pyfiles {PYFILES_DIR}/{PYFILES_ZIP} ' if pyfiles else '')
+        + (f'--pyfiles {",".join(pyfiles)} ' if pyfiles else '')
         + f'{cluster_id} {script} '
     )
     return main_job
