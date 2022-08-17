@@ -7,6 +7,6 @@ To build, run:
 
 ```sh
 gcloud config set project analysis-runner
-
-gcloud builds submit --timeout=1h --tag=australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-0.2.91 .
+HAIL_VERSION=0.2.95
+gcloud builds submit --timeout=1h --tag=australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-$HAIL_VERSION .
 ```

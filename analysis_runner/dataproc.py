@@ -17,7 +17,7 @@ from analysis_runner.git import (
 )
 
 
-HAIL_VERSION = '0.2.91'
+HAIL_VERSION = '0.2.95'
 DATAPROC_IMAGE = (
     f'australia-southeast1-docker.pkg.dev/analysis-runner/images/'
     f'dataproc:hail-{HAIL_VERSION}'
@@ -170,7 +170,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
 ) -> Tuple[hb.batch.job.Job, str]:
     """
     Returns a Batch job which starts a Dataproc cluster, and the name of the cluster.
-    The user is respondible for stopping the cluster.
+    The user is responsible for stopping the cluster.
 
     See the `hailctl` tool for information on the keyword parameters.
     """
@@ -276,16 +276,9 @@ def _add_submit_job(
     if cwd:
         main_job.command(f'cd {quote(cwd)}')
 
-    if pyfiles:
-        main_job.command(f'mkdir {PYFILES_DIR}')
-        main_job.command(f'cp -r {" ".join(pyfiles)} {PYFILES_DIR}')
-        main_job.command(f'cd {PYFILES_DIR}')
-        main_job.command(f'zip -r {PYFILES_ZIP} .')
-        main_job.command(f'cd -')
-
     main_job.command(
         f'hailctl dataproc submit '
-        + (f'--pyfiles {PYFILES_DIR}/{PYFILES_ZIP} ' if pyfiles else '')
+        + (f'--pyfiles {",".join(pyfiles)} ' if pyfiles else '')
         + f'{cluster_id} {script} '
     )
     return main_job
