@@ -110,8 +110,8 @@
         "sample-metadata",
         "production-pipelines",
         "joint-calling",
-        "gatk-sv"
-        "large-cohort-pipeline",
+        "gatk-sv",
+        "large-cohort-pipeline"
     ],
     "ravenscroft-arch": [
         "automated-interpretation-pipeline",
