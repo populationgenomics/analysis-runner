@@ -110,7 +110,8 @@
         "sample-metadata",
         "production-pipelines",
         "joint-calling",
-        "gatk-sv"
+        "gatk-sv",
+        "large-cohort-pipeline"
     ],
     "ravenscroft-arch": [
         "automated-interpretation-pipeline",
@@ -167,6 +168,7 @@
         "production-pipelines",
         "joint-calling",
         "gatk-sv",
-        "rare-disease"
+        "rare-disease",
+        "large-cohort-pipeline"
     ]
 }
