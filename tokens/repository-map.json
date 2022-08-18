@@ -164,6 +164,7 @@
         "sample-metadata"
     ],
     "validation": [
+        "automated-interpretation-pipeline",
         "sample-metadata",
         "production-pipelines",
         "joint-calling",
