@@ -163,6 +163,9 @@
     "udn-aus": [
         "sample-metadata"
     ],
+    "udn-aus-training": [
+        "sample-metadata"
+    ],
     "validation": [
         "automated-interpretation-pipeline",
         "sample-metadata",
