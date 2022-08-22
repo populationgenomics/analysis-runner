@@ -29,6 +29,7 @@ RUN apt update && \
         cloudpathlib[all] \
         cpg-pipes \
         cpg-utils \
+        gcsfs \
         phantomjs \
         pyarrow \
         sample-metadata \
