@@ -128,9 +128,15 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         service_accounts[kind] = []
         for access_level in ACCESS_LEVELS:
             account = gcp.serviceaccount.Account(
-                f'{kind}-service-account-{access_level}',
+                f'service-account-{kind}-{access_level}',
                 account_id=f'{kind}-{access_level}',
-                opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+                opts=pulumi.resource.ResourceOptions(
+                    depends_on=[cloudidentity],
+                    # old name: to prepare for infra refactor
+                    aliases=[
+                        pulumi.resource.Alias(f'{kind}-service-account-{access_level}')
+                    ],
+                ),
             )
             service_accounts[kind].append((access_level, account.email))
 
@@ -175,10 +181,13 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     )
 
     main_upload_account = gcp.serviceaccount.Account(
-        'main-upload-service-account',
+        'service-account-main-upload',
         account_id='main-upload',
         display_name='main-upload',
-        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+        opts=pulumi.resource.ResourceOptions(
+            depends_on=[cloudidentity],
+            aliases=[pulumi.resource.Alias('main-upload-service-account')],
+        ),
     )
 
     main_upload_buckets = {
@@ -281,7 +290,10 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
         )
 
-    def create_secret(resource_name: str, secret_id: str, **kwargs):
+    def create_secret(resource_name: str, secret_id: str, alias: str = None, **kwargs):
+        resource_options_kwargs = dict(depends_on=[secretmanager])
+        if alias:
+            resource_options_kwargs['aliases'] = [pulumi.resource.Alias(alias)]
         return gcp.secretmanager.Secret(
             resource_name,
             secret_id=secret_id,
@@ -294,7 +306,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                     ],
                 ),
             ),
-            opts=pulumi.resource.ResourceOptions(depends_on=[secretmanager]),
+            opts=pulumi.resource.ResourceOptions(**resource_options_kwargs),
             **kwargs,
         )
 
@@ -401,8 +413,9 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     access_group_cache_secrets = {}
     for group_prefix in ('access', 'web-access') + ACCESS_LEVELS:
         access_secret = create_secret(
-            f'{group_prefix}-group-cache-secret',
+            f'{dataset}-{group_prefix}-members-cache',
             secret_id=f'{dataset}-{group_prefix}-members-cache',
+            alias=f'{group_prefix}-group-cache-secret',
         )
 
         add_access_group_cache_as_secret_member(access_secret, group_prefix)
@@ -446,8 +459,9 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             )
 
             secret = create_secret(
-                f'{key}-group-cache-secret',
+                f'{dataset}-{key}-members-cache',
                 secret_id=f'{dataset}-{key}-members-cache',
+                alias=f'{key}-group-cache-secret',
             )
             add_access_group_cache_as_secret_member(secret, resource_prefix=key)
 
@@ -957,11 +971,14 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
     # Notebook permissions
     notebook_account = gcp.serviceaccount.Account(
-        'notebook-account',
+        f'service-account-notebook-{dataset}',
         project=NOTEBOOKS_PROJECT,
         account_id=f'notebook-{dataset}',
         display_name=f'Notebook service account for dataset {dataset}',
-        opts=pulumi.resource.ResourceOptions(depends_on=[cloudidentity]),
+        opts=pulumi.resource.ResourceOptions(
+            depends_on=[cloudidentity],
+            aliases=[pulumi.resource.Alias('notebook-account')],
+        ),
     )
 
     gcp.projects.IAMMember(
@@ -1080,9 +1097,10 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         )
 
         secret = create_secret(
-            f'cromwell-service-account-{access_level}-secret',
+            f'{dataset}-cromwell-{access_level}-key',
             secret_id=f'{dataset}-cromwell-{access_level}-key',
             project=ANALYSIS_RUNNER_PROJECT,
+            alias=f'cromwell-service-account-{access_level}-secret',
         )
 
         gcp.secretmanager.SecretVersion(
