@@ -32,7 +32,7 @@ RUN apt update && \
         phantomjs \
         pyarrow \
         sample-metadata \
-        selenium \
+        selenium==3.8.0 \
         statsmodels && \
     # Install Hail from the CPG fork.
     git clone https://github.com/populationgenomics/hail.git && \
