@@ -77,6 +77,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     lister_role_id = org_role_id('StorageLister')
     viewer_creator_role_id = org_role_id('StorageViewerAndCreator')
     viewer_role_id = org_role_id('StorageObjectAndBucketViewer')
+    dataproc_worker_role_id = org_role_id('DataprocWorkerWithoutStorageAccess')
 
     # The Cloud Resource Manager API is required for the Cloud Identity API.
     cloudresourcemanager = gcp.projects.Service(
@@ -1028,7 +1029,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
         gcp.projects.IAMMember(
             f'dataproc-service-account-{access_level}-dataproc-worker',
-            role='roles/dataproc.worker',
+            role=dataproc_worker_role_id,
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
 
@@ -1044,7 +1045,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         # Worker permissions are necessary to submit jobs.
         gcp.projects.IAMMember(
             f'hail-service-account-{access_level}-dataproc-worker',
-            role='roles/dataproc.worker',
+            role=dataproc_worker_role_id,
             member=pulumi.Output.concat('serviceAccount:', service_account),
         )
 
