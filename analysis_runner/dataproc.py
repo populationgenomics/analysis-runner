@@ -6,6 +6,7 @@ import uuid
 from shlex import quote
 from typing import Optional, List, Dict, Tuple
 from cpg_utils.config import get_config
+from cpg_utils.hail_batch import Namespace
 import hailtop.batch as hb
 from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
 from analysis_runner.git import (
@@ -17,7 +18,7 @@ from analysis_runner.git import (
 )
 
 
-HAIL_VERSION = '0.2.95'
+HAIL_VERSION = '0.2.97'
 DATAPROC_IMAGE = (
     f'australia-southeast1-docker.pkg.dev/analysis-runner/images/'
     f'dataproc:hail-{HAIL_VERSION}'
@@ -28,6 +29,9 @@ DATAPROC_IMAGE = (
 WHEEL = f'gs://cpg-hail-ci/wheels/hail-{HAIL_VERSION}-py3-none-any.whl'
 
 _config = get_config()
+ACCESS_LEVEL = _config['workflow']['access_level']
+NAMESPACE = Namespace.from_access_level(ACCESS_LEVEL).value
+DATASET = _config['workflow']['dataset']
 DATASET_GCP_PROJECT = _config['workflow']['dataset_gcp_project']
 GCLOUD_CONFIG_SET_PROJECT = f'gcloud config set project {DATASET_GCP_PROJECT}'
 DATAPROC_REGION_TEMPLATE = 'gcloud config set dataproc/region {region}'
@@ -204,13 +208,15 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     # Using a space will break some options like --label
     start_job_command = [
         'hailctl dataproc start',
-        f'--service-account=dataproc-{_config["workflow"]["access_level"]}@{DATASET_GCP_PROJECT}.iam.gserviceaccount.com',
+        f'--service-account=dataproc-{ACCESS_LEVEL}@{DATASET_GCP_PROJECT}.iam.gserviceaccount.com',
         f'--max-age={max_age}',
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
         f'--labels={labels_formatted}',
         f'--wheel={WHEEL}',
+        f'--bucket=cpg-{DATASET}-{NAMESPACE}-tmp',
+        f'--temp-bucket=cpg-{DATASET}-{NAMESPACE}-tmp',
     ]
     if worker_machine_type:
         start_job_command.append(f'--worker-machine-type={worker_machine_type}')
