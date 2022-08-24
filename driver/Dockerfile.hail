@@ -8,6 +8,7 @@ ENV HAIL_QUERY_BACKEND service
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         g++ \
+        libfontconfig \
         liblapack3 \
         libopenblas-base \
         openjdk-8-jdk-headless \
@@ -30,8 +31,6 @@ RUN apt-get update && \
         cpg-pipes \
         cpg-utils \
         gcsfs \
-        libfontconfig1 \
-        phantomjs \
         pyarrow \
         sample-metadata \
         selenium==3.8.0 \
