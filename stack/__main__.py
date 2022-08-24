@@ -665,7 +665,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
         egress_buckets = {'release': release_bucket}
 
-        project_name = f'cpg-{dataset}-egress'
+        project_name = f'{project_id}-shared'
         egress_budget = config.get_int('egress_budget')
 
         # Add billing / billingbudgets to the parent project, so we can use the API,
