@@ -665,7 +665,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
         shared_buckets = {'release': release_bucket}
 
-        project_name = f'cpg-{dataset}-shared'
+        project_name = f'{project_id}-shared'
         shared_budget = config.get_int('shared_budget')
 
         # Add billing / billingbudgets to the parent project, so we can use the API,
