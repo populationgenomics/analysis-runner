@@ -1,5 +1,5 @@
-pulumi>=2.0.0,<3.0.0
-pulumi-gcp>=4.0.0,<5.0.0
+pulumi==3.38.0
+pulumi-gcp==6.35.0
 google-cloud-billing-budgets==1.5.1
 requests==2.27.1
 PyYAML==5.4.1
