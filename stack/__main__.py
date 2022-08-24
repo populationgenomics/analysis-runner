@@ -725,7 +725,8 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             display_name=project_name,
             budget_filter=gcp.billing.BudgetBudgetFilterArgs(
                 projects=[pulumi.Output.concat('projects/', shared_project.number)],
-                calendar_period='MONTH',
+                # this budget applies for all time and doesn't reset
+                # calendar_period='MONTH',
             ),
             threshold_rules=[
                 gcp.billing.BudgetThresholdRuleArgs(threshold_percent=0.5),
