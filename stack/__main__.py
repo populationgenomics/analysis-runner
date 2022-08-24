@@ -18,6 +18,9 @@ import pulumi_gcp as gcp
 
 DOMAIN = 'populationgenomics.org.au'
 CUSTOMER_ID = 'C010ys3gt'
+BILLING_ACCOUNT_ID = '01D012-20A6A2-CBD343'
+BILLING_PROJECT_ID = 'billing-admin-290403'
+
 REGION = 'australia-southeast1'
 ANALYSIS_RUNNER_PROJECT = 'analysis-runner'
 CPG_COMMON_PROJECT = 'cpg-common'
@@ -60,6 +63,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     # Fetch configuration.
     config = pulumi.Config()
     enable_release = config.get_bool('enable_release')
+    enable_egress_project = config.get_bool('enable_egress_project')
     archive_age = config.get_int('archive_age') or 30
 
     dataset = pulumi.get_stack()
@@ -629,6 +633,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
+    release_bucket = None
     if enable_release:
         release_bucket = create_bucket(
             bucket_name('release-requester-pays'),
@@ -651,6 +656,117 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             role=viewer_role_id,
             member=pulumi.Output.concat('group:', release_access_group.group_key.id),
         )
+
+    if enable_egress_project:
+        if not release_bucket:
+            raise ValueError(
+                'Requested egress project, but no bucket is available to egress from'
+            )
+
+        egress_buckets = {'release': release_bucket}
+
+        project_name = f'cpg-{dataset}-egress'
+        egress_budget = config.get_int('egress_budget')
+
+        # Add billing / billingbudgets to the parent project, so we can use the API,
+        # even though it does correctly get added on the org billing account.
+        cloudbilling = gcp.projects.Service(
+            'cloudbilling-service',
+            service='cloudbilling.googleapis.com',
+            disable_on_destroy=False,
+            project=project_id,
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudresourcemanager]),
+        )
+        cloudbillingbudgets = gcp.projects.Service(
+            'cloudbillingbudgets-service',
+            service='billingbudgets.googleapis.com',
+            disable_on_destroy=False,
+            project=project_id,
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudbilling]),
+        )
+
+        # create project to cover egress
+        egress_project = gcp.organizations.Project(
+            f'{dataset}-collaborator-egress-project',
+            org_id=organization.org_id,
+            project_id=project_name,
+            name=project_name,
+            billing_account=BILLING_ACCOUNT_ID,
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudbilling]),
+        )
+
+        egress_cloudresourcemanager = gcp.projects.Service(
+            'egress-cloudresourcemanager-service',
+            service='cloudresourcemanager.googleapis.com',
+            disable_on_destroy=False,
+            project=egress_project.id,
+        )
+        egress_cloudidentity = gcp.projects.Service(
+            'egress-cloudidentity-service',
+            service='cloudidentity.googleapis.com',
+            disable_on_destroy=False,
+            project=egress_project.id,
+            opts=pulumi.resource.ResourceOptions(
+                depends_on=[egress_cloudresourcemanager]
+            ),
+        )
+
+        # create budget for egress project
+        gcp.billing.Budget(
+            f'{dataset}-egress-budget',
+            amount=gcp.billing.BudgetAmountArgs(
+                specified_amount=gcp.billing.BudgetAmountSpecifiedAmountArgs(
+                    units=egress_budget,
+                    currency_code='AUD',
+                    nanos=0,
+                )
+            ),
+            billing_account=BILLING_ACCOUNT_ID,
+            display_name=project_name,
+            budget_filter=gcp.billing.BudgetBudgetFilterArgs(
+                projects=[pulumi.Output.concat('projects/', egress_project.number)],
+                calendar_period='MONTH',
+            ),
+            threshold_rules=[
+                gcp.billing.BudgetThresholdRuleArgs(threshold_percent=0.5),
+                gcp.billing.BudgetThresholdRuleArgs(threshold_percent=0.9),
+                gcp.billing.BudgetThresholdRuleArgs(threshold_percent=1.0),
+            ],
+            all_updates_rule=gcp.billing.BudgetAllUpdatesRuleArgs(
+                pubsub_topic=f'projects/{BILLING_PROJECT_ID}/topics/budget-notifications',
+                schema_version='1.0',
+            ),
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudbillingbudgets]),
+        )
+
+        egress_service_account = gcp.serviceaccount.Account(
+            'budget-egress-service-account',
+            account_id=f'egress',
+            opts=pulumi.resource.ResourceOptions(
+                depends_on=[egress_cloudidentity],
+            ),
+            project=egress_project.name,
+        )
+
+        # Allow the usage of requester-pays buckets.
+        gcp.projects.IAMMember(
+            f'egress-serviceusage-consumer',
+            role='roles/serviceusage.serviceUsageConsumer',
+            member=pulumi.Output.concat(
+                'serviceAccount:', egress_service_account.email
+            ),
+            project=egress_project.name,
+        )
+
+        for bname, bucket in egress_buckets.items():
+            bucket_member(
+                f'{bname}-external-egress-membership',
+                bucket=bucket.name,
+                member=pulumi.Output.concat(
+                    'serviceAccount:', egress_service_account.email
+                ),
+                role=viewer_role_id,
+            )
 
     bucket_member(
         'web-server-test-web-bucket-viewer',
