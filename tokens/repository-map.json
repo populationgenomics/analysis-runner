@@ -71,6 +71,7 @@
         "analysis-runner"
     ],
     "kidgen": [
+        "automated-interpretation-pipeline",
         "sample-metadata",
         "rare-disease"
     ],
