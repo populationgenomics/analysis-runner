@@ -30,7 +30,7 @@ RUN apt-get update && \
         cpg-pipes \
         cpg-utils \
         gcsfs \
-        libfontconfig \
+        libfontconfig1 \
         phantomjs \
         pyarrow \
         sample-metadata \
