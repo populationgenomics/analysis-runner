@@ -63,7 +63,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     # Fetch configuration.
     config = pulumi.Config()
     enable_release = config.get_bool('enable_release')
-    enable_egress_project = config.get_bool('enable_egress_project')
+    enable_shared_project = config.get_bool('enable_shared_project')
     archive_age = config.get_int('archive_age') or 30
 
     dataset = pulumi.get_stack()
@@ -657,16 +657,16 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             member=pulumi.Output.concat('group:', release_access_group.group_key.id),
         )
 
-    if enable_egress_project:
+    if enable_shared_project:
         if not release_bucket:
             raise ValueError(
-                'Requested egress project, but no bucket is available to egress from'
+                'Requested shared project, but no bucket is available to shared from'
             )
 
-        egress_buckets = {'release': release_bucket}
+        shared_buckets = {'release': release_bucket}
 
-        project_name = f'cpg-{dataset}-egress'
-        egress_budget = config.get_int('egress_budget')
+        project_name = f'cpg-{dataset}-shared'
+        shared_budget = config.get_int('shared_budget')
 
         # Add billing / billingbudgets to the parent project, so we can use the API,
         # even though it does correctly get added on the org billing account.
@@ -685,9 +685,9 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudbilling]),
         )
 
-        # create project to cover egress
-        egress_project = gcp.organizations.Project(
-            f'{dataset}-collaborator-egress-project',
+        # create project to cover shared
+        shared_project = gcp.organizations.Project(
+            f'{dataset}-collaborator-shared-project',
             org_id=organization.org_id,
             project_id=project_name,
             name=project_name,
@@ -695,28 +695,28 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudbilling]),
         )
 
-        egress_cloudresourcemanager = gcp.projects.Service(
-            'egress-cloudresourcemanager-service',
+        shared_cloudresourcemanager = gcp.projects.Service(
+            'shared-project-cloudresourcemanager-service',
             service='cloudresourcemanager.googleapis.com',
             disable_on_destroy=False,
-            project=egress_project.id,
+            project=shared_project.id,
         )
-        egress_cloudidentity = gcp.projects.Service(
-            'egress-cloudidentity-service',
+        shared_cloudidentity = gcp.projects.Service(
+            'shared-project-cloudidentity-service',
             service='cloudidentity.googleapis.com',
             disable_on_destroy=False,
-            project=egress_project.id,
+            project=shared_project.id,
             opts=pulumi.resource.ResourceOptions(
-                depends_on=[egress_cloudresourcemanager]
+                depends_on=[shared_cloudresourcemanager]
             ),
         )
 
-        # create budget for egress project
+        # create budget for shared project
         gcp.billing.Budget(
-            f'{dataset}-egress-budget',
+            f'{dataset}-shared-budget',
             amount=gcp.billing.BudgetAmountArgs(
                 specified_amount=gcp.billing.BudgetAmountSpecifiedAmountArgs(
-                    units=egress_budget,
+                    units=shared_budget,
                     currency_code='AUD',
                     nanos=0,
                 )
@@ -724,7 +724,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             billing_account=BILLING_ACCOUNT_ID,
             display_name=project_name,
             budget_filter=gcp.billing.BudgetBudgetFilterArgs(
-                projects=[pulumi.Output.concat('projects/', egress_project.number)],
+                projects=[pulumi.Output.concat('projects/', shared_project.number)],
                 calendar_period='MONTH',
             ),
             threshold_rules=[
@@ -739,31 +739,31 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudbillingbudgets]),
         )
 
-        egress_service_account = gcp.serviceaccount.Account(
-            'budget-egress-service-account',
-            account_id=f'egress',
+        shared_service_account = gcp.serviceaccount.Account(
+            'budget-shared-service-account',
+            account_id=f'shared',
             opts=pulumi.resource.ResourceOptions(
-                depends_on=[egress_cloudidentity],
+                depends_on=[shared_cloudidentity],
             ),
-            project=egress_project.name,
+            project=shared_project.name,
         )
 
         # Allow the usage of requester-pays buckets.
         gcp.projects.IAMMember(
-            f'egress-serviceusage-consumer',
+            f'shared-project-serviceusage-consumer',
             role='roles/serviceusage.serviceUsageConsumer',
             member=pulumi.Output.concat(
-                'serviceAccount:', egress_service_account.email
+                'serviceAccount:', shared_service_account.email
             ),
-            project=egress_project.name,
+            project=shared_project.name,
         )
 
-        for bname, bucket in egress_buckets.items():
+        for bname, bucket in shared_buckets.items():
             bucket_member(
-                f'{bname}-external-egress-membership',
+                f'{bname}-shared-membership',
                 bucket=bucket.name,
                 member=pulumi.Output.concat(
-                    'serviceAccount:', egress_service_account.email
+                    'serviceAccount:', shared_service_account.email
                 ),
                 role=viewer_role_id,
             )
