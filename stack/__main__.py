@@ -660,7 +660,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     if enable_shared_project:
         if not release_bucket:
             raise ValueError(
-                'Requested shared project, but no bucket is available to shared from'
+                'Requested shared project, but no bucket is available to share'
             )
 
         shared_buckets = {'release': release_bucket}
@@ -685,7 +685,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             opts=pulumi.resource.ResourceOptions(depends_on=[cloudbilling]),
         )
 
-        # create project to cover shared
+        # create project to cover costs of shared access, like network egress
         shared_project = gcp.organizations.Project(
             f'{dataset}-collaborator-shared-project',
             org_id=organization.org_id,
@@ -748,7 +748,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             project=shared_project.name,
         )
 
-        # Allow the usage of requester-pays buckets.
+        # Allow the usage of Requester Pays buckets.
         gcp.projects.IAMMember(
             f'shared-project-serviceusage-consumer',
             role='roles/serviceusage.serviceUsageConsumer',
