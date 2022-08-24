@@ -562,6 +562,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         'project-buckets-lister',
         role=lister_role_id,
         member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
     )
 
     # Grant visibility to Dataproc utilization metrics etc.
@@ -569,6 +570,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         'project-monitoring-viewer',
         role='roles/monitoring.viewer',
         member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
     )
 
     bucket_member(
@@ -712,6 +714,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         f'access-group-serviceusage-consumer',
         role='roles/serviceusage.serviceUsageConsumer',
         member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
     )
 
     # Allow the access group cache to list memberships.
@@ -799,6 +802,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'{access_level}-serviceusage-consumer',
             role='roles/serviceusage.serviceUsageConsumer',
             member=pulumi.Output.concat('group:', group.group_key.id),
+            project=project_id,
         )
 
     # The bucket used for Hail Batch pipelines, e.g. for passing input / output
@@ -1031,6 +1035,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'dataproc-service-account-{access_level}-dataproc-worker',
             role=dataproc_worker_role_id,
             member=pulumi.Output.concat('serviceAccount:', service_account),
+            project=project_id,
         )
 
     for access_level, service_account in service_accounts['hail']:
@@ -1040,6 +1045,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'hail-service-account-{access_level}-dataproc-admin',
             role='roles/dataproc.admin',
             member=pulumi.Output.concat('serviceAccount:', service_account),
+            project=project_id,
         )
 
         # Worker permissions are necessary to submit jobs.
@@ -1047,6 +1053,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'hail-service-account-{access_level}-dataproc-worker',
             role=dataproc_worker_role_id,
             member=pulumi.Output.concat('serviceAccount:', service_account),
+            project=project_id,
         )
 
         # Add Hail service accounts to Cromwell access group.
@@ -1088,6 +1095,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'cromwell-service-account-{access_level}-workflows-runner',
             role='roles/lifesciences.workflowsRunner',
             member=pulumi.Output.concat('serviceAccount:', service_account),
+            project=project_id,
         )
 
         # Store the service account key as a secret that's readable by the
