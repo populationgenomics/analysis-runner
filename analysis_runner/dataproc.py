@@ -34,7 +34,6 @@ NAMESPACE = Namespace.from_access_level(ACCESS_LEVEL).value
 DATASET = _config['workflow']['dataset']
 DATASET_GCP_PROJECT = _config['workflow']['dataset_gcp_project']
 GCLOUD_CONFIG_SET_PROJECT = f'gcloud config set project {DATASET_GCP_PROJECT}'
-DATAPROC_REGION_TEMPLATE = 'gcloud config set dataproc/region {region}'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
 
@@ -197,7 +196,6 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     start_job.image(DATAPROC_IMAGE)
     start_job.command(GCLOUD_ACTIVATE_AUTH)
     start_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    start_job.command(DATAPROC_REGION_TEMPLATE.format(region=region))
 
     # The spark-env property can be used to set environment variables in jobs that run
     # on the Dataproc cluster. We propagate some currently set environment variables
@@ -208,6 +206,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     # Using a space will break some options like --label
     start_job_command = [
         'hailctl dataproc start',
+        f'--region={region}',
         f'--service-account=dataproc-{ACCESS_LEVEL}@{DATASET_GCP_PROJECT}.iam.gserviceaccount.com',
         f'--max-age={max_age}',
         f'--num-workers={num_workers}',
@@ -270,7 +269,6 @@ def _add_submit_job(
     main_job.image(DATAPROC_IMAGE)
     main_job.command(GCLOUD_ACTIVATE_AUTH)
     main_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    main_job.command(DATAPROC_REGION_TEMPLATE.format(region=region))
 
     # Clone the repository to pass scripts to the cluster.
     prepare_git_job(
@@ -284,6 +282,7 @@ def _add_submit_job(
 
     main_job.command(
         f'hailctl dataproc submit '
+        f'--region={region}'
         + (f'--pyfiles {",".join(pyfiles)} ' if pyfiles else '')
         + f'{cluster_id} {script} '
     )
@@ -311,7 +310,6 @@ def _add_stop_job(
     stop_job.image(DATAPROC_IMAGE)
     stop_job.command(GCLOUD_ACTIVATE_AUTH)
     stop_job.command(GCLOUD_CONFIG_SET_PROJECT)
-    stop_job.command(DATAPROC_REGION_TEMPLATE.format(region=region))
-    stop_job.command(f'hailctl dataproc stop {cluster_id}')
+    stop_job.command(f'hailctl dataproc stop --region={region} {cluster_id}')
 
     return stop_job
