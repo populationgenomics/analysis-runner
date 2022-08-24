@@ -282,7 +282,7 @@ def _add_submit_job(
 
     main_job.command(
         f'hailctl dataproc submit '
-        f'--region={region}'
+        f'--region={region} '
         + (f'--pyfiles {",".join(pyfiles)} ' if pyfiles else '')
         + f'{cluster_id} {script} '
     )
