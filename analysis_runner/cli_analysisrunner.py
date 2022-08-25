@@ -134,7 +134,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     # https://stackoverflow.com/questions/6710511/case-sensitive-path-comparison-in-python
     # string in list of strings is exact
     executable_path = os.path.join(_cwd or '', _script[0])
-    executable_file = os.basename(_script[0])
+    executable_file = os.path.basename(_script[0])
     files_in_ex_path = os.listdir(os.path.dirname(_script[0]))
 
     # we can find the script, and it's a relative path (not absolute)
