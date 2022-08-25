@@ -636,7 +636,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     release_bucket = None
     if enable_release:
         release_bucket = create_bucket(
-            bucket_name('release-requester-pays'),
+            bucket_name('release'),
             lifecycle_rules=[undelete_rule],
             requester_pays=True,
         )
