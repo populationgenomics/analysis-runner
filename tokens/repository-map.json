@@ -132,7 +132,8 @@
     "seqr": [
         "hail-elasticsearch-pipelines",
         "sample-metadata",
-        "production-pipelines"
+        "production-pipelines",
+        "rare-disease"
     ],
     "sgs-somatic-mtn": [
         "sample-metadata",
