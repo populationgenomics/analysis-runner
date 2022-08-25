@@ -130,10 +130,16 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     if not _script:
         _script = ['main.py']
 
+    # os.path.exists is only case-sensitive if the local file system is
+    # https://stackoverflow.com/questions/6710511/case-sensitive-path-comparison-in-python
+    # string in list of strings is exact
     executable_path = os.path.join(_cwd or '', _script[0])
 
     # we can find the script, and it's a relative path (not absolute)
-    if os.path.exists(executable_path) and not executable_path.startswith('/'):
+    if (
+        os.path.basename(executable_path)
+        in os.listdir(os.path.dirname(executable_path) or '.')
+    ) and not executable_path.startswith('/'):
         _perform_shebang_check(executable_path)
         # if it's just the path name, eg: you call
         #   analysis-runner my_file.py
