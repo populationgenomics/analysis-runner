@@ -139,7 +139,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     if (
         os.path.basename(executable_path)
         in os.listdir(os.path.dirname(executable_path) or '.')
-    ) and not executable_path.startswith('/')::
+    ) and not executable_path.startswith('/'):
         _perform_shebang_check(executable_path)
         # if it's just the path name, eg: you call
         #   analysis-runner my_file.py
