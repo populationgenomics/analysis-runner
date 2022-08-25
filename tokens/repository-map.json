@@ -152,6 +152,7 @@
         "gatk-sv",
         "joint-calling",
         "tob-wgs",
+        "rare-disease",
         "sv-workflows",
         "production-pipelines",
         "sample-metadata",
