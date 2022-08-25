@@ -183,7 +183,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
 
     _config = None
     if config:
-        _config = read_configs(config)
+        _config = dict(read_configs(config))
 
     _token = get_google_identity_token()
 
