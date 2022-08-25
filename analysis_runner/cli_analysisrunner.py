@@ -129,7 +129,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     # false-y value catches empty list / tuple as well
     if not _script:
         _script = ['main.py']
-    
+
     # os.path.exists is only case-sensitive if the local file system is
     # https://stackoverflow.com/questions/6710511/case-sensitive-path-comparison-in-python
     # string in list of strings is exact
