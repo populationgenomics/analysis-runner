@@ -18,6 +18,9 @@ import pulumi_gcp as gcp
 
 DOMAIN = 'populationgenomics.org.au'
 CUSTOMER_ID = 'C010ys3gt'
+BILLING_ACCOUNT_ID = '01D012-20A6A2-CBD343'
+BILLING_PROJECT_ID = 'billing-admin-290403'
+
 REGION = 'australia-southeast1'
 ANALYSIS_RUNNER_PROJECT = 'analysis-runner'
 CPG_COMMON_PROJECT = 'cpg-common'
@@ -60,6 +63,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     # Fetch configuration.
     config = pulumi.Config()
     enable_release = config.get_bool('enable_release')
+    enable_shared_project = config.get_bool('enable_shared_project')
     archive_age = config.get_int('archive_age') or 30
 
     dataset = pulumi.get_stack()
@@ -562,6 +566,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         'project-buckets-lister',
         role=lister_role_id,
         member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
     )
 
     # Grant visibility to Dataproc utilization metrics etc.
@@ -569,6 +574,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         'project-monitoring-viewer',
         role='roles/monitoring.viewer',
         member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
     )
 
     bucket_member(
@@ -627,6 +633,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
+    release_bucket = None
     if enable_release:
         release_bucket = create_bucket(
             bucket_name('release-requester-pays'),
@@ -649,6 +656,117 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             role=viewer_role_id,
             member=pulumi.Output.concat('group:', release_access_group.group_key.id),
         )
+
+    if enable_shared_project:
+        if not release_bucket:
+            raise ValueError(
+                'Requested shared project, but no bucket is available to share'
+            )
+
+        shared_buckets = {'release': release_bucket}
+
+        project_name = f'{project_id}-shared'
+        shared_budget = config.get_int('shared_budget')
+
+        # Add billing / billingbudgets to the parent project, so we can use the API,
+        # even though it does correctly get added on the org billing account.
+        cloudbilling = gcp.projects.Service(
+            'cloudbilling-service',
+            service='cloudbilling.googleapis.com',
+            disable_on_destroy=False,
+            project=project_id,
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudresourcemanager]),
+        )
+        cloudbillingbudgets = gcp.projects.Service(
+            'cloudbillingbudgets-service',
+            service='billingbudgets.googleapis.com',
+            disable_on_destroy=False,
+            project=project_id,
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudbilling]),
+        )
+
+        # create project to cover costs of shared access, like network egress
+        shared_project = gcp.organizations.Project(
+            f'{dataset}-collaborator-shared-project',
+            org_id=organization.org_id,
+            project_id=project_name,
+            name=project_name,
+            billing_account=BILLING_ACCOUNT_ID,
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudbilling]),
+        )
+
+        shared_cloudresourcemanager = gcp.projects.Service(
+            'shared-project-cloudresourcemanager-service',
+            service='cloudresourcemanager.googleapis.com',
+            disable_on_destroy=False,
+            project=shared_project.id,
+        )
+        shared_cloudidentity = gcp.projects.Service(
+            'shared-project-cloudidentity-service',
+            service='cloudidentity.googleapis.com',
+            disable_on_destroy=False,
+            project=shared_project.id,
+            opts=pulumi.resource.ResourceOptions(
+                depends_on=[shared_cloudresourcemanager]
+            ),
+        )
+
+        # create budget for shared project
+        gcp.billing.Budget(
+            f'{dataset}-shared-budget',
+            amount=gcp.billing.BudgetAmountArgs(
+                specified_amount=gcp.billing.BudgetAmountSpecifiedAmountArgs(
+                    units=shared_budget,
+                    currency_code='AUD',
+                    nanos=0,
+                )
+            ),
+            billing_account=BILLING_ACCOUNT_ID,
+            display_name=project_name,
+            budget_filter=gcp.billing.BudgetBudgetFilterArgs(
+                projects=[pulumi.Output.concat('projects/', shared_project.number)],
+                calendar_period='MONTH',
+            ),
+            threshold_rules=[
+                gcp.billing.BudgetThresholdRuleArgs(threshold_percent=0.5),
+                gcp.billing.BudgetThresholdRuleArgs(threshold_percent=0.9),
+                gcp.billing.BudgetThresholdRuleArgs(threshold_percent=1.0),
+            ],
+            all_updates_rule=gcp.billing.BudgetAllUpdatesRuleArgs(
+                pubsub_topic=f'projects/{BILLING_PROJECT_ID}/topics/budget-notifications',
+                schema_version='1.0',
+            ),
+            opts=pulumi.resource.ResourceOptions(depends_on=[cloudbillingbudgets]),
+        )
+
+        shared_service_account = gcp.serviceaccount.Account(
+            'budget-shared-service-account',
+            account_id=f'shared',
+            opts=pulumi.resource.ResourceOptions(
+                depends_on=[shared_cloudidentity],
+            ),
+            project=shared_project.name,
+        )
+
+        # Allow the usage of Requester Pays buckets.
+        gcp.projects.IAMMember(
+            f'shared-project-serviceusage-consumer',
+            role='roles/serviceusage.serviceUsageConsumer',
+            member=pulumi.Output.concat(
+                'serviceAccount:', shared_service_account.email
+            ),
+            project=shared_project.name,
+        )
+
+        for bname, bucket in shared_buckets.items():
+            bucket_member(
+                f'{bname}-shared-membership',
+                bucket=bucket.name,
+                member=pulumi.Output.concat(
+                    'serviceAccount:', shared_service_account.email
+                ),
+                role=viewer_role_id,
+            )
 
     bucket_member(
         'web-server-test-web-bucket-viewer',
@@ -712,6 +830,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         f'access-group-serviceusage-consumer',
         role='roles/serviceusage.serviceUsageConsumer',
         member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
     )
 
     # Allow the access group cache to list memberships.
@@ -799,6 +918,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'{access_level}-serviceusage-consumer',
             role='roles/serviceusage.serviceUsageConsumer',
             member=pulumi.Output.concat('group:', group.group_key.id),
+            project=project_id,
         )
 
     # The bucket used for Hail Batch pipelines, e.g. for passing input / output
@@ -1031,6 +1151,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'dataproc-service-account-{access_level}-dataproc-worker',
             role=dataproc_worker_role_id,
             member=pulumi.Output.concat('serviceAccount:', service_account),
+            project=project_id,
         )
 
     for access_level, service_account in service_accounts['hail']:
@@ -1040,6 +1161,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'hail-service-account-{access_level}-dataproc-admin',
             role='roles/dataproc.admin',
             member=pulumi.Output.concat('serviceAccount:', service_account),
+            project=project_id,
         )
 
         # Worker permissions are necessary to submit jobs.
@@ -1047,6 +1169,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'hail-service-account-{access_level}-dataproc-worker',
             role=dataproc_worker_role_id,
             member=pulumi.Output.concat('serviceAccount:', service_account),
+            project=project_id,
         )
 
         # Add Hail service accounts to Cromwell access group.
@@ -1088,6 +1211,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             f'cromwell-service-account-{access_level}-workflows-runner',
             role='roles/lifesciences.workflowsRunner',
             member=pulumi.Output.concat('serviceAccount:', service_account),
+            project=project_id,
         )
 
         # Store the service account key as a secret that's readable by the
