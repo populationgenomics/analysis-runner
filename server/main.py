@@ -28,7 +28,6 @@ from util import (
     validate_image,
     validate_output_dir,
     write_config,
-    write_metadata_to_bucket,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -149,13 +148,6 @@ async def index(request):
 
     job = batch.new_job(name='driver')
     job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
-    write_metadata_to_bucket(
-        job,
-        access_level=access_level,
-        dataset=dataset,
-        output_prefix=output_prefix,
-        metadata_str=json.dumps(metadata),
-    )
     job.image(image)
     if cpu:
         job.cpu(cpu)
