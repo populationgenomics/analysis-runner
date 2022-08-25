@@ -27,18 +27,6 @@ REFERENCE_PREFIX = 'gs://cpg-reference'
 CONFIG_PATH_PREFIX = 'gs://cpg-config'
 WEB_URL_TEMPLATE = 'https://{namespace}-web.populationgenomics.org.au/{dataset}'
 
-COMBINE_METADATA = """
-import json
-import sys
-
-def load(filename):
-    text = open(filename).read().strip()
-    val = json.loads(text) if len(text) else []
-    return val if type(val) is list else [val]
-
-print(json.dumps(load(sys.argv[1]) + load(sys.argv[2])))
-"""
-
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
 
