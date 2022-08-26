@@ -85,6 +85,7 @@ def main(
     out_format: str,
     locus: hl.IntervalExpression | None,
     keep_hom_ref: bool,
+    biallelic: bool = False,
 ):
     """
 
@@ -96,6 +97,7 @@ def main(
     out_format : whether to write as a MT, VCF, or Both
     locus : an optional parsed interval for locus-based selection
     keep_hom_ref : if true, retain all sites in the subset
+    biallelic : if True, filter the output MT to biallelic sites only
 
     Returns
     -------
@@ -109,6 +111,9 @@ def main(
 
     if isinstance(locus, hl.IntervalExpression):
         mt = subset_to_locus(mt, locus=locus)
+
+    if biallelic:
+        mt = mt.filter_rows(hl.len(mt.alleles) == 2)
 
     # create the output path; make sure we're only ever writing to test
     actual_output_path = output_path(output_root).replace(
@@ -196,6 +201,9 @@ if __name__ == '__main__':
         help='Output will retain all sites, even where the sample subset is HomRef',
         action='store_true',
     )
+    parser.add_argument(
+        '--biallelic', help='Remove non-biallelic sites', action='store_true'
+    )
     args, unknown = parser.parse_known_args()
 
     if unknown:
@@ -216,4 +224,5 @@ if __name__ == '__main__':
         out_format=args.format,
         locus=locus_interval,
         keep_hom_ref=args.keep_ref,
+        biallelic=args.biallelic,
     )
