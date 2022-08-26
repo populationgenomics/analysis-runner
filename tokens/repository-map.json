@@ -1,5 +1,6 @@
 {
     "acute-care": [
+        "analysis-runner",
         "automated-interpretation-pipeline",
         "fewgenomes",
         "gatk-sv",
@@ -149,6 +150,7 @@
         "thousand-genomes"
     ],
     "tob-wgs": [
+        "analysis-runner",
         "ancestry",
         "gatk-sv",
         "joint-calling",
