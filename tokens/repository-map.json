@@ -8,6 +8,7 @@
         "sample-metadata"
     ],
     "ag-hidden": [
+        "automated-interpretation-pipeline",
         "sample-metadata",
         "rare-disease"
     ],
