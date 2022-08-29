@@ -191,12 +191,13 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     if config:
         _config = read_configs(config)
 
-    _token = get_google_identity_token()
+    server_endpoint = get_server_endpoint(is_test=use_test_server)
+    _token = get_google_identity_token(server_endpoint)
 
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 
     response = requests.post(
-        get_server_endpoint(is_test=use_test_server),
+        server_endpoint,
         json={
             'dataset': dataset,
             'output': output_dir,

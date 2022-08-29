@@ -103,16 +103,14 @@ def confirm_choice(choice: str):
         print('Unrecognised option, please try again.')
 
 
-def get_google_identity_token() -> str:
+def get_google_identity_token(audience) -> str:
     """
-    Returns a Google identity token for the analysis-runner audience.
+    Returns a Google identity token for the given audience.
     """
     from google.auth.transport.requests import Request
     from google.oauth2 import id_token
 
-    return id_token.fetch_id_token(
-        Request(), audience='https://server-a2pko7ameq-ts.a.run.app'
-    )
+    return id_token.fetch_id_token(Request(), audience=audience)
 
 
 def _perform_version_check():
