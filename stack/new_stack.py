@@ -425,9 +425,11 @@ def create_stack(
 
     branch_name = f'add-{dataset}-stack'
     if should_commit:
-        current_branch = subprocess.check_output(
-            ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
-        ).decode()
+        current_branch = (
+            subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
+            .decode()
+            .strip()
+        )
         if current_branch != 'main':
             should_continue = click.confirm(
                 f'Expected branch to be "main", got "{current_branch}". '
