@@ -72,7 +72,8 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     project_id = gcp.organizations.get_project().project_id
 
     dependency_stacks = {}
-    for dependency in config.get_object('depends_on') or ():
+    # all datasets implicitly depend on the "reference" dataset:
+    for dependency in ['reference'] + (config.get_object('depends_on') or []):
         dependency_stacks[dependency] = pulumi.StackReference(dependency)
 
     def org_role_id(id_suffix: str) -> str:
