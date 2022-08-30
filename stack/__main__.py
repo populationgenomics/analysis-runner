@@ -74,7 +74,8 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     dependency_stacks = {}
     # all datasets implicitly depend on the "reference" dataset:
     for dependency in ['reference'] + (config.get_object('depends_on') or []):
-        dependency_stacks[dependency] = pulumi.StackReference(dependency)
+        if dependency != dataset:
+            dependency_stacks[dependency] = pulumi.StackReference(dependency)
 
     def org_role_id(id_suffix: str) -> str:
         return f'{organization.id}/roles/{id_suffix}'
