@@ -804,6 +804,16 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
+    # DEPRECATED on 30 AUG 2022. Remove after all pointers to cpg-reference removed.
+    # Read access to reference data.
+    bucket_member(
+        'access-group-reference-bucket-viewer',
+        bucket=REFERENCE_BUCKET_NAME,
+        role=viewer_role_id,
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
+    )
+    # END DEPRECATED
+
     # Read access to Hail wheels.
     bucket_member(
         'access-group-hail-wheels-viewer',
@@ -883,6 +893,16 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 role='roles/artifactregistry.writer',
                 member=pulumi.Output.concat('group:', group.group_key.id),
             )
+
+        # DEPRECATED on 30 AUG 2022. Remove after all pointers to cpg-reference removed.
+        # Read access to reference data.
+        bucket_member(
+            f'{access_level}-reference-bucket-viewer',
+            bucket=REFERENCE_BUCKET_NAME,
+            role=viewer_role_id,
+            member=pulumi.Output.concat('group:', group.group_key.id),
+        )
+        # END DEPRECATED
 
         # Read access to Hail wheels.
         bucket_member(
