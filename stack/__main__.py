@@ -34,7 +34,7 @@ WEB_SERVER_SERVICE_ACCOUNT = 'web-server@analysis-runner.iam.gserviceaccount.com
 ACCESS_GROUP_CACHE_SERVICE_ACCOUNT = (
     'access-group-cache@analysis-runner.iam.gserviceaccount.com'
 )
-REFERENCE_BUCKET_NAME = 'cpg-reference'
+REFERENCE_DATASET = 'reference'
 ANALYSIS_RUNNER_CONFIG_BUCKET_NAME = 'cpg-config'
 HAIL_WHEEL_BUCKET_NAME = 'cpg-hail-ci'
 NOTEBOOKS_PROJECT = 'notebooks-314505'
@@ -72,10 +72,11 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     project_id = gcp.organizations.get_project().project_id
 
     dependency_stacks = {}
+    for dependency in config.get_object('depends_on') or ():
+        dependency_stacks[dependency] = pulumi.StackReference(dependency)
     # all datasets implicitly depend on the "reference" dataset:
-    for dependency in ['reference'] + (config.get_object('depends_on') or []):
-        if dependency != dataset:
-            dependency_stacks[dependency] = pulumi.StackReference(dependency)
+    if dataset != REFERENCE_DATASET:
+        dependency_stacks[REFERENCE_DATASET] = pulumi.StackReference(REFERENCE_DATASET)
 
     def org_role_id(id_suffix: str) -> str:
         return f'{organization.id}/roles/{id_suffix}'
@@ -803,14 +804,6 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
-    # Read access to reference data.
-    bucket_member(
-        'access-group-reference-bucket-viewer',
-        bucket=REFERENCE_BUCKET_NAME,
-        role=viewer_role_id,
-        member=pulumi.Output.concat('group:', access_group.group_key.id),
-    )
-
     # Read access to Hail wheels.
     bucket_member(
         'access-group-hail-wheels-viewer',
@@ -890,14 +883,6 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 role='roles/artifactregistry.writer',
                 member=pulumi.Output.concat('group:', group.group_key.id),
             )
-
-        # Read access to reference data.
-        bucket_member(
-            f'{access_level}-reference-bucket-viewer',
-            bucket=REFERENCE_BUCKET_NAME,
-            role=viewer_role_id,
-            member=pulumi.Output.concat('group:', group.group_key.id),
-        )
 
         # Read access to Hail wheels.
         bucket_member(
