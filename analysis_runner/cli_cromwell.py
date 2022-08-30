@@ -229,7 +229,8 @@ def _run_cromwell(
         'labels': _labels,
     }
 
-    endpoint = get_server_endpoint(is_test=use_test_server) + '/cromwell'
+    server_endpoint = get_server_endpoint(is_test=use_test_server)
+    endpoint = server_endpoint + '/cromwell'
 
     if dry_run:
         logger.warning('Dry-run, printing curl and exiting')
@@ -246,7 +247,9 @@ curl --location --request POST \\
     response = requests.post(
         endpoint,
         json=body,
-        headers={'Authorization': f'Bearer {get_google_identity_token()}'},
+        headers={
+            'Authorization': f'Bearer {get_google_identity_token(server_endpoint)}'
+        },
     )
     try:
         response.raise_for_status()
@@ -264,7 +267,10 @@ def _check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwa
     url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
 
     response = requests.get(
-        url, headers={'Authorization': f'Bearer {get_google_identity_token()}'}
+        url,
+        headers={
+            'Authorization': f'Bearer {get_google_identity_token(SERVER_ENDPOINT)}'
+        },
     )
     response.raise_for_status()
     d = response.json()
