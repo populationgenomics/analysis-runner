@@ -35,6 +35,7 @@ ACCESS_GROUP_CACHE_SERVICE_ACCOUNT = (
     'access-group-cache@analysis-runner.iam.gserviceaccount.com'
 )
 REFERENCE_DATASET = 'reference'
+REFERENCE_BUCKET_NAME = 'cpg-reference'
 ANALYSIS_RUNNER_CONFIG_BUCKET_NAME = 'cpg-config'
 HAIL_WHEEL_BUCKET_NAME = 'cpg-hail-ci'
 NOTEBOOKS_PROJECT = 'notebooks-314505'
