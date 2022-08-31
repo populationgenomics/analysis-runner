@@ -8,6 +8,7 @@ from typing import List, Dict, Optional
 
 import requests
 
+from cpg_utils.cloud import get_google_identity_token
 from analysis_runner.constants import get_server_endpoint, SERVER_ENDPOINT
 from analysis_runner.cromwell_model import WorkflowMetadataModel
 from analysis_runner.git import (
@@ -22,7 +23,6 @@ from analysis_runner.util import (
     add_general_args,
     _perform_version_check,
     confirm_choice,
-    get_google_identity_token,
 )
 
 

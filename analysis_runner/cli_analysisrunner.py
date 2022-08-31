@@ -9,6 +9,7 @@ from typing import List
 
 import requests
 from cpg_utils.config import read_configs
+from cpg_utils.cloud import get_google_identity_token
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     get_git_default_remote,
@@ -22,7 +23,6 @@ from analysis_runner.util import (
     _perform_version_check,
     confirm_choice,
     logger,
-    get_google_identity_token,
 )
 
 
