@@ -34,6 +34,7 @@ WEB_SERVER_SERVICE_ACCOUNT = 'web-server@analysis-runner.iam.gserviceaccount.com
 ACCESS_GROUP_CACHE_SERVICE_ACCOUNT = (
     'access-group-cache@analysis-runner.iam.gserviceaccount.com'
 )
+REFERENCE_DATASET = 'reference'
 REFERENCE_BUCKET_NAME = 'cpg-reference'
 ANALYSIS_RUNNER_CONFIG_BUCKET_NAME = 'cpg-config'
 HAIL_WHEEL_BUCKET_NAME = 'cpg-hail-ci'
@@ -74,6 +75,9 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     dependency_stacks = {}
     for dependency in config.get_object('depends_on') or ():
         dependency_stacks[dependency] = pulumi.StackReference(dependency)
+    # all datasets implicitly depend on the "reference" dataset:
+    if dataset != REFERENCE_DATASET:
+        dependency_stacks[REFERENCE_DATASET] = pulumi.StackReference(REFERENCE_DATASET)
 
     def org_role_id(id_suffix: str) -> str:
         return f'{organization.id}/roles/{id_suffix}'
@@ -571,6 +575,20 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
     # Grant visibility to Dataproc utilization metrics etc.
     gcp.projects.IAMMember(
+        'project-dataproc-viewer',
+        role='roles/dataproc.viewer',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
+    )
+
+    gcp.projects.IAMMember(
+        'project-logging-viewer',
+        role='roles/logging.viewer',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
+    )
+
+    gcp.projects.IAMMember(
         'project-monitoring-viewer',
         role='roles/monitoring.viewer',
         member=pulumi.Output.concat('group:', access_group.group_key.id),
@@ -636,7 +654,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     release_bucket = None
     if enable_release:
         release_bucket = create_bucket(
-            bucket_name('release-requester-pays'),
+            bucket_name('release'),
             lifecycle_rules=[undelete_rule],
             requester_pays=True,
         )
@@ -801,6 +819,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
 
+    # DEPRECATED on 30 AUG 2022. Remove after all pointers to cpg-reference removed.
     # Read access to reference data.
     bucket_member(
         'access-group-reference-bucket-viewer',
@@ -808,6 +827,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         role=viewer_role_id,
         member=pulumi.Output.concat('group:', access_group.group_key.id),
     )
+    # END DEPRECATED
 
     # Read access to Hail wheels.
     bucket_member(
@@ -889,6 +909,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
                 member=pulumi.Output.concat('group:', group.group_key.id),
             )
 
+        # DEPRECATED on 30 AUG 2022. Remove after all pointers to cpg-reference removed.
         # Read access to reference data.
         bucket_member(
             f'{access_level}-reference-bucket-viewer',
@@ -896,6 +917,7 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
             role=viewer_role_id,
             member=pulumi.Output.concat('group:', group.group_key.id),
         )
+        # END DEPRECATED
 
         # Read access to Hail wheels.
         bucket_member(

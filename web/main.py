@@ -47,7 +47,7 @@ def handler(dataset=None, filename=None):
         )
         # Use allAuthenticatedUsers for the IAP configuration to make this
         # work for arbitrary users.
-        email = decoded_jwt['email']
+        email = decoded_jwt['email'].lower()
     except Exception:  # pylint: disable=broad-except
         logger.exception('Failed to extract email from ID token')
         abort(403)
@@ -66,9 +66,11 @@ def handler(dataset=None, filename=None):
     bucket = storage_client.bucket(bucket_name)
 
     dataset_project_id = dataset_config['projectId']
-    members = read_secret(
-        dataset_project_id, f'{dataset}-web-access-members-cache'
-    ).split(',')
+    members = (
+        read_secret(dataset_project_id, f'{dataset}-web-access-members-cache')
+        .lower()
+        .split(',')
+    )
 
     if email not in members:
         # Second chance: if there's a '.access' file in the first subdirectory,
@@ -80,7 +82,7 @@ def handler(dataset=None, filename=None):
             if blob is None:
                 logger.warning(f'{email} is not a member of the {dataset} access group')
                 abort(403)
-            access_list = blob.download_as_string().decode('utf-8').splitlines()
+            access_list = blob.download_as_string().decode('utf-8').lower().splitlines()
             if email not in access_list:
                 logger.warning(
                     f'{email} is not in {dataset} access group or {access_list_filename}'
