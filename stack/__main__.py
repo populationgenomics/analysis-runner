@@ -571,6 +571,20 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
     # Grant visibility to Dataproc utilization metrics etc.
     gcp.projects.IAMMember(
+        'project-dataproc-viewer',
+        role='roles/dataproc.viewer',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
+    )
+
+    gcp.projects.IAMMember(
+        'project-logging-viewer',
+        role='roles/logging.viewer',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
+    )
+
+    gcp.projects.IAMMember(
         'project-monitoring-viewer',
         role='roles/monitoring.viewer',
         member=pulumi.Output.concat('group:', access_group.group_key.id),
