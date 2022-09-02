@@ -3,7 +3,6 @@ Utility methods for analysis-runner server
 """
 import os
 import json
-from shlex import quote
 import uuid
 import toml
 
@@ -27,18 +26,6 @@ IMAGE_REGISTRY_PREFIX = 'australia-southeast1-docker.pkg.dev/cpg-common/images'
 REFERENCE_PREFIX = 'gs://cpg-reference'
 CONFIG_PATH_PREFIX = 'gs://cpg-config'
 WEB_URL_TEMPLATE = 'https://{namespace}-web.populationgenomics.org.au/{dataset}'
-
-COMBINE_METADATA = """
-import json
-import sys
-
-def load(filename):
-    text = open(filename).read().strip()
-    val = json.loads(text) if len(text) else []
-    return val if type(val) is list else [val]
-
-print(json.dumps(load(sys.argv[1]) + load(sys.argv[2])))
-"""
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
@@ -167,31 +154,6 @@ def run_batch_job_and_print_url(batch, wait):
             raise web.HTTPBadRequest(reason=f'{url} failed')
 
     return url
-
-
-def write_metadata_to_bucket(
-    job, access_level: str, dataset: str, output_prefix: str, metadata_str: str
-):
-    """
-    Copy analysis-runner.json to the metadata bucket
-
-    Append metadata information, in case the same
-    output directory gets used multiple times.
-    """
-
-    bucket_type = 'test' if access_level == 'test' else 'main'
-    metadata_path = f'gs://cpg-{dataset}-{bucket_type}-analysis/metadata/{output_prefix}/analysis-runner.json'
-    job.command(
-        f'gsutil cp {quote(metadata_path)} {METADATA_PREFIX}_old.json '
-        f'|| touch {METADATA_PREFIX}_old.json'
-    )
-    job.command(f'echo {quote(metadata_str)} > {METADATA_PREFIX}_new.json')
-    job.command(f'echo "{COMBINE_METADATA}" > {METADATA_PREFIX}_combiner.py')
-    job.command(
-        f'python3 {METADATA_PREFIX}_combiner.py {METADATA_PREFIX}_old.json '
-        f'{METADATA_PREFIX}_new.json > {METADATA_PREFIX}.json'
-    )
-    job.command(f'gsutil cp {METADATA_PREFIX}.json {quote(metadata_path)}')
 
 
 def validate_image(container: str, is_test: bool):

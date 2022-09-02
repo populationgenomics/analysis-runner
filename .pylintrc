@@ -12,10 +12,11 @@
 # 8. too-many-lines
 # 9. R0801 (duplicate-code)
 # 10. similar lines
+# 11. missing-timeout (W3101)
 
 disable=f-string-without-interpolation,logging-fstring-interpolation,inherit-non-class,
             too-few-public-methods,fixme,line-too-long,too-many-statements,
-            too-many-lines,too-many-instance-attributes,R0801,c-extension-no-member,no-member
+            too-many-lines,too-many-instance-attributes,R0801,c-extension-no-member,no-member,W3101
 
 
 # Overriding variable name patterns to allow short 1- or 2-letter variables

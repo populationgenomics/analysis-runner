@@ -1,5 +1,6 @@
 {
     "acute-care": [
+        "analysis-runner",
         "automated-interpretation-pipeline",
         "fewgenomes",
         "gatk-sv",
@@ -7,6 +8,7 @@
         "sample-metadata"
     ],
     "ag-hidden": [
+        "automated-interpretation-pipeline",
         "sample-metadata",
         "rare-disease"
     ],
@@ -53,6 +55,7 @@
         "sample-metadata"
     ],
     "heartkids": [
+        "automated-interpretation-pipeline",
         "sample-metadata"
     ],
     "hereditary-neuro": [
@@ -71,6 +74,7 @@
         "analysis-runner"
     ],
     "kidgen": [
+        "automated-interpretation-pipeline",
         "sample-metadata",
         "rare-disease"
     ],
@@ -124,6 +128,9 @@
     "rdnow": [
         "automated-interpretation-pipeline"
     ],
+    "reference": [
+        "sample-metadata"
+    ],
     "schr-neuro": [
         "automated-interpretation-pipeline",
         "sample-metadata"
@@ -131,7 +138,8 @@
     "seqr": [
         "hail-elasticsearch-pipelines",
         "sample-metadata",
-        "production-pipelines"
+        "production-pipelines",
+        "rare-disease"
     ],
     "sgs-somatic-mtn": [
         "sample-metadata",
@@ -147,6 +155,7 @@
         "thousand-genomes"
     ],
     "tob-wgs": [
+        "analysis-runner",
         "ancestry",
         "gatk-sv",
         "joint-calling",

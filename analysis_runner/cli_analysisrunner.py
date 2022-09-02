@@ -9,6 +9,7 @@ from typing import List
 
 import requests
 from cpg_utils.config import read_configs
+from cpg_utils.cloud import get_google_identity_token
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     get_git_default_remote,
@@ -22,7 +23,6 @@ from analysis_runner.util import (
     _perform_version_check,
     confirm_choice,
     logger,
-    get_google_identity_token,
 )
 
 
@@ -130,10 +130,16 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     if not _script:
         _script = ['main.py']
 
+    # os.path.exists is only case-sensitive if the local file system is
+    # https://stackoverflow.com/questions/6710511/case-sensitive-path-comparison-in-python
+    # string in list of strings is exact
     executable_path = os.path.join(_cwd or '', _script[0])
 
     # we can find the script, and it's a relative path (not absolute)
-    if os.path.exists(executable_path) and not executable_path.startswith('/'):
+    if (
+        os.path.basename(executable_path)
+        in os.listdir(os.path.dirname(executable_path) or '.')
+    ) and not executable_path.startswith('/'):
         _perform_shebang_check(executable_path)
         # if it's just the path name, eg: you call
         #   analysis-runner my_file.py
@@ -183,14 +189,15 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
 
     _config = None
     if config:
-        _config = read_configs(config)
+        _config = dict(read_configs(config))
 
-    _token = get_google_identity_token()
+    server_endpoint = get_server_endpoint(is_test=use_test_server)
+    _token = get_google_identity_token(server_endpoint)
 
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
 
     response = requests.post(
-        get_server_endpoint(is_test=use_test_server),
+        server_endpoint,
         json={
             'dataset': dataset,
             'output': output_dir,
