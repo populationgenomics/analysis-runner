@@ -13,6 +13,9 @@ BRANCH = 'main'
 logger = logging.getLogger('analysis_runner')
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
+# Also update the default severity level for modules that don't use the
+# 'analysis-runner' logger.
+logging.getLogger().setLevel(logging.INFO)
 
 
 def get_project_id_from_service_account_email(service_account_email: str) -> str:
