@@ -29,7 +29,7 @@ setuptools.setup(
     zip_safe=False,
     install_requires=[
         'cloudpathlib[all]',
-        'cpg-utils>=4.6.0',
+        'cpg-utils>=4.6.1',
         'click',
         'airtable-python-wrapper',
         'hail',
