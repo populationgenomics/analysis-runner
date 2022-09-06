@@ -552,7 +552,7 @@ def add_dataset_to_tokens(dataset: str):
     if dataset in d:
         # It's already there!
         return False
-    d[dataset] = ['sample-metadata']
+    d[dataset] = []
 
     with open('../tokens/repository-map.json', 'w+', encoding='utf-8') as f:
         json.dump(d, f, indent=4, sort_keys=True)
