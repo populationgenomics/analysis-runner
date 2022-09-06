@@ -63,6 +63,7 @@ async def index(request):
     image = params.get('image') or DRIVER_IMAGE
     cpu = params.get('cpu', 1)
     memory = params.get('memory', '1G')
+    preemptible = params.get('preemptible')
     environment_variables = params.get('environmentVariables')
 
     access_level = params['accessLevel']
@@ -153,6 +154,9 @@ async def index(request):
         job.cpu(cpu)
     if memory:
         job.memory(memory)
+    if preemptible is not None:
+        # pylint: disable=protected-access
+        job._preemptible = preemptible
 
     # NOTE: Prefer using config variables instead of environment variables.
     # In case you need to add an environment variable here, make sure to update the

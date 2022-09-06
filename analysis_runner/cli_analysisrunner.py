@@ -58,6 +58,14 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        '--preemptible',
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help='Whether to use a preemptible machine or not.',
+    )
+
+    parser.add_argument(
         '-e',
         '--env',
         required=False,
@@ -99,6 +107,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     image=None,
     cpu=None,
     memory=None,
+    preemptible=None,
     config: List[str] = None,
     env: List[str] = None,
     use_test_server=False,
@@ -210,6 +219,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'image': image,
             'cpu': cpu,
             'memory': memory,
+            'preemptible': preemptible,
             'environmentVariables': _env,
             'config': _config,
         },
