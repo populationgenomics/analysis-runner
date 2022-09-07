@@ -58,10 +58,22 @@ ORGANIZATION_ID = '648561325637'
 BILLING_ACCOUNT_ID = '01D012-20A6A2-CBD343'
 BILLING_PROJECT_ID = 'billing-admin-290403'
 HAIL_PROJECT = 'hail-295901'
+BILLING_AGGREGATOR_USERNAME = 'aggregate-billing'
 
 HAIL_AUTH_URL = 'https://auth.hail.populationgenomics.org.au'
+HAIL_BATCH_URL = 'https://batch.hail.populationgenomics.org.au'
 HAIL_CREATE_USER_PATH = HAIL_AUTH_URL + '/api/v1alpha/users/{username}/create'
 HAIL_GET_USER_PATH = HAIL_AUTH_URL + '/api/v1alpha/users/{username}'
+HAIL_GET_BILLING_PROJECT_PATH = (
+    HAIL_BATCH_URL + '/api/v1alpha/billing_projects/{billing_project}'
+)
+HAIL_CREATE_BILLING_PROJECT_PATH = (
+    HAIL_BATCH_URL + '/api/v1alpha/billing_projects/{billing_project}/create'
+)
+HAIL_ADD_USER_TO_BILLING_PROJECT_PATH = (
+    HAIL_BATCH_URL + '/api/v1alpha/billing_projects/{billing_project}/users/{user}/add'
+)
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -81,6 +93,7 @@ logging.basicConfig(level=logging.INFO)
 @click.option('--create-gcp-project', required=False, is_flag=True)
 @click.option('--setup-gcp-billing', required=False, is_flag=True)
 @click.option('--create-hail-service-accounts', required=False, is_flag=True)
+@click.option('--configure-hail-batch-project', required=False, is_flag=True)
 @click.option('--create-pulumi-stack', required=False, is_flag=True)
 @click.option('--add-to-seqr-stack', required=False, is_flag=True)
 @click.option('--deploy-stack', required=False, is_flag=True, help='Runs `pulumi up`')
@@ -97,6 +110,7 @@ def main(
     create_gcp_project=False,
     setup_gcp_billing=False,
     create_hail_service_accounts=False,
+    configure_hail_batch_project=False,
     create_pulumi_stack=False,
     add_to_seqr_stack=False,
     deploy_stack=False,
@@ -110,6 +124,7 @@ def main(
         create_gcp_project = True
         setup_gcp_billing = True
         create_hail_service_accounts = True
+        configure_hail_batch_project = True
         create_pulumi_stack = True
         create_sample_metadata_project = True
 
@@ -149,6 +164,9 @@ def main(
 
     if create_hail_service_accounts:
         create_hail_accounts(dataset)
+
+    if configure_hail_batch_project:
+        setup_hail_batch_billing_project(dataset)
 
     if create_gcp_project:
         # True if created, else False if it already existed
@@ -321,6 +339,59 @@ def get_hail_service_accounts(dataset: str):
     return hail_client_emails_by_level
 
 
+def setup_hail_batch_billing_project(project: str):
+    """
+    (If required) Create a Hail batch billing project
+    (If required) Add standard + aggregator users to batch billing project
+
+    Subsequent runs of this method produces no action.
+    """
+    hail_auth_token = _get_hail_auth_token()
+
+    # determine list of users we want in batch billing_project
+    usernames = set(_get_standard_hail_account_names(project))
+    if BILLING_AGGREGATOR_USERNAME:
+        usernames.append(BILLING_AGGREGATOR_USERNAME)
+
+    url = HAIL_GET_BILLING_PROJECT_PATH.format(billing_project=project)
+    resp = requests.get(
+        url,
+        headers={'Authorization': f'Bearer {hail_auth_token}'},
+    )
+
+    usernames_already_in_project = set()
+    # it throws a 403 user error, but may as well check for 404 too
+    if resp.status_code in (403, 404):
+        _hail_batch_create_billing_project(project, hail_auth_token=hail_auth_token)
+    else:
+        # check for any other batch errors
+        resp.raise_for_status()
+        usernames_already_in_project = set(resp.json()['users'])
+
+    for username in usernames - usernames_already_in_project:
+        _hail_batch_add_user_to_billing_project(project, username, hail_auth_token)
+
+
+def _hail_batch_create_billing_project(project, hail_auth_token):
+    url = HAIL_CREATE_BILLING_PROJECT_PATH.format(billing_project=project)
+    resp = requests.post(
+        url,
+        headers={'Authorization': f'Bearer {hail_auth_token}'},
+    )
+    resp.raise_for_status()
+
+
+def _hail_batch_add_user_to_billing_project(billing_project, username, hail_auth_token):
+    url = HAIL_ADD_USER_TO_BILLING_PROJECT_PATH.format(
+        billing_project=billing_project, user=username
+    )
+    resp = requests.post(
+        url,
+        headers={'Authorization': f'Bearer {hail_auth_token}'},
+    )
+    resp.raise_for_status()
+
+
 def _kubectl_hail_token_command(project, access_level: str):
     return f"kubectl get secret {project}-{access_level}-gsa-key -o json | jq '.data | map_values(@base64d)'"
 
@@ -373,17 +444,24 @@ def _create_hail_service_account(username, hail_auth_token):
     post_resp.raise_for_status()
 
 
+def _get_standard_hail_account_names(dataset):
+    username_suffixes = ['-test', '-standard', '-full']
+    return [dataset + suffix for suffix in username_suffixes]
+
+
+def _get_hail_auth_token():
+    with open(os.path.expanduser('~/.hail/tokens.json'), encoding='utf-8') as f:
+        return json.load(f)['default']
+
+
 def create_hail_accounts(dataset):
     """
     Create 3 service accounts ${ds}-{test,standard,full} in Hail Batch
     """
     # Based on: https://github.com/hail-is/hail/pull/11249
-    with open(os.path.expanduser('~/.hail/tokens.json'), encoding='utf-8') as f:
-        hail_auth_token = json.load(f)['default']
 
-    username_suffixes = ['-test', '-standard', '-full']
-    potential_usernames = [dataset + suffix for suffix in username_suffixes]
-
+    hail_auth_token = _get_hail_auth_token()
+    potential_usernames = _get_standard_hail_account_names(dataset)
     # check if it exists
     usernames = []
     for username in potential_usernames:
