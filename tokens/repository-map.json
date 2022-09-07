@@ -3,7 +3,7 @@
         "automated-interpretation-pipeline",
         "fewgenomes",
         "gatk-sv",
-        "rare-disease",
+        "rare-disease"
     ],
     "ag-hidden": [
         "automated-interpretation-pipeline",
@@ -20,7 +20,7 @@
         "rare-disease"
     ],
     "circa": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "constraint": [
         "structural-constraint"
@@ -43,10 +43,10 @@
     "gtex": [
     ],
     "heartkids": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "hereditary-neuro": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "hgdp": [
         "hgdp"
@@ -54,7 +54,7 @@
     "ibmdx": [
     ],
     "kccg-genomics-med": [
-        "cromwell-kccg-mutect2-chip",
+        "cromwell-kccg-mutect2-chip"
     ],
     "kidgen": [
         "automated-interpretation-pipeline",
@@ -73,16 +73,16 @@
         "rare-disease"
     ],
     "nagim": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "ohmr3-mendelian": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "ohmr4-epilepsy": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "perth-neuro": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "prophecy": [
         "production-pipelines",
@@ -91,10 +91,10 @@
         "large-cohort-pipeline"
     ],
     "ravenscroft-arch": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "ravenscroft-rdstudy": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "rdnow": [
         "automated-interpretation-pipeline"
@@ -102,7 +102,7 @@
     "reference": [
     ],
     "schr-neuro": [
-        "automated-interpretation-pipeline",
+        "automated-interpretation-pipeline"
     ],
     "seqr": [
         "hail-elasticsearch-pipelines",
