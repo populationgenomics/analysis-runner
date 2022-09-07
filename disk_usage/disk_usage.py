@@ -3,6 +3,7 @@
 """Computes aggregate bucket disk usage stats."""
 
 from collections import defaultdict
+import gzip
 import json
 import logging
 from cloudpathlib import AnyPath
@@ -79,10 +80,11 @@ def main():
 
         logging.info(f'{bucket_name} contains {count} blobs.')
 
-    output = output_path('disk_usage.json')
+    output = output_path('disk_usage.json.gz')
     logging.info(f'Writing results to {output}...')
     with AnyPath(output).open('wt') as f:
-        json.dump(aggregate_stats, f)
+        with gzip.open(f, 'wt') as gzf:
+            json.dump(aggregate_stats, gzf)
 
 
 if __name__ == '__main__':
