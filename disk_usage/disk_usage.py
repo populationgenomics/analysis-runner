@@ -82,8 +82,8 @@ def main():
 
     output = output_path('disk_usage.json.gz')
     logging.info(f'Writing results to {output}...')
-    with AnyPath(output).open('w') as f:
-        with gzip.GzipFile(fileobj=f, mode='w') as gzf:
+    with AnyPath(output).open('wb') as f:
+        with gzip.open(f, 'wt') as gzf:
             json.dump(aggregate_stats, gzf)
 
 
