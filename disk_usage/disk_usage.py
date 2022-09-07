@@ -49,7 +49,7 @@ def main():
     dataset = get_config()['workflow']['dataset']
     access_level = get_config()['workflow']['access_level']
 
-    aggregate_stats = defaultdict(defaultdict(int))
+    aggregate_stats = defaultdict(lambda: defaultdict(int))
     for bucket_suffix in BUCKET_SUFFIXES:
         if access_level == 'test' and not bucket_suffix.startswith('test'):
             continue  # Skip main buckets when testing.
