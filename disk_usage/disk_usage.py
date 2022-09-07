@@ -13,11 +13,11 @@ from google.cloud import storage
 # It's important not to list the `archive` bucket here, as Class B operations are very
 # expensive for that storage class.
 BUCKET_SUFFIXES = [
-    # 'main',
-    # 'main-analysis',
-    # 'main-tmp',
-    # 'main-upload',
-    # 'main-web',
+    'main',
+    'main-analysis',
+    'main-tmp',
+    'main-upload',
+    'main-web',
     'test',
     'test-analysis',
     'test-tmp',
