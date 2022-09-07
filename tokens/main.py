@@ -70,7 +70,7 @@ def main():
     for dataset, allowed_repos in ALLOWED_REPOS.items():
         entries = {
             'projectId': get_project_id(dataset),
-            'allowedRepos': ALWAYS_ALLOWED_REPOS + allowed_repos,
+            'allowedRepos': list(set(ALWAYS_ALLOWED_REPOS + allowed_repos)),
         }
         for access_level in 'test', 'standard', 'full':
             hail_user = get_hail_user(dataset, access_level)
