@@ -50,7 +50,7 @@ def main():
     aggregate_size = defaultdict(int)
     for bucket_suffix in BUCKET_SUFFIXES:
         bucket_name = f'cpg-{dataset}-{bucket_suffix}'
-        print(f'Listing blobs in {bucket_name}...')
+        logging.info(f'Listing blobs in {bucket_name}...')
         blobs = storage_client.list_blobs(bucket_name)
         for index, blob in enumerate(blobs):
             if (index + 1) % 10**6 == 0:
@@ -61,7 +61,9 @@ def main():
     sorted_entries = list(aggregate_size.items())
     sorted_entries.sort(key=lambda e: e[1], reverse=True)
 
-    with AnyPath(output_path('disk_usage.csv')).open('wt') as f:
+    output = output_path('disk_usage.csv')
+    logging.info(f'Writing results to {output}...')
+    with AnyPath(output).open('wt') as f:
         print('\n'.join(f'{e[0]},{e[1]}' for e in sorted_entries), file=f)
 
 
