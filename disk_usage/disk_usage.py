@@ -56,7 +56,7 @@ def main():
         blobs = storage_client.list_blobs(bucket_name)
         for index, blob in enumerate(blobs):
             if (index + 1) % 10**6 == 0:
-                print(f'{(index + 1) / 10**6} M blobs...')
+                logging.info(f'{(index + 1) // 10**6} M blobs...')
             name = f'gs://{bucket_name}/{aggregate_level(blob.name)}'
             aggregate_size[name] += blob.size
 
