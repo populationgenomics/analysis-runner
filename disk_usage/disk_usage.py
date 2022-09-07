@@ -80,7 +80,7 @@ def main():
 
         logging.info(f'{bucket_name} contains {count} blobs.')
 
-    output = output_path('disk_usage.json.gz')
+    output = output_path('disk_usage.json.gz', 'analysis')
     logging.info(f'Writing results to {output}...')
     with AnyPath(output).open('wb') as f:
         with gzip.open(f, 'wt') as gzf:
