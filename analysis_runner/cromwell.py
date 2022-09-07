@@ -304,7 +304,7 @@ def watch_workflow(
 ):
     """
     INNER Python function to watch workflow status, and write
-    output paths `output_json_path` on success.
+    output paths to output_json_path on success.
     """
     # Re-importing dependencies here so the function is self-contained
     # and can be run in a Hail bash job.
