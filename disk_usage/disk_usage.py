@@ -43,7 +43,7 @@ def aggregate_level(name: str) -> str:
 
 def main():
     """Main entrypoint."""
-    # Don't print DEBUG logs from urllib3.connectionpool
+    # Don't print DEBUG logs from urllib3.connectionpool.
     logging.getLogger().setLevel(logging.INFO)
 
     storage_client = storage.Client()
