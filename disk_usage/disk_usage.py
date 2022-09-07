@@ -45,8 +45,8 @@ def aggregate_level(name: str) -> str:
 class AggregateStats(NamedTuple):
     """Aggregate stats values."""
 
-    size: int
-    num_blobs: int
+    size: int = 0
+    num_blobs: int = 0
 
 
 def main():
