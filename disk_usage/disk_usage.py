@@ -49,15 +49,15 @@ def main():
         print(f'Listing blobs in {bucket_name}...')
         blobs = storage_client.list_blobs(bucket_name)
         for index, blob in enumerate(blobs):
-            if ((index + 1) & (1 << 20)) == 0:
-                print(f'{(index + 1) >> 20} Mi blobs...')
+            if (index + 1) % 10**6 == 0:
+                print(f'{(index + 1) / 10**6} M blobs...')
             name = f'gs://{bucket_name}/{aggregate_level(blob.name)}'
             aggregate_size[name] += blob.size
 
     sorted_entries = list(aggregate_size.items())
     sorted_entries.sort(key=lambda e: e[1], reverse=True)
 
-    with AnyPath(output_path('disk_usage.csv', 'wt')).open() as f:
+    with AnyPath(output_path('disk_usage.csv')).open('wt') as f:
         print('\n'.join(f'{e[0]},{e[1]}' for e in sorted_entries), file=f)
 
 
