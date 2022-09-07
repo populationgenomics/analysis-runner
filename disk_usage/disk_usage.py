@@ -82,7 +82,7 @@ def main():
 
     output = output_path('disk_usage.json.gz')
     logging.info(f'Writing results to {output}...')
-    with AnyPath(output).open('wt') as f:
+    with AnyPath(output).open('w') as f:
         with gzip.open(f, 'wt') as gzf:
             json.dump(aggregate_stats, gzf)
 
