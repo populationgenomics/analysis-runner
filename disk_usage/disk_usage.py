@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-"""Creates an aggregate report for disk usage for all buckets of a dataset, by
-explicitly listing all blobs. In contrast to `gsutil du`, we aggregate at a 2-level
-folder depth or at any `.ht` or `.mt` level."""
+"""Computes aggregate bucket disk usage stats."""
 
 from collections import defaultdict
 from cloudpathlib import AnyPath
@@ -10,8 +8,9 @@ from cpg_utils.hail_batch import get_config, output_path
 from google.cloud import storage
 
 
+# It's important not to list the `archive` bucket here, as Class B operations are very
+# expensive for that storage class.
 BUCKET_SUFFIXES = [
-    # 'archive',
     # 'main',
     # 'main-analysis',
     # 'main-tmp',
@@ -46,7 +45,7 @@ def main():
 
     aggregate_size = defaultdict(int)
     for bucket_suffix in BUCKET_SUFFIXES:
-        bucket_name = f'{dataset}-{bucket_suffix}'
+        bucket_name = f'cpg-{dataset}-{bucket_suffix}'
         print(f'Listing blobs in {bucket_name}...')
         blobs = storage_client.list_blobs(bucket_name)
         for index, blob in enumerate(blobs):
