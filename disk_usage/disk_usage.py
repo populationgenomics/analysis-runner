@@ -4,7 +4,7 @@
 
 from collections import defaultdict
 import logging
-from typing import NamedTuple
+from dataclasses import dataclass
 from cloudpathlib import AnyPath
 from cpg_utils.hail_batch import get_config, output_path
 from google.cloud import storage
@@ -42,7 +42,8 @@ def aggregate_level(name: str) -> str:
     return name[:slash_index]
 
 
-class AggregateStats(NamedTuple):
+@dataclass
+class AggregateStats:
     """Aggregate stats values."""
 
     size: int = 0
@@ -68,9 +69,9 @@ def main():
             if count % 10**6 == 0:
                 logging.info(f'{count // 10**6} M blobs...')
             name = f'gs://{bucket_name}/{aggregate_level(blob.name)}'
-            stat = aggregate_stats[name]
-            stat.size += blob.size
-            stat.num_blobs += 1
+            stats = aggregate_stats[name]
+            stats.size += blob.size
+            stats.num_blobs += 1
 
         logging.info(f'{bucket_name} contains {count} blobs.')
 
