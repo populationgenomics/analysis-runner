@@ -35,10 +35,11 @@ def aggregate_level(name: str) -> str:
     if mt_index != -1:
         return name[: mt_index + 3]
     slash_index = name.find('/')
-    if slash_index != -1:
-        next_slash = name.find('/', slash_index + 1)
-        if next_slash != -1:
-            slash_index = next_slash
+    if slash_index == -1:
+        return name
+    next_slash = name.find('/', slash_index + 1)
+    if next_slash != -1:
+        slash_index = next_slash
     return name[:slash_index]
 
 
