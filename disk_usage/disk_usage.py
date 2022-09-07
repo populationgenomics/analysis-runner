@@ -4,6 +4,7 @@
 
 from collections import defaultdict
 import logging
+from typing import NamedTuple
 from cloudpathlib import AnyPath
 from cpg_utils.hail_batch import get_config, output_path
 from google.cloud import storage
@@ -12,11 +13,11 @@ from google.cloud import storage
 # It's important not to list the `archive` bucket here, as Class B operations are very
 # expensive for that storage class.
 BUCKET_SUFFIXES = [
-    'main',
-    'main-analysis',
-    'main-tmp',
-    'main-upload',
-    'main-web',
+    # 'main',
+    # 'main-analysis',
+    # 'main-tmp',
+    # 'main-upload',
+    # 'main-web',
     'test',
     'test-analysis',
     'test-tmp',
@@ -41,6 +42,13 @@ def aggregate_level(name: str) -> str:
     return name[:slash_index]
 
 
+class AggregateStats(NamedTuple):
+    """Aggregate stats values."""
+
+    size: int
+    num_blobs: int
+
+
 def main():
     """Main entrypoint."""
     # Don't print DEBUG logs from urllib3.connectionpool.
@@ -49,24 +57,33 @@ def main():
     storage_client = storage.Client()
     dataset = get_config()['workflow']['dataset']
 
-    aggregate_size = defaultdict(int)
+    aggregate_stats = defaultdict(AggregateStats)
     for bucket_suffix in BUCKET_SUFFIXES:
         bucket_name = f'cpg-{dataset}-{bucket_suffix}'
         logging.info(f'Listing blobs in {bucket_name}...')
         blobs = storage_client.list_blobs(bucket_name)
-        for index, blob in enumerate(blobs):
-            if (index + 1) % 10**6 == 0:
-                logging.info(f'{(index + 1) // 10**6} M blobs...')
+        count = 0
+        for blob in blobs:
+            count += 1
+            if count % 10**6 == 0:
+                logging.info(f'{count // 10**6} M blobs...')
             name = f'gs://{bucket_name}/{aggregate_level(blob.name)}'
-            aggregate_size[name] += blob.size
+            stat = aggregate_stats[name]
+            stat.size += blob.size
+            stat.num_blobs += 1
 
-    sorted_entries = list(aggregate_size.items())
-    sorted_entries.sort(key=lambda e: e[1], reverse=True)
+        logging.info(f'{bucket_name} contains {count} blobs.')
+
+    sorted_entries = list(aggregate_stats.items())
+    sorted_entries.sort(key=lambda e: e[1].size, reverse=True)
 
     output = output_path('disk_usage.csv')
     logging.info(f'Writing results to {output}...')
     with AnyPath(output).open('wt') as f:
-        print('\n'.join(f'{e[0]},{e[1]}' for e in sorted_entries), file=f)
+        print(
+            '\n'.join(f'{e[0]},{e[1].size},{e[1].num_blobs}' for e in sorted_entries),
+            file=f,
+        )
 
 
 if __name__ == '__main__':
