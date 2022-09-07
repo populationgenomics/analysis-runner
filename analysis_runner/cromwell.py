@@ -427,7 +427,7 @@ def watch_workflow_and_get_output(
     max_sequential_exception_count=25,
 ):
     """
-    This is a little tricky, but the process is:
+    This is a little bit tricky, but the process is:
 
     - Wait for a cromwell workflow to finish,
     - If it succeeds, get the outputs (as a json)
