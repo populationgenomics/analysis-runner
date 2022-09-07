@@ -5,7 +5,6 @@
 from collections import defaultdict
 import json
 import logging
-from dataclasses import dataclass
 from cloudpathlib import AnyPath
 from cpg_utils.hail_batch import get_config, output_path
 from google.cloud import storage
@@ -41,14 +40,6 @@ def aggregate_level(name: str) -> str:
     return name[:slash_index]
 
 
-@dataclass
-class AggregateStats:
-    """Aggregate stats values."""
-
-    size: int = 0
-    num_blobs: int = 0
-
-
 def main():
     """Main entrypoint."""
     # Don't print DEBUG logs from urllib3.connectionpool.
@@ -58,7 +49,7 @@ def main():
     dataset = get_config()['workflow']['dataset']
     access_level = get_config()['workflow']['access_level']
 
-    aggregate_stats = defaultdict(AggregateStats)
+    aggregate_stats = defaultdict(defaultdict(int))
     for bucket_suffix in BUCKET_SUFFIXES:
         if access_level == 'test' and not bucket_suffix.startswith('test'):
             continue  # Skip main buckets when testing.
@@ -71,10 +62,20 @@ def main():
             count += 1
             if count % 10**6 == 0:
                 logging.info(f'{count // 10**6} M blobs...')
-            name = f'gs://{bucket_name}/{aggregate_level(blob.name)}'
-            stats = aggregate_stats[name]
-            stats.size += blob.size
-            stats.num_blobs += 1
+            folder = aggregate_level(blob.name)
+            last_index = 0
+            while True:
+                index = folder.find('/', last_index)
+                substr = folder[:index] if index != -1 else folder
+                path = f'gs://{bucket_name}/{substr}'
+                stats = aggregate_stats[path]
+                stats['size'] += blob.size
+                stats['num_blobs'] += 1
+
+                if index == -1:
+                    break
+
+                last_index = index + 1
 
         logging.info(f'{bucket_name} contains {count} blobs.')
 

@@ -1,8 +1,7 @@
 # Disk usage stats
 
 [`disk_usage.py`](disk_usage.py) creates an aggregate disk usage report for all buckets of a dataset, by
-explicitly listing all blobs. In contrast to `gsutil du`, we aggregate at a 2-level
-folder depth or at any `.ht` or `.mt` level. Note that generating this report is somewhat expensive, as particularly for Hail (Matrix)Tables it can result in a large number of [Class B operations](https://cloud.google.com/storage/pricing#process-pricing).
+explicitly listing all blobs. In contrast to `gsutil du`, we aggregate at the folder level or the Hail (Matrix)Table level. Note that generating this report is somewhat expensive, as particularly for Hail (Matrix)Tables it can result in a large number of [Class B operations](https://cloud.google.com/storage/pricing#process-pricing).
 
 Example invocation (replace `$DATASET` accordingly):
 
