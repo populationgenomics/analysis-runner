@@ -3,6 +3,7 @@
 """Computes aggregate bucket disk usage stats."""
 
 from collections import defaultdict
+import json
 import logging
 from dataclasses import dataclass
 from cloudpathlib import AnyPath
@@ -27,19 +28,16 @@ BUCKET_SUFFIXES = [
 
 
 def aggregate_level(name: str) -> str:
-    """Returns a prefix for the given blob name at the aggregation level."""
+    """Returns a prefix for the given blob name at the folder or Hail table level."""
     ht_index = name.find('.ht/')
     if ht_index != -1:
         return name[: ht_index + 3]
     mt_index = name.find('.mt/')
     if mt_index != -1:
         return name[: mt_index + 3]
-    slash_index = name.find('/')
+    slash_index = name.rfind('/')
     if slash_index == -1:
-        return name
-    next_slash = name.find('/', slash_index + 1)
-    if next_slash != -1:
-        slash_index = next_slash
+        return ''  # Root level
     return name[:slash_index]
 
 
@@ -58,9 +56,13 @@ def main():
 
     storage_client = storage.Client()
     dataset = get_config()['workflow']['dataset']
+    access_level = get_config()['workflow']['access_level']
 
     aggregate_stats = defaultdict(AggregateStats)
     for bucket_suffix in BUCKET_SUFFIXES:
+        if access_level == 'test' and not bucket_suffix.startswith('test'):
+            continue  # Skip main buckets when testing.
+
         bucket_name = f'cpg-{dataset}-{bucket_suffix}'
         logging.info(f'Listing blobs in {bucket_name}...')
         blobs = storage_client.list_blobs(bucket_name)
@@ -76,16 +78,10 @@ def main():
 
         logging.info(f'{bucket_name} contains {count} blobs.')
 
-    sorted_entries = list(aggregate_stats.items())
-    sorted_entries.sort(key=lambda e: e[1].size, reverse=True)
-
-    output = output_path('disk_usage.csv')
+    output = output_path('disk_usage.json')
     logging.info(f'Writing results to {output}...')
     with AnyPath(output).open('wt') as f:
-        print(
-            '\n'.join(f'{e[0]},{e[1].size},{e[1].num_blobs}' for e in sorted_entries),
-            file=f,
-        )
+        json.dump(aggregate_stats, f)
 
 
 if __name__ == '__main__':
