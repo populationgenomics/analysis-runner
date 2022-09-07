@@ -3,6 +3,7 @@
 """Computes aggregate bucket disk usage stats."""
 
 from collections import defaultdict
+import logging
 from cloudpathlib import AnyPath
 from cpg_utils.hail_batch import get_config, output_path
 from google.cloud import storage
@@ -40,6 +41,9 @@ def aggregate_level(name: str) -> str:
 
 def main():
     """Main entrypoint."""
+    # Don't print DEBUG logs from urllib3.connectionpool
+    logging.getLogger().setLevel(logging.INFO)
+
     storage_client = storage.Client()
     dataset = get_config()['workflow']['dataset']
 
