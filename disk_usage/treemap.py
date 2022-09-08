@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
 
+"""Produces a treemap visualization from disk usage summary stats."""
+
 import argparse
-import plotly.express as px
 import gzip
 import json
+import logging
 from cloudpathlib import AnyPath
+import plotly.express as px
 
 
 def main():
+    """Main entrypoint."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--input',
-        help='The gzipped input JSON; can be specified multiple times',
+        help='The path to the gzipped input JSON; supports cloud paths and can be specified multiple times',
+        required=True,
         action='append',
+    )
+    parser.add_argument(
+        '--output',
+        help='The path to the output HTML report; supports cloud paths',
+        required=True,
     )
     parser.add_argument(
         '--max-depth',
@@ -24,26 +34,23 @@ def main():
 
     names, parents, values = [], [], []
     for input_path in args.input:
+        logging.info(f'Processing {input_path}')
         with AnyPath(input_path).open('rb') as f:
             with gzip.open(f, 'rt') as gfz:
-                for k, v in json.load(gfz).items():
-                    if not k:
-                        continue  # Skip the root itself
-                    depth = k.count('/') - 1  # Don't account for gs:// scheme.
+                for name, vals in json.load(gfz).items():
+                    depth = name.count('/') - 1  # Don't account for gs:// scheme.
                     if depth > args.max_depth:
                         continue
-                    names.append(k)
-                    slash_index = k.find('/')
-                    parent = k[:slash_index] if slash_index != -1 else ''
+                    names.append(name)
+                    slash_index = name.rfind('/')
+                    # Strip one folder for the parent name. Map `gs://` to the empty
+                    # string, i.e. the treemap root.
+                    parents.append(name[:slash_index] if slash_index > 3 else '')
+                    values.append(vals['size'])
 
+    fig = px.treemap(names=names, parents=parents, values=values)
+    fig.write_html(args.output)
 
-fig = px.treemap(
-    names=["Eve", "Cain", "Seth", "Enos", "Noam", "Abel", "Awan", "Enoch", "Azura"],
-    parents=["", "Eve", "Eve", "Seth", "Seth", "Eve", "Eve", "Awan", "Eve"],
-)
-fig.update_traces(root_color="lightgrey")
-fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-fig.show()
 
 if __name__ == '__main__':
     main()
