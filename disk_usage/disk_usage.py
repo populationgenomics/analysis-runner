@@ -69,9 +69,8 @@ def main():
                 index = folder.find('/', last_index)
                 substr = folder[:index] if index != -1 else folder
                 path = f'gs://{bucket_name}/{substr}'
-                stats = aggregate_stats[path]
-                stats['size'] += blob.size
-                stats['num_blobs'] += 1
+                aggregate_stats[path]['size'] += blob.size
+                aggregate_stats[path]['num_blobs'] += 1
 
                 if index == -1:
                     break
