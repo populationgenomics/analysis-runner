@@ -39,16 +39,13 @@ def aggregate_level(name: str) -> str:
     'some/folder/and/a/hail_matrix_table.mt'
     >>> aggregate_level('file_in_root.cram')
     """
-    ht_index = name.find('.ht/')
-    if ht_index != -1:
+    if (ht_index := name.find('.ht/')) != -1:
         return name[: ht_index + 3]
-    mt_index = name.find('.mt/')
-    if mt_index != -1:
+    if (mt_index := name.find('.mt/')) != -1:
         return name[: mt_index + 3]
-    slash_index = name.rfind('/')
-    if slash_index == -1:
-        return ''  # Root level
-    return name[:slash_index]
+    if (slash_index := name.rfind('/')) != -1:
+        return name[:slash_index]
+    return ''  # Root level
 
 
 def main():
@@ -79,9 +76,8 @@ def main():
                 index = folder.find('/', last_index)
                 substr = folder[:index] if index != -1 else folder
                 path = f'gs://{bucket_name}/{substr}'
-                stats = aggregate_stats[path]
-                stats['size'] += blob.size
-                stats['num_blobs'] += 1
+                aggregate_stats[path]['size'] += blob.size
+                aggregate_stats[path]['num_blobs'] += 1
 
                 if index == -1:
                     break
