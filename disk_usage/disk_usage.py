@@ -3,8 +3,9 @@
 """Computes aggregate bucket disk usage stats."""
 
 from collections import defaultdict
+import gzip
+import json
 import logging
-from dataclasses import dataclass
 from cloudpathlib import AnyPath
 from cpg_utils.hail_batch import get_config, output_path
 from google.cloud import storage
@@ -27,28 +28,24 @@ BUCKET_SUFFIXES = [
 
 
 def aggregate_level(name: str) -> str:
-    """Returns a prefix for the given blob name at the aggregation level."""
-    ht_index = name.find('.ht/')
-    if ht_index != -1:
+    """
+    Returns a prefix for the given blob name at the folder or Hail table level.
+
+    >>> aggregate_level('some/folder/and/a/filename.bam')
+    'some/folder/and/a'
+    >>> aggregate_level('some/folder/and/a/hail_table.ht/index/files/part12345')
+    'some/folder/and/a/hail_table.ht'
+    >>> aggregate_level('some/folder/and/a/hail_matrix_table.mt/index/files/part12345')
+    'some/folder/and/a/hail_matrix_table.mt'
+    >>> aggregate_level('file_in_root.cram')
+    """
+    if (ht_index := name.find('.ht/')) != -1:
         return name[: ht_index + 3]
-    mt_index = name.find('.mt/')
-    if mt_index != -1:
+    if (mt_index := name.find('.mt/')) != -1:
         return name[: mt_index + 3]
-    slash_index = name.find('/')
-    if slash_index == -1:
-        return name
-    next_slash = name.find('/', slash_index + 1)
-    if next_slash != -1:
-        slash_index = next_slash
-    return name[:slash_index]
-
-
-@dataclass
-class AggregateStats:
-    """Aggregate stats values."""
-
-    size: int = 0
-    num_blobs: int = 0
+    if (slash_index := name.rfind('/')) != -1:
+        return name[:slash_index]
+    return ''  # Root level
 
 
 def main():
@@ -58,9 +55,13 @@ def main():
 
     storage_client = storage.Client()
     dataset = get_config()['workflow']['dataset']
+    access_level = get_config()['workflow']['access_level']
 
-    aggregate_stats = defaultdict(AggregateStats)
+    aggregate_stats = defaultdict(lambda: defaultdict(int))
     for bucket_suffix in BUCKET_SUFFIXES:
+        if access_level == 'test' and not bucket_suffix.startswith('test'):
+            continue  # Skip main buckets when testing.
+
         bucket_name = f'cpg-{dataset}-{bucket_suffix}'
         logging.info(f'Listing blobs in {bucket_name}...')
         blobs = storage_client.list_blobs(bucket_name)
@@ -69,24 +70,28 @@ def main():
             count += 1
             if count % 10**6 == 0:
                 logging.info(f'{count // 10**6} M blobs...')
-            name = f'gs://{bucket_name}/{aggregate_level(blob.name)}'
-            stats = aggregate_stats[name]
-            stats.size += blob.size
-            stats.num_blobs += 1
+            folder = aggregate_level(blob.name)
+            last_index = 0
+            while True:
+                index = folder.find('/', last_index)
+                substr = folder[:index] if index != -1 else folder
+                path = f'gs://{bucket_name}/{substr}'
+                aggregate_stats[path]['size'] += blob.size
+                aggregate_stats[path]['num_blobs'] += 1
+
+                if index == -1:
+                    break
+
+                last_index = index + 1
 
         logging.info(f'{bucket_name} contains {count} blobs.')
 
-    sorted_entries = list(aggregate_stats.items())
-    sorted_entries.sort(key=lambda e: e[1].size, reverse=True)
-
-    output = output_path('disk_usage.csv')
+    output = output_path('disk_usage.json.gz', 'analysis')
     logging.info(f'Writing results to {output}...')
-    with AnyPath(output).open('wt') as f:
-        print(
-            '\n'.join(f'{e[0]},{e[1].size},{e[1].num_blobs}' for e in sorted_entries),
-            file=f,
-        )
+    with AnyPath(output).open('wb') as f:
+        with gzip.open(f, 'wt') as gzf:
+            json.dump(aggregate_stats, gzf)
 
 
 if __name__ == '__main__':
-    main()  # pylint: disable=no-value-for-parameter
+    main()
