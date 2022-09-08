@@ -9,6 +9,8 @@ import logging
 from cloudpathlib import AnyPath
 import plotly.express as px
 
+ROOT_NODE = '<root>'
+
 
 def main():
     """Main entrypoint."""
@@ -34,7 +36,7 @@ def main():
 
     logging.getLogger().setLevel(logging.INFO)
 
-    names, parents, values = ['<root>'], [''], [0]
+    names, parents, values = [ROOT_NODE], [''], [0]
     for input_path in args.input:
         logging.info(f'Processing {input_path}')
         with AnyPath(input_path).open('rb') as f:
@@ -44,13 +46,21 @@ def main():
                     if depth > args.max_depth:
                         continue
                     names.append(name)
-                    slash_index = name.rfind('/')
                     # Strip one folder for the parent name. Map `gs://` to the
-                    # predefined '<root'> node, i.e. the treemap root.
-                    parents.append(name[:slash_index] if slash_index > 3 else '<root>')
+                    # predefined treemap root node label.
+                    slash_index = name.rfind('/')
+                    parent = (
+                        name[:slash_index] if slash_index > len('gs://') else ROOT_NODE
+                    )
+                    parents.append(parent if parent != 'gs:/' else '<root>')
                     values.append(vals['size'])
 
-    fig = px.treemap(names=names, parents=parents, values=values)
+    fig = px.treemap(
+        names=names,
+        parents=parents,
+        values=values,
+        color_continuous_scale='Bluered',  # TODO: not working?
+    )
     fig.write_html(args.output)
 
 
