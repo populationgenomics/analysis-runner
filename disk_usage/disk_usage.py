@@ -29,11 +29,9 @@ BUCKET_SUFFIXES = [
 
 def aggregate_level(name: str) -> str:
     """Returns a prefix for the given blob name at the folder or Hail table level."""
-    ht_index = name.find('.ht/')
-    if ht_index != -1:
+    if (ht_index := name.find('.ht/')) != -1:
         return name[: ht_index + 3]
-    mt_index = name.find('.mt/')
-    if mt_index != -1:
+    if (mt_index := name.find('.mt/')) != -1:
         return name[: mt_index + 3]
     slash_index = name.rfind('/')
     if slash_index == -1:
