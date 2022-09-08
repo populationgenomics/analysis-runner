@@ -70,19 +70,14 @@ def main():
             count += 1
             if count % 10**6 == 0:
                 logging.info(f'{count // 10**6} M blobs...')
-            folder = aggregate_level(blob.name)
-            last_index = 0
+            folder = f'/{aggregate_level(blob.name)}'
             while True:
-                index = folder.find('/', last_index)
-                substr = folder[:index] if index != -1 else folder
-                path = f'gs://{bucket_name}/{substr}'
+                path = f'gs://{bucket_name}{folder}'
                 aggregate_stats[path]['size'] += blob.size
                 aggregate_stats[path]['num_blobs'] += 1
-
-                if index == -1:
+                if not folder:
                     break
-
-                last_index = index + 1
+                folder = folder[: folder.rfind('/')]
 
         logging.info(f'{bucket_name} contains {count} blobs.')
 
