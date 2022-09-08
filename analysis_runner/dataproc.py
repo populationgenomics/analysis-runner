@@ -110,6 +110,7 @@ def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
     num_secondary_workers: int = 0,
     region: str = 'australia-southeast1',
     worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
+    master_boot_disk_size: Optional[int] = None,  # in GB
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
@@ -159,6 +160,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     num_secondary_workers: int = 0,
     autoscaling_policy: Optional[str] = None,
     worker_machine_type: Optional[str] = None,  # e.g. 'n1-highmem-8'
+    master_boot_disk_size: Optional[int] = None,  # in GB
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
@@ -219,6 +221,8 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     ]
     if worker_machine_type:
         start_job_command.append(f'--worker-machine-type={worker_machine_type}')
+    if master_boot_disk_size:
+        start_job_command.append(f'--master-boot-disk-size={master_boot_disk_size}')
     if worker_boot_disk_size:
         start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')
     if secondary_worker_boot_disk_size:
