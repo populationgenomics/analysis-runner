@@ -28,7 +28,17 @@ BUCKET_SUFFIXES = [
 
 
 def aggregate_level(name: str) -> str:
-    """Returns a prefix for the given blob name at the folder or Hail table level."""
+    """
+    Returns a prefix for the given blob name at the folder or Hail table level.
+
+    >>> aggregate_level('some/folder/and/a/filename.bam')
+    'some/folder/and/a'
+    >>> aggregate_level('some/folder/and/a/hail_table.ht/index/files/part12345')
+    'some/folder/and/a/hail_table.ht'
+    >>> aggregate_level('some/folder/and/a/hail_matrix_table.mt/index/files/part12345')
+    'some/folder/and/a/hail_matrix_table.mt'
+    >>> aggregate_level('file_in_root.cram')
+    """
     ht_index = name.find('.ht/')
     if ht_index != -1:
         return name[: ht_index + 3]
