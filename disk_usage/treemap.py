@@ -32,7 +32,9 @@ def main():
     )
     args = parser.parse_args()
 
-    names, parents, values = [], [], []
+    logging.getLogger().setLevel(logging.INFO)
+
+    names, parents, values = ['<root>'], [''], [0]
     for input_path in args.input:
         logging.info(f'Processing {input_path}')
         with AnyPath(input_path).open('rb') as f:
@@ -43,9 +45,9 @@ def main():
                         continue
                     names.append(name)
                     slash_index = name.rfind('/')
-                    # Strip one folder for the parent name. Map `gs://` to the empty
-                    # string, i.e. the treemap root.
-                    parents.append(name[:slash_index] if slash_index > 3 else '')
+                    # Strip one folder for the parent name. Map `gs://` to the
+                    # predefined '<root'> node, i.e. the treemap root.
+                    parents.append(name[:slash_index] if slash_index > 3 else '<root>')
                     values.append(vals['size'])
 
     fig = px.treemap(names=names, parents=parents, values=values)
