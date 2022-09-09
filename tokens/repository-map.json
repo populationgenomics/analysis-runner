@@ -1,83 +1,142 @@
 {
-  "acute-care": [
-    "automated-interpretation-pipeline",
-    "fewgenomes",
-    "gatk-sv",
-    "rare-disease"
-  ],
-  "ag-hidden": ["automated-interpretation-pipeline", "rare-disease"],
-  "ancestry": ["ancestry"],
-  "bioheart": [],
-  "brain-malf": ["automated-interpretation-pipeline", "rare-disease"],
-  "circa": ["automated-interpretation-pipeline"],
-  "constraint": ["structural-constraint"],
-  "epileptic-enceph": ["automated-interpretation-pipeline", "rare-disease"],
-  "fewgenomes": [
-    "automated-interpretation-pipeline",
-    "fewgenomes",
-    "images",
-    "joint-calling",
-    "production-pipelines",
-    "rare-disease",
-    "sv-workflows"
-  ],
-  "flinders-ophthal": [],
-  "gtex": [],
-  "heartkids": ["automated-interpretation-pipeline"],
-  "hereditary-neuro": ["automated-interpretation-pipeline"],
-  "hgdp": ["hgdp"],
-  "ibmdx": [],
-  "kccg-genomics-med": ["cromwell-kccg-mutect2-chip"],
-  "kidgen": ["automated-interpretation-pipeline", "rare-disease"],
-  "leukodystrophies": ["automated-interpretation-pipeline", "rare-disease"],
-  "mcri-lrp": [],
-  "mgrb": [],
-  "mito-disease": ["automated-interpretation-pipeline", "rare-disease"],
-  "ohmr3-mendelian": ["automated-interpretation-pipeline"],
-  "ohmr4-epilepsy": ["automated-interpretation-pipeline"],
-  "perth-neuro": ["automated-interpretation-pipeline"],
-  "prophecy": [
-    "production-pipelines",
-    "joint-calling",
-    "gatk-sv",
-    "large-cohort-pipeline"
-  ],
-  "ravenscroft-arch": ["automated-interpretation-pipeline"],
-  "ravenscroft-rdstudy": ["automated-interpretation-pipeline"],
-  "rdnow": ["automated-interpretation-pipeline"],
-  "reference": [],
-  "schr-neuro": ["automated-interpretation-pipeline"],
-  "seqr": [
-    "hail-elasticsearch-pipelines",
-    "production-pipelines",
-    "rare-disease"
-  ],
-  "sgs-somatic-mtn": ["sgs-somatic-mutation"],
-  "thousand-genomes": [
-    "cuKING",
-    "joint-calling",
-    "production-pipelines",
-    "sv-workflows",
-    "thousand-genomes"
-  ],
-  "tob-wgs": [
-    "ancestry",
-    "gatk-sv",
-    "joint-calling",
-    "tob-wgs",
-    "sv-workflows",
-    "production-pipelines",
-    "cellregmap-pipeline"
-  ],
-  "tx-adapt": ["tx-adapt"],
-  "udn-aus": [],
-  "udn-aus-training": [],
-  "validation": [
-    "automated-interpretation-pipeline",
-    "production-pipelines",
-    "joint-calling",
-    "gatk-sv",
-    "rare-disease",
-    "large-cohort-pipeline"
-  ]
+    "acute-care": [
+        "automated-interpretation-pipeline",
+        "fewgenomes",
+        "gatk-sv",
+        "rare-disease"
+    ],
+    "ag-hidden": [
+        "automated-interpretation-pipeline",
+        "rare-disease"
+    ],
+    "ancestry": [
+        "ancestry"
+    ],
+    "bioheart": [
+    ],
+    "brain-malf": [
+        "automated-interpretation-pipeline",
+        "rare-disease"
+    ],
+    "circa": [
+        "automated-interpretation-pipeline"
+    ],
+    "constraint": [
+        "structural-constraint"
+    ],
+    "epileptic-enceph": [
+        "automated-interpretation-pipeline",
+        "rare-disease"
+    ],
+    "fewgenomes": [
+        "automated-interpretation-pipeline",
+        "fewgenomes",
+        "images",
+        "joint-calling",
+        "production-pipelines",
+        "rare-disease",
+        "sv-workflows"
+    ],
+    "flinders-ophthal": [
+    ],
+    "gtex": [
+    ],
+    "heartkids": [
+        "automated-interpretation-pipeline"
+    ],
+    "hereditary-neuro": [
+        "automated-interpretation-pipeline"
+    ],
+    "hgdp": [
+        "hgdp"
+    ],
+    "ibmdx": [
+    ],
+    "kccg-genomics-med": [
+        "cromwell-kccg-mutect2-chip"
+    ],
+    "kidgen": [
+        "automated-interpretation-pipeline",
+        "rare-disease"
+    ],
+    "leukodystrophies": [
+        "automated-interpretation-pipeline",
+        "rare-disease"
+    ],
+    "mcri-lrp": [
+    ],
+    "mgrb": [
+    ],
+    "mito-disease": [
+        "automated-interpretation-pipeline",
+        "rare-disease"
+    ],
+    "ohmr3-mendelian": [
+        "automated-interpretation-pipeline"
+    ],
+    "ohmr4-epilepsy": [
+        "automated-interpretation-pipeline"
+    ],
+    "perth-neuro": [
+        "automated-interpretation-pipeline"
+    ],
+    "prophecy": [
+        "production-pipelines",
+        "joint-calling",
+        "gatk-sv",
+        "large-cohort-pipeline"
+    ],
+    "ravenscroft-arch": [
+        "automated-interpretation-pipeline"
+    ],
+    "ravenscroft-rdstudy": [
+        "automated-interpretation-pipeline"
+    ],
+    "rdnow": [
+        "automated-interpretation-pipeline"
+    ],
+    "reference": [
+    ],
+    "schr-neuro": [
+        "automated-interpretation-pipeline"
+    ],
+    "seqr": [
+        "hail-elasticsearch-pipelines",
+        "production-pipelines",
+        "rare-disease"
+    ],
+    "sgs-somatic-mtn": [
+        "sgs-somatic-mutation"
+    ],
+    "thousand-genomes": [
+        "cuKING",
+        "joint-calling",
+        "production-pipelines",
+        "sv-workflows",
+        "thousand-genomes"
+    ],
+    "tob-wgs": [
+        "ancestry",
+        "gatk-sv",
+        "joint-calling",
+        "tob-wgs",
+        "sv-workflows",
+        "production-pipelines",
+        "cellregmap-pipeline"
+    ],
+    "tx-adapt": [
+        "tx-adapt"
+    ],
+    "udn-aus": [
+    ],
+    "udn-aus-training": [
+    ],
+    "validation": [
+        "automated-interpretation-pipeline",
+        "production-pipelines",
+        "joint-calling",
+        "gatk-sv",
+        "rare-disease",
+        "large-cohort-pipeline"
+    ]
 }
