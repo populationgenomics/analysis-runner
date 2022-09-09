@@ -9,7 +9,6 @@
         "automated-interpretation-pipeline",
         "rare-disease"
     ],
-    "amp-pd": [],
     "ancestry": [
         "ancestry"
     ],
@@ -71,9 +70,6 @@
     "mito-disease": [
         "automated-interpretation-pipeline",
         "rare-disease"
-    ],
-    "nagim": [
-        "automated-interpretation-pipeline"
     ],
     "ohmr3-mendelian": [
         "automated-interpretation-pipeline"
