@@ -582,6 +582,13 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     )
 
     gcp.projects.IAMMember(
+        'project-compute-viewer',
+        role='roles/compute.viewer',
+        member=pulumi.Output.concat('group:', access_group.group_key.id),
+        project=project_id,
+    )
+
+    gcp.projects.IAMMember(
         'project-logging-viewer',
         role='roles/logging.viewer',
         member=pulumi.Output.concat('group:', access_group.group_key.id),
