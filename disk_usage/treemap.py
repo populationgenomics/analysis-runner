@@ -7,12 +7,15 @@ import gzip
 import json
 import math
 import logging
+import re
+from collections import defaultdict
 import humanize
 from cloudpathlib import AnyPath
 import pandas as pd
 import plotly.express as px
 
 ROOT_NODE = '<root>'
+DATASET_REGEX = re.compile(r'gs:\/\/cpg-([A-z0-9-]+)-(main|test)')
 
 
 def main():
@@ -35,6 +38,9 @@ def main():
         default=3,
         type=int,
     )
+    parser.add_argument(
+        '--group-by-dataset', help='Group buckets by the dataset', action='store_true'
+    )
     args = parser.parse_args()
 
     logging.getLogger().setLevel(logging.INFO)
@@ -54,6 +60,8 @@ def main():
         )
 
     root_size, root_blobs = 0, 0
+    group_by_dataset = args.group_by_dataset
+    datasets: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for input_path in args.input:
         logging.info(f'Processing {input_path}')
         with AnyPath(input_path).open('rb') as f:
@@ -72,10 +80,22 @@ def main():
                     if slash_index > len('gs://'):
                         parent = name[:slash_index]
                     else:
-                        parent = ROOT_NODE
                         root_size += size
                         root_blobs += num_blobs
+                        match = DATASET_REGEX.search(name)
+                        # fall back to ROOT_NODE if can't determine parent
+                        dataset = match.groups()[0] if match else None
+                        if dataset and group_by_dataset:
+                            parent = dataset
+                            datasets[dataset]['size'] += size
+                            datasets[dataset]['root_blobs'] += num_blobs
+                        else:
+                            parent = ROOT_NODE
+
                     append_row(name, parent, size, num_blobs)
+
+    for dataset, values in datasets.items():
+        append_row(dataset, ROOT_NODE, values['size'], values['root_blobs'])
 
     # Finally, add the overall root.
     append_row(ROOT_NODE, '', root_size, root_blobs)
