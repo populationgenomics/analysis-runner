@@ -220,7 +220,7 @@ if __name__ == '__main__':
     main(
         mt_path=args.i,
         output_root=args.out,
-        samples=set(args.s),
+        samples=set(args.s) if args.s else None,
         out_format=args.format,
         locus=locus_interval,
         keep_hom_ref=args.keep_ref,
