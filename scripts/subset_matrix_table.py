@@ -157,9 +157,9 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         assert pos.count('-') == 1, f'Positions must be one value, or a range between two values: {pos}'
         start, end = pos.split('-')
         if start != 'start':
-            assert int(start) >= 0, f'start value couldn\'t be converted to an int: {start}'
+            assert int(start) >= 0, f'start value could not be converted to an int: {start}'
         if end != 'end':
-            assert int(end), f'end value couldn\'t be converted to an int: {end}'
+            assert int(end), f'end value could not be converted to an int: {end}'
 
     else:
         assert int(pos), f'if only one position is specified, it must be numerical: {pos}'
