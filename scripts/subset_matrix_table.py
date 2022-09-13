@@ -162,6 +162,7 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
             assert int(end), f'end value couldn\'t be converted to an int: {end}'
 
     else:
+        assert int(pos), f'if only one position is specified, it must be numerical: {pos}'
         start = int(pos)
         end = start + 1
 
