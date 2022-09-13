@@ -394,6 +394,7 @@ def watch_workflow(
                         'Received error when fetching cromwell outputs, '
                         'will retry in 15 seconds'
                     )
+                    time.sleep(wait_time)
                     continue
                 outputs = r_outputs.json()
                 logger.info(f'Received outputs from Cromwell: {outputs}')
