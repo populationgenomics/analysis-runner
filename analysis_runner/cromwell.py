@@ -355,7 +355,6 @@ def watch_workflow(
         workflow_id = f.read().strip()
     logger.info(f'Received workflow ID: {workflow_id}')
 
-    final_statuses = {'failed', 'aborted'}
     subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
     url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
     _remaining_exceptions = max_sequential_exception_count
@@ -400,7 +399,8 @@ def watch_workflow(
                 logger.info(f'Received outputs from Cromwell: {outputs}')
                 with to_anypath(output_json_path).open('w') as fh:
                     json.dump(outputs.get('outputs'), fh)
-            if status.lower() in final_statuses:
+                break
+            if status.lower() in {'failed', 'aborted'}:
                 logger.error(f'Got failed cromwell status: {status}')
                 raise CromwellError(status)
             logger.info(f'Got cromwell status: {status} (sleeping={wait_time})')
