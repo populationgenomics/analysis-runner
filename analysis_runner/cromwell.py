@@ -354,7 +354,7 @@ def watch_workflow(
     with open(workflow_id_file, encoding='utf-8') as f:
         workflow_id = f.read().strip()
     logger.info(f'Received workflow ID: {workflow_id}')
-    
+
     failed_statuses = {'failed', 'aborted'}
     subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
     url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
