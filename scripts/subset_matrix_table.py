@@ -140,8 +140,7 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
 
     Returns
     -------
-    A parsed hail locus. For a point change this will be the result of
-    parsing "contig:pos-pos+1"
+    A parsed hail locus. For a point change this will be contig:pos-pos+1
     """
     if not any([contig, pos]):
         return None
@@ -154,19 +153,28 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         end = 'end'
 
     elif '-' in pos:
-        assert pos.count('-') == 1, f'Positions must be one value, or a range between two values: {pos}'
+        assert (
+            pos.count('-') == 1
+        ), f'Positions must be one value, or a range between two values: {pos}'
         start, end = pos.split('-')
         if start != 'start':
-            assert int(start) >= 0, f'start value could not be converted to an int: {start}'
+            assert int(start), f'start value could not be converted to an int: {start}'
+            if int(start) < 1:
+                start = 1
         if end != 'end':
             assert int(end), f'end value could not be converted to an int: {end}'
+            # adjust the end value if it is out of bounds
+            if int(end) > hl.get_reference('GRCh38').lengths[contig]:
+                end = hl.get_reference('GRCh38').lengths[contig]
 
     else:
-        assert int(pos), f'if only one position is specified, it must be numerical: {pos}'
+        assert int(
+            pos
+        ), f'if only one position is specified, it must be numerical: {pos}'
         start = int(pos)
         end = start + 1
 
-    return hl.parse_locus_interval(f'{contig}:{start}-{end}')
+    return hl.parse_locus_interval(f'{contig}:{start}-{end}', reference_genome='GRCh38')
 
 
 if __name__ == '__main__':
