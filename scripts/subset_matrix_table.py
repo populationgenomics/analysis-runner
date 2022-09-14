@@ -140,28 +140,45 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
 
     Returns
     -------
-    A parsed hail locus. For a point change this will be the result of
-    parsing "contig:pos-pos+1"
+    A parsed hail locus. For a point change this will be contig:pos-pos+1
     """
-    if not all([contig, pos]):
+    if not any([contig, pos]):
         return None
 
-    if '-' in pos:
-        start, end = map(int, pos.split('-'))
+    if pos and not contig:
+        raise Exception(f'Positional filtering requires a chromosome')
 
-        # quick validation that we only received 2 values
-        assert isinstance(start, int)
-        assert isinstance(end, int)
+    if contig and not pos:
+        start = 'start'
+        end = 'end'
 
-        assert start <= end
+    elif '-' in pos:
+        assert (
+            pos.count('-') == 1
+        ), f'Positions must be one value, or a range between two values: {pos}'
+        start, end = pos.split('-')
+        if start != 'start':
+            assert int(start), f'start value could not be converted to an int: {start}'
+            if int(start) < 1:
+                start = 1
+        if end != 'end':
+            assert int(end), f'end value could not be converted to an int: {end}'
+            # adjust the end value if it is out of bounds
+            if int(end) > hl.get_reference('GRCh38').lengths[contig]:
+                end = hl.get_reference('GRCh38').lengths[contig]
 
-        if start == end:
-            end += 1
+        # final check that numeric coordinates are ordered
+        if start != 'start' and end != 'end':
+            assert int(start) < int(end)
+
     else:
+        assert int(
+            pos
+        ), f'if only one position is specified, it must be numerical: {pos}'
         start = int(pos)
         end = start + 1
 
-    return hl.parse_locus_interval(f'{contig}:{start}-{end}')
+    return hl.parse_locus_interval(f'{contig}:{start}-{end}', reference_genome='GRCh38')
 
 
 if __name__ == '__main__':
@@ -182,7 +199,7 @@ if __name__ == '__main__':
         required=True,
     )
     parser.add_argument(
-        '-s', help='One or more sample IDs, whitespace delimited', nargs='+'
+        '-s', help='One or more sample IDs, whitespace delimited', nargs='+', default=[]
     )
     parser.add_argument(
         '--format',
@@ -209,18 +226,13 @@ if __name__ == '__main__':
     if unknown:
         raise Exception(f'Unknown args, could not parse: "{unknown}"')
 
-    if any([args.chr, args.pos]) and not all([args.chr, args.pos]):
-        raise Exception(
-            f'When defining a Locus, provide both Chr & Pos: {args.chr}, {args.pos}'
-        )
-
     init_batch()
     locus_interval = clean_locus(args.chr, args.pos)
 
     main(
         mt_path=args.i,
         output_root=args.out,
-        samples=set(args.s),
+        samples=set(args.s) if args.s else None,
         out_format=args.format,
         locus=locus_interval,
         keep_hom_ref=args.keep_ref,
