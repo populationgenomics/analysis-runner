@@ -167,6 +167,10 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
             if int(end) > hl.get_reference('GRCh38').lengths[contig]:
                 end = hl.get_reference('GRCh38').lengths[contig]
 
+        # final check that numeric coordinates are ordered
+        if start != 'start' and end != 'end':
+            assert int(start) < int(end)
+
     else:
         assert int(
             pos
