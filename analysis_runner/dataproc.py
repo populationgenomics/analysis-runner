@@ -18,7 +18,7 @@ from analysis_runner.git import (
 )
 
 
-HAIL_VERSION = '0.2.97'
+HAIL_VERSION = '0.2.98'
 DATAPROC_IMAGE = (
     f'australia-southeast1-docker.pkg.dev/analysis-runner/images/'
     f'dataproc:hail-{HAIL_VERSION}'
@@ -172,6 +172,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
     attributes: Optional[Dict] = None,
+    env_vars: Optional[dict[str, str]] = None,
 ) -> Tuple[hb.batch.job.Job, str]:
     """
     Returns a Batch job which starts a Dataproc cluster, and the name of the cluster.
@@ -202,7 +203,9 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     # The spark-env property can be used to set environment variables in jobs that run
     # on the Dataproc cluster. We propagate some currently set environment variables
     # this way.
-    spark_env = [f'spark-env:CPG_CONFIG_PATH={os.getenv("CPG_CONFIG_PATH")}']
+    env_vars = env_vars or {}
+    env_vars['CPG_CONFIG_PATH'] = os.environ['CPG_CONFIG_PATH']
+    spark_env = f'spark-env:{",".join(env_vars)}'
 
     # Note that the options and their values must be separated by an equal sign.
     # Using a space will break some options like --label
@@ -213,7 +216,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         f'--max-age={max_age}',
         f'--num-workers={num_workers}',
         f'--num-secondary-workers={num_secondary_workers}',
-        f'--properties="{",".join(spark_env)}"',
+        f'--properties="{spark_env}"',
         f'--labels={labels_formatted}',
         f'--wheel={WHEEL}',
         f'--bucket=cpg-{DATASET}-{NAMESPACE}-tmp',
