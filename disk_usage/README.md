@@ -10,3 +10,14 @@ analysis-runner --dataset $DATASET --cpu 0.5 --access-level standard --output-di
 ```
 
 For datasets with an extremely large number of blobs, consider setting `--no-preemptible`.
+
+## Treemap visualization
+
+To visualize the resulting data, run [`treemap.py`](treemap.py):
+
+```sh
+./treemap.py \
+    --input gs://cpg-fewgenomes-test-analysis/disk_usage_test/2022-09-07/disk_usage.json.gz \
+    --input gs://cpg-seqr-test-analysis/disk_usage_test/2022-09-07/disk_usage.json.gz \
+    --output /tmp/treemap.html
+```
