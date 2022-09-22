@@ -52,6 +52,7 @@ class DataprocCluster:
         self._start_job = None
         self._stop_job = None
         self._startup_params = kwargs
+        self._stop_cluster = kwargs.pop('stop_cluster', True)
 
     def add_job(
         self,
@@ -74,15 +75,16 @@ class DataprocCluster:
             if self._depends_on:
                 self._start_job.depends_on(*self._depends_on)
 
-            self._stop_job = _add_stop_job(
-                batch=self._batch,
-                cluster_id=self._cluster_id,
-                job_name=job_name,
-                cluster_name=self._cluster_name,
-                attributes=attributes,
-                region=self._region,
-            )
-            self._stop_job.depends_on(self._start_job)
+            if self._stop_cluster:
+                self._stop_job = _add_stop_job(
+                    batch=self._batch,
+                    cluster_id=self._cluster_id,
+                    job_name=job_name,
+                    cluster_name=self._cluster_name,
+                    attributes=attributes,
+                    region=self._region,
+                )
+                self._stop_job.depends_on(self._start_job)
 
         job = _add_submit_job(
             batch=self._batch,
@@ -95,7 +97,8 @@ class DataprocCluster:
             region=self._region,
         )
         job.depends_on(self._start_job)
-        self._stop_job.depends_on(job)
+        if self._stop_job:
+            self._stop_job.depends_on(job)
 
         if depends_on:
             job.depends_on(*depends_on)
@@ -123,6 +126,7 @@ def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
     autoscaling_policy: Optional[str] = None,
+    stop_cluster: Optional[bool] = True,
 ) -> DataprocCluster:
     """
     Adds jobs to the Batch that start and stop a Dataproc cluster, and returns
