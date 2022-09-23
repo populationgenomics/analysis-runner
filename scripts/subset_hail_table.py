@@ -43,7 +43,7 @@ def main(
     ht_path: str,
     output_root: str,
     locus: hl.IntervalExpression | None,
-    biallelic: bool = False
+    biallelic: bool = False,
 ):
     """
 
@@ -165,5 +165,5 @@ if __name__ == '__main__':
         ht_path=args.i,
         output_root=args.out,
         locus=locus_interval,
-        biallelic=args.biallelic
+        biallelic=args.biallelic,
     )
