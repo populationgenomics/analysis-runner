@@ -19,7 +19,7 @@ from cpg_utils.hail_batch import output_path, init_batch
 from cpg_utils.config import get_config
 
 
-def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.MatrixTable:
+def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
     """
     Subset the provided Table to a locus
 
@@ -33,7 +33,7 @@ def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.MatrixTabl
     The subset of the Table overlapping the indicated locus
     """
 
-    ht = ht.filter_rows(locus.contains(ht.locus))
+    ht = ht.filter(locus.contains(ht.locus))
     if ht.count_rows() == 0:
         raise Exception(f'No rows remain after applying Locus filter {locus}')
     return ht
@@ -49,7 +49,7 @@ def main(
 
     Parameters
     ----------
-    ht_path : path to input MatrixTable
+    ht_path : path to input Table
     output_root : prefix for file naming
     locus : an optional parsed interval for locus-based selection
     biallelic : if True, filter the output MT to biallelic sites only
