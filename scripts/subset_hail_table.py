@@ -34,7 +34,7 @@ def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
     """
 
     ht = ht.filter(locus.contains(ht.locus))
-    if ht.count_rows() == 0:
+    if ht.count() == 0:
         raise Exception(f'No rows remain after applying Locus filter {locus}')
     return ht
 
@@ -65,7 +65,7 @@ def main(
         ht = subset_to_locus(ht, locus=locus)
 
     if biallelic:
-        ht = ht.filter_rows(hl.len(ht.alleles) == 2)
+        ht = ht.filter(hl.len(ht.alleles) == 2)
 
     # create the output path; make sure we're only ever writing to test
     actual_output_path = output_path(output_root).replace(
