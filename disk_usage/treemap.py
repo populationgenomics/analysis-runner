@@ -88,14 +88,14 @@ def main():
                         if dataset and group_by_dataset:
                             parent = dataset
                             datasets[dataset]['size'] += size
-                            datasets[dataset]['root_blobs'] += num_blobs
+                            datasets[dataset]['num_blobs'] += num_blobs
                         else:
                             parent = ROOT_NODE
 
                     append_row(name, parent, size, num_blobs)
 
     for dataset, values in datasets.items():
-        append_row(dataset, ROOT_NODE, values['size'], values['root_blobs'])
+        append_row(dataset, ROOT_NODE, values['size'], values['num_blobs'])
 
     # Finally, add the overall root.
     append_row(ROOT_NODE, '', root_size, root_blobs)
