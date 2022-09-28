@@ -1,7 +1,0 @@
-pulumi==3.38.0
-pulumi-gcp==6.35.0
-google-cloud-billing-budgets==1.5.1
-requests==2.27.1
-PyYAML==5.4.1
-click==8.0.3
-sample-metadata==4.9.1
