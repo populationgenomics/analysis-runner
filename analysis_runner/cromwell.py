@@ -453,6 +453,7 @@ def watch_workflow_and_get_output(
     _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
 
     watch_job = b.new_job(job_prefix + '_watch')
+    watch_job.cpu(0.25)
 
     watch_job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
     watch_job.env('PYTHONUNBUFFERED', '1')  # makes the logs go quicker
