@@ -18,7 +18,7 @@ from analysis_runner.git import (
 )
 
 
-HAIL_VERSION = '0.2.97'
+HAIL_VERSION = '0.2.100'
 DATAPROC_IMAGE = (
     f'australia-southeast1-docker.pkg.dev/analysis-runner/images/'
     f'dataproc:hail-{HAIL_VERSION}'
