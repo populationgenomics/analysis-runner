@@ -24,7 +24,7 @@ b = hb.Batch(backend=sb, default_image=_config['workflow']['driver_image'])
 inputs = ['Hello, analysis-runner ;)', 'Hello, second output!']
 
 
-workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
+submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     b=b,
     job_prefix='hello',
     workflow='hello_all_in_one_file.wdl',
