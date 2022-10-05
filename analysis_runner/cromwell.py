@@ -11,6 +11,8 @@ import inspect
 from shlex import quote
 from typing import List, Dict, Optional, Any
 from cpg_utils.config import get_config
+from hailtop.batch import Resource
+from hailtop.batch.job import Job
 from analysis_runner.constants import (
     CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
@@ -244,7 +246,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     cwd: Optional[str] = None,
     driver_image: Optional[str] = None,
     project: Optional[str] = None,
-):
+) -> tuple[Job, dict[str, Resource]]:
     """
     This function needs to know the structure of the outputs you
     want to collect. It currently only supports:
@@ -258,6 +260,8 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
 
     If the starts with "gs://", we'll copy it as a resource file,
     otherwise write the value into a file which will be a batch resource.
+
+    Returns a submit Job object, and a dict of output Resource objects.
     """
     _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
 
@@ -292,7 +296,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         driver_image=_driver_image,
     )
 
-    return outputs_dict
+    return submit_job, outputs_dict
 
 
 def watch_workflow(
