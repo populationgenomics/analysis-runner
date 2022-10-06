@@ -141,10 +141,6 @@ cluster.add_job('examples/dataproc/query.py', job_name='example')
 
 You can ignore this section if you just want to run the tool.
 
-To bring up a stack corresponding to a dataset as described in the
-[storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies),
-see the [stack](stack) directory.
-
 To set up a development environment for the analysis runner using pip, run
 the following:
 
