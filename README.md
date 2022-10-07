@@ -40,7 +40,7 @@ First, make sure that your environment provides Python 3.10 or newer:
 Python 3.10.7
 ```
 
-If the installed version is too old, you can use `brew` on a Mac to update. E.g.:
+If the installed version is too old, on a Mac you can use `brew` to update. E.g.:
 
 ```sh
 brew install python@3.10
