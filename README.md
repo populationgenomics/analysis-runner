@@ -31,7 +31,22 @@ The analysis-runner is also integrated with our Cromwell server to run WDL based
 ## CLI
 
 The analysis-runner CLI can be used to start pipelines based on a GitHub repository,
-commit, and command to run. To install it, use pip:
+commit, and command to run.
+
+First, make sure that your environment provides Python 3.10 or newer:
+
+```sh
+> python3 --version
+Python 3.10.7
+```
+
+If the installed version is too old, you can use `brew` on a Mac to update. E.g.:
+
+```sh
+brew install python@3.10
+```
+
+Then install the `analysis-runner` Python package using `pip`:
 
 ```bash
 pip install analysis-runner
