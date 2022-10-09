@@ -49,7 +49,7 @@ brew install python@3.10
 Then install the `analysis-runner` Python package using `pip`:
 
 ```bash
-pip install analysis-runner
+python3 -m pip install analysis-runner
 ```
 
 Run `analysis-runner --help` to see usage information.
