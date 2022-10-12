@@ -32,7 +32,6 @@ RUN apt-get update && \
         analysis-runner \
         bokeh \
         cloudpathlib[all] \
-        cpg-pipes \
         cpg-utils \
         gcsfs \
         pyarrow \
