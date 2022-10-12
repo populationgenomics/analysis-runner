@@ -15,6 +15,8 @@ jobs:
       DOCKER_BUILDKIT: 1
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
+      DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver
+      SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server
 
     steps:
     - name: "checkout analysis-runner repo"
@@ -32,10 +34,9 @@ jobs:
         cd hail
         echo "HAIL_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-    - name: "Set Docker image paths"
+    - name: "Set Docker image tag"
       run: |
-        echo "DRIVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:${{ github.sha }}-hail-$HAIL_SHA" >> $GITHUB_ENV
-        echo "SERVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/server:${{ github.sha }}-hail-$HAIL_SHA" >> $GITHUB_ENV
+        echo "IMAGE_TAG=${{ github.sha }}-hail-$HAIL_SHA" >> $GITHUB_ENV
 
     - name: "gcloud setup"
       uses: google-github-actions/setup-gcloud@v0
@@ -49,23 +50,25 @@ jobs:
 
     - name: "build driver image"
       run: |
-        docker build -f driver/Dockerfile.hail --build-arg HAIL_SHA=$HAIL_SHA --tag $DRIVER_IMAGE driver
+        docker build -f driver/Dockerfile.hail --build-arg HAIL_SHA=$HAIL_SHA --tag $DRIVER_IMAGE:$IMAGE_TAG driver
 
     - name: "push driver image"
       run: |
-        docker push $DRIVER_IMAGE
+        docker push $DRIVER_IMAGE:$IMAGE_TAG
+        docker tag $DRIVER_IMAGE:$IMAGE_TAG $DRIVER_IMAGE:latest
+        docker push $DRIVER_IMAGE:latest
 
     - name: "build server image"
       run: |
-        docker build --build-arg DRIVER_IMAGE=$DRIVER_IMAGE --tag $SERVER_IMAGE server
+        docker build --build-arg DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG --tag $SERVER_IMAGE:$IMAGE_TAG server
 
     - name: "push server image"
       run: |
-        docker push $SERVER_IMAGE
+        docker push $SERVER_IMAGE:$IMAGE_TAG
 
     - name: "deploy server-test"
       run: |
-        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $SERVER_IMAGE
+        gcloud run deploy server-test --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG --image $SERVER_IMAGE:$IMAGE_TAG
 
     - name: "submit test batch"
       run: |
@@ -79,4 +82,4 @@ jobs:
 
     - name: "deploy server"
       run: |
-        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE --image $SERVER_IMAGE
+        gcloud run deploy server --region australia-southeast1 --no-allow-unauthenticated --platform managed --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG --image $SERVER_IMAGE:$IMAGE_TAG
