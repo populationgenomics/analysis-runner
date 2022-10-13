@@ -65,6 +65,8 @@ jobs:
     - name: "push server image"
       run: |
         docker push $SERVER_IMAGE:$IMAGE_TAG
+        docker tag $SERVER_IMAGE:$IMAGE_TAG $SERVER_IMAGE:latest
+        docker push $SERVER_IMAGE:latest
 
     - name: "deploy server-test"
       run: |
