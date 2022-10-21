@@ -2,7 +2,15 @@
 
 # this should be run with high-core low memory resources
 # e.g.
-# analysis-runner analysis-runner --cpu 16 --memory lowmem scripts/copy_clinvar.sh 2022-09-17
+# analysis-runner analysis-runner
+#  --dataset reference \
+#  --description "Copy Clinvar Broad -> CPG" \
+#  -o "clinvar_copy" \
+#  --access-level standard \
+#  --cpu 16
+#  --memory lowmem
+#  scripts/copy_clinvar.sh
+#  2022-09-17
 
 set -ex
 
