@@ -14,7 +14,13 @@
 
 set -ex
 
+if [ -z "$1" ]
+  then
+    echo "No date argument supplied"
+    exit1
+fi
+
 DATE=${1}
 CPG_ANNO=${2:-"gs://cpg-reference/seqr/"}
 
-gcloud storage cp -r "gs://seqr-reference-data/GRCh38/clinvar/clinvar.GRCh38.${DATE}.ht" "${CPG_ANNO}"
+gcloud alpha storage cp -r "gs://seqr-reference-data/GRCh38/clinvar/clinvar.GRCh38.${DATE}.ht" "${CPG_ANNO}"
