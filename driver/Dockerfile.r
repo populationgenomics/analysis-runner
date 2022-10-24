@@ -14,7 +14,11 @@ RUN apt update && \
     micromamba install -y --prefix $MAMBA_ROOT_PREFIX \
         -c cpg -c bioconda -c conda-forge \
         r-argparser \
-        r-base=4.1.1 \
+        r-arrow \
+        r-base \
         r-essentials \
-        r-tidyverse && \
+        r-googlecloudstorager \
+        r-tidyverse \
+        r-viridis  \
+        r-xml && \
     rm -r /root/micromamba/pkgs
