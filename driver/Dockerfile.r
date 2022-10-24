@@ -13,10 +13,10 @@ RUN apt update && \
     mkdir $MAMBA_ROOT_PREFIX && \
     micromamba install -y --prefix $MAMBA_ROOT_PREFIX \
         -c cpg -c bioconda -c conda-forge \
+        bioconductor-biomart \
         r-argparser \
         r-arrow \
         r-base \
-        r-biomartr \
         r-essentials \
         r-googlecloudstorager \
         r-tidyverse \
