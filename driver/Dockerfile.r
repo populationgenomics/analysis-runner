@@ -16,9 +16,9 @@ RUN apt update && \
         r-argparser \
         r-arrow \
         r-base \
+        r-biomartr \
         r-essentials \
         r-googlecloudstorager \
         r-tidyverse \
-        r-viridis  \
-        r-xml && \
+        r-viridis && \
     rm -r /root/micromamba/pkgs
