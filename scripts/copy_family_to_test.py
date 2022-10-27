@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-"""
 
+"""
 Given a project ID and one or more family IDs, copies cram and gvcf
 files for each individual in the family into the project test bucket.
-
 """
+
 
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -13,7 +13,7 @@ import logging
 import sys
 import subprocess
 
-
+# pylint: disable=E0401,E0611
 from sample_metadata.apis import FamilyApi, AnalysisApi, SampleApi
 from sample_metadata.models import BodyGetSamples, AnalysisType
 
@@ -57,12 +57,8 @@ def main(
 
     Parameters
     ----------
-    project : meatamist project name
+    project : metamist project name
     family_ids : a list of external family IDs to transfer to test
-
-    Returns
-    -------
-
     """
 
     # Find all participants in the nominated families
