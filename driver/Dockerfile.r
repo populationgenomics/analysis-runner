@@ -17,6 +17,7 @@ RUN apt update && \
         r-argparser \
         r-arrow \
         r-base \
+        r-devtools \
         r-essentials \
         r-googlecloudstorager \
         r-tidyverse \
