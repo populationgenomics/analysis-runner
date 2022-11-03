@@ -12,8 +12,10 @@ RUN apt-get update && \
         g++ \
         gcc \
         libfontconfig \
+        liblapack-dev \
         liblapack3 \
         libopenblas-base \
+        libopenblas-dev \
         openjdk-8-jdk-headless \
         rsync \
         software-properties-common && \
