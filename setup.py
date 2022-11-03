@@ -18,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='2.35.7',
+    version='2.35.8',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
