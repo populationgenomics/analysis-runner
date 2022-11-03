@@ -38,7 +38,7 @@ RUN apt-get update && \
     # Install Hail from the CPG fork.
     git clone https://github.com/populationgenomics/hail.git && \
     cd hail && \
-    git checkout main && \
+    git checkout $HAIL_SHA && \
     cd hail && \
     # Install locally, avoiding the need for a pip package.
     # DEPLOY_REMOTE avoids a dev suffix being appended to dataproc initialization paths.
