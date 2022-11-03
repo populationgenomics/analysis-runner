@@ -18,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='2.35.7',
+    version='2.35.8',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
@@ -36,18 +36,18 @@ setuptools.setup(
         'flake8',
         'flake8-bugbear',
         'flask',
-        'google-api-python-client==2.10.0',
-        'google-auth==1.27.0',
-        'google-cloud-logging==3.1.1',
-        'google-cloud-pubsub==2.3.0',
-        'google-cloud-secret-manager==2.2.0',
-        'google-cloud-storage==1.25.0',
-        'Jinja2==3.0.3',
+        'google-api-python-client>=2.10.0',
+        'google-auth>=1.27.0',
+        'google-cloud-logging>=3.1.1',
+        'google-cloud-pubsub>=2.3.0',
+        'google-cloud-secret-manager>=2.2.0',
+        'google-cloud-storage>=1.25.0',
+        'Jinja2>=3.0.3',
         'kubernetes',
-        'protobuf==3.20.1',
+        'protobuf>=3.20.2',
         'pulumi-gcp',
         'requests',
-        'tabulate==0.8.9',  # https://github.com/Azure/azure-cli/issues/20887
+        'tabulate>=0.8.9',  # https://github.com/Azure/azure-cli/issues/20887
         'toml',
     ],
     entry_points={
