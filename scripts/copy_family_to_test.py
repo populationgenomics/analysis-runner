@@ -99,8 +99,10 @@ def main(
     # Copy files to test
     for cram in latest_crams:
         copy_to_test(project, cram['output'])
+        copy_to_test(project, cram['output'] + '.crai')
     for gvcf in latest_gvcfs:
         copy_to_test(project, gvcf['output'])
+        copy_to_test(project, gvcf['output'] + '.tbi')
 
 
 if __name__ == '__main__':
