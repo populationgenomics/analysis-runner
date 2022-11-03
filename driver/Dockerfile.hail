@@ -28,16 +28,6 @@ RUN apt-get update && \
     rm -r /var/cache/apt/* && \
     curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10 && \
     rm $(which python3) && ln $(which python3.10) /usr/bin/python3 && \
-    pip --no-cache-dir install \
-        analysis-runner \
-        bokeh \
-        cloudpathlib[all] \
-        cpg-utils \
-        gcsfs \
-        pyarrow \
-        sample-metadata \
-        selenium==3.8.0 \
-        statsmodels && \
     # Install phantomjs with a workaround for libssl_conf.so:
     # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
     cd /opt && \
@@ -54,4 +44,14 @@ RUN apt-get update && \
     # DEPLOY_REMOTE avoids a dev suffix being appended to dataproc initialization paths.
     make install DEPLOY_REMOTE=1 && \
     cd ../.. && \
-    rm -rf hail
+    rm -rf hail && \
+    pip --no-cache-dir install \
+        analysis-runner \
+        cpg-utils \
+        sample-metadata \
+        bokeh \
+        cloudpathlib[all] \
+        gcsfs \
+        pyarrow \
+        selenium>=3.8.0 \
+        statsmodels
