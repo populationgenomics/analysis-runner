@@ -12,10 +12,8 @@ RUN apt-get update && \
         g++ \
         gcc \
         libfontconfig \
-        liblapack-dev \
         liblapack3 \
         libopenblas-base \
-        libopenblas-dev \
         openjdk-8-jdk-headless \
         rsync \
         software-properties-common && \
@@ -49,11 +47,12 @@ RUN apt-get update && \
     rm -rf hail && \
     pip --no-cache-dir install \
         analysis-runner \
-        cpg-utils \
-        sample-metadata \
         bokeh \
         cloudpathlib[all] \
+        cpg-utils \
         gcsfs \
+        hail \
         pyarrow \
+        sample-metadata \
         selenium>=3.8.0 \
         statsmodels
