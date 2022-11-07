@@ -4,14 +4,13 @@ This runs a Hail query script in Dataproc using Hail Batch in order to run VEP o
 
 ```sh
 analysis-runner \
+    --config vep_config.toml \
     --dataset <dataset> \
     --description <description>  \
-    --output-dir <directory-to-output-annotated-vcf> \
+    --output-dir <directory-to-output-annotated-ht> \
     --access-level level> vep_batch_backend.py \
-    --vep-version <vep-version> \
     --vcf-path <path-to-vcf> \
-    --output-ht <output-of-annoatted-vcf> \
-    --scatter-count <number-of-fragments> \
+    --output-ht <output-of-annoatted-vcf>
 ```
 
 As an example, the following invocation would run VEP annotation for a VCF file in the `test` bucket for the `tx-adapt` dataset.
@@ -22,8 +21,6 @@ analysis-runner \
     --description "run VEP using batch backend"  \
     --output-dir "vep_batch/v0" \
     --access-level test vep_batch_backend.py \
-    --vep-version "105" \
     --vcf-path "vep/indels.vcf.bgz" \
-    --output-ht "vep/batch/annotated_indels.ht" \
-    --scatter-count 2 \
+    --output-ht "vep/batch/annotated_indels.ht"
 ```

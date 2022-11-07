@@ -1,0 +1,17 @@
+[workflow]
+sequencing_type = 'genome'
+
+[vep]
+scatter_count = 5
+
+[images]
+vep = 'vep:105.0'
+hail = 'driver:e9c567eb2a00e2050feddae810c0115b98c8ef81-hail-3c66763eb4e49ad7d20fc01b00f307e1c5fc5abb'
+
+[references]
+vep_mount = 'vep/105.0/mount'
+
+[references.seqr]
+prefix = 'seqr/v0-1'
+combined_reference = 'combined_reference_data_grch38-2.0.4.ht'
+clinvar = 'clinvar.GRCh38.ht'
