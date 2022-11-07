@@ -22,8 +22,20 @@ mamba install python=3.10
 # Reinstall the Hail wheel.
 pip3 install --no-dependencies /home/hail/hail*.whl
 
-# Install generally useful libraries.
-pip3 install analysis-runner cloudpathlib[gs] selenium==3.8.0
+# Install some generally useful libraries.
+pip3 install \
+    analysis-runner \
+    bokeh \
+    cpg-utils \
+    cpg-workflows \
+    gcsfs \
+    hail \
+    pyarrow \
+    sample-metadata \
+    selenium>=3.8.0 \
+    statsmodels \
+    cloudpathlib[all] \
+    gnomad
 
 # Install phantomjs with a workaround for the libssl_conf.so on Debian Buster:
 # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
