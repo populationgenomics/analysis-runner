@@ -20,7 +20,7 @@ mamba remove bcolz spyder
 mamba install python=3.10
 
 # Reinstall the Hail wheel.
-pip3 install /home/hail/hail*.whl
+pip3 install --no-dependencies /home/hail/hail*.whl
 
 # Install some generally useful libraries.
 pip3 install \
