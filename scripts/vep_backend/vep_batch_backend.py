@@ -17,7 +17,8 @@ from cpg_workflows.jobs.vep import add_vep_jobs
     required=True,
     help='Path to where finished VEP-annotated VCF will be output',
 )
-def main(vcf_path: str, output_ht: str):
+@click.option('--scatter-count', required=True, help='How many fragments to split the genome into')
+def main(vcf_path: str, output_ht: str, scatter_count: int):
     """
     Run VEP in parallel using Picard tools intervals as partitions.
     Input: the full path to a VCF file, along with a tabix (.tbi) file, 
@@ -30,7 +31,7 @@ def main(vcf_path: str, output_ht: str):
         vcf_path=to_path(vcf_path),
         tmp_prefix=to_path(output_path('vcf_fragments/', 'tmp')),
         out_path=to_path(dataset_path(output_ht)),
-        scatter_count=get_config()['vep']['scatter_count'],
+        scatter_count=scatter_count,
     )
     b.run(wait=False)
 

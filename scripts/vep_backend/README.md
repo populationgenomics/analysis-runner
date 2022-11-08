@@ -11,7 +11,8 @@ analysis-runner \
     --access-level <level> \
     vep_batch_backend.py \
     --vcf-path <path-to-vcf> \
-    --output-ht <output-of-annotated-vcf>
+    --output-ht <output-of-annotated-vcf> \
+    --scatter-count <number-of-fragments>
 ```
 
 As an example, the following invocation would run VEP annotation for a VCF file in the `test` bucket for the `tx-adapt` dataset.
@@ -26,5 +27,6 @@ analysis-runner \
     --access-level test vep_batch_backend.py \
     # full path of VCF file
     --vcf-path "gs://cpg-tx-adapt-test/vep/indels.vcf.bgz" \
-    --output-ht "vep/batch/annotated_indels.ht"
+    --output-ht "vep/batch/annotated_indels.ht" \
+    --scatter-count 5
 ```
