@@ -11,7 +11,7 @@ analysis-runner \
     --access-level <level> \
     vep_batch_backend.py \
     --vcf-path <path-to-vcf> \
-    --output-ht <output-of-annoatted-vcf>
+    --output-ht <output-of-annotated-vcf>
 ```
 
 As an example, the following invocation would run VEP annotation for a VCF file in the `test` bucket for the `tx-adapt` dataset.
