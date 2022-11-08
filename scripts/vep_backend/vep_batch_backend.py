@@ -17,7 +17,7 @@ from cpg_workflows.jobs.vep import add_vep_jobs
     required=True,
     help='Path to where finished VEP-annotated VCF will be output',
 )
-@click.option('--scatter-count', required=True, help='How many fragments to split the genome into')
+@click.option('--scatter-count', required=True, help='How many fragments to split the genome into', type=int)
 def main(vcf_path: str, output_ht: str, scatter_count: int):
     """
     Run VEP in parallel using Picard tools intervals as partitions.
