@@ -20,6 +20,8 @@ from cpg_workflows.jobs.vep import add_vep_jobs
 def main(vcf_path: str, output_ht: str):
     """
     Run VEP in parallel using Picard tools intervals as partitions.
+    Input: the full path to a VCF file, along with a tabix (.tbi) file, 
+    located in the same directory.
     """
     vep_image = get_config()['images']['vep']
     b = get_batch(f'Run VEP with Batch Backend, image {vep_image}')

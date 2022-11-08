@@ -1,6 +1,6 @@
 # Run VEP in parallel using batch backend
 
-This runs a Hail query script in Dataproc using Hail Batch in order to run VEP on a hail matrix table. To run, use conda to install the analysis-runner, then execute the following command:
+This script runs VEP annotation on a VCF file using the Batch backend service. To run, a VCF file along with its tabix (.tbi) file are needed. Use conda to install the analysis-runner, then execute the following command:
 
 ```sh
 analysis-runner \
@@ -22,6 +22,7 @@ analysis-runner \
     --dataset tx-adapt \
     --description "run VEP using batch backend"  \
     --output-dir "vep_batch/v0" \
+    --image australia-southeast1-docker.pkg.dev/cpg-common/images/cpg_workflows:latest \
     --access-level test vep_batch_backend.py \
     # full path of VCF file
     --vcf-path "gs://cpg-tx-adapt-test/vep/indels.vcf.bgz" \
