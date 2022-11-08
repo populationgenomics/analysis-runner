@@ -23,6 +23,7 @@ analysis-runner \
     --description "run VEP using batch backend"  \
     --output-dir "vep_batch/v0" \
     --access-level test vep_batch_backend.py \
-    --vcf-path "vep/indels.vcf.bgz" \
+    # full path of VCF file
+    --vcf-path "gs://cpg-tx-adapt-test/vep/indels.vcf.bgz" \
     --output-ht "vep/batch/annotated_indels.ht"
 ```

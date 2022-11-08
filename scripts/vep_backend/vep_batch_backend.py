@@ -11,7 +11,7 @@ from cpg_workflows.jobs.vep import add_vep_jobs
 
 
 @click.command()
-@click.option('--vcf-path', required=True, help='Path to VCF to run VEP on')
+@click.option('--vcf-path', required=True, help='Full path to VCF to run VEP on')
 @click.option(
     '--output-ht',
     required=True,
@@ -25,7 +25,7 @@ def main(vcf_path: str, output_ht: str):
     b = get_batch(f'Run VEP with Batch Backend, image {vep_image}')
     add_vep_jobs(
         b=b,
-        vcf_path=to_path(dataset_path(vcf_path)),
+        vcf_path=to_path(vcf_path),
         tmp_prefix=to_path(output_path('vcf_fragments/', 'tmp')),
         out_path=to_path(dataset_path(output_ht)),
         scatter_count=get_config()['vep']['scatter_count'],
