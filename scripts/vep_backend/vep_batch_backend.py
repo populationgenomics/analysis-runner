@@ -5,9 +5,9 @@
 import click
 from cpg_utils import to_path
 from cpg_utils.hail_batch import dataset_path, output_path
+from cpg_utils.config import get_config
 from cpg_workflows.batch import get_batch
 from cpg_workflows.jobs.vep import add_vep_jobs
-from cpg_utils.config import get_config
 
 
 @click.command()
