@@ -98,8 +98,8 @@ async def index(request):
 
     # Prepare the job's configuration and write it to a blob.
     config = get_baseline_config(server_config, dataset, access_level, output_prefix)
-    if 'config' in params:  # Update with user-specified configs.
-        update_dict(config, params['config'])
+    if user_config := params.get('config'):  # Update with user-specified configs.
+        update_dict(config, user_config)
     config_path = write_config(config)
 
     metadata = get_analysis_runner_metadata(
