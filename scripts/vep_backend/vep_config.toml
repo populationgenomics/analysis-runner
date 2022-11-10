@@ -1,0 +1,45 @@
+[workflow]
+sequencing_type = 'genome'
+
+[vep]
+scatter_count = 5
+
+[images]
+vep = 'vep:105.0'
+hail = 'driver:e9c567eb2a00e2050feddae810c0115b98c8ef81-hail-3c66763eb4e49ad7d20fc01b00f307e1c5fc5abb'
+
+[references]
+vep_mount = 'vep/105.0/mount'
+
+[references.seqr]
+prefix = 'seqr/v0-1'
+combined_reference = 'combined_reference_data_grch38-2.0.4.ht'
+clinvar = 'clinvar.GRCh38.ht'
+
+## The Broad references
+[references.broad]
+# Path to a copy of the Broad reference bucket
+# gs://gcp-public-data--broad-references/hg38/v0
+prefix = 'hg38/v0'
+
+# Path to DRAGMAP index (relative to braod_ref)
+dragmap_prefix = 'dragen_reference'
+ref_fasta = 'dragen_reference/Homo_sapiens_assembly38_masked.fasta'
+# For DRAGMAP, also the following files are expected to exist in `dragen_reference`:
+#  ['hash_table.cfg.bin', 'hash_table.cmp', 'reference.bin']
+# For BWA, files with the following indices added to ref_fasta expected:
+# are expected to exist: ['sa', 'amb', 'bwt', 'ann', 'pac', 'alt']
+# Similarly, for bwamem2: ['0123', 'amb', 'bwt.2bit.64', 'ann', 'pac', 'alt']
+
+# Primary contigs BED file (relative to broad_ref)
+noalt_bed = 'sv-resources/resources/v1/primary_contigs_plus_mito.bed.gz'
+
+# Exome calling regions (relative to broad_ref)
+exome_bed = 'Homo_sapiens_assembly38.contam.exome_calling_regions.v1.bed'
+
+# Calling intervals lists (relative to broad_ref)
+genome_calling_interval_lists = 'wgs_calling_regions.hg38.interval_list'
+exome_calling_interval_lists = 'exome_calling_regions.v1.interval_list'
+genome_evaluation_interval_lists = 'wgs_evaluation_regions.hg38.interval_list'
+exome_evaluation_interval_lists = 'exome_evaluation_regions.v1.interval_list'
+genome_coverage_interval_list = 'wgs_coverage_regions.hg38.interval_list'
