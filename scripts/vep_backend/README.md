@@ -20,6 +20,7 @@ As an example, the following invocation would run VEP annotation for a VCF file 
 ```sh
 analysis-runner \
     --config vep_config.toml \
+    --config workflows.toml \
     --dataset tx-adapt \
     --description "run VEP using batch backend"  \
     --output-dir "vep_batch/v0" \

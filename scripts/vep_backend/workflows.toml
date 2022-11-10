@@ -64,7 +64,7 @@ check_inputs = true
 # If set to False, will overwrite all intermediates. Used in `utils.can_reuse(path)`
 check_intermediates = true
 
-# Before running a stage, check if input (i.e. expected outputs from required stages) 
+# Before running a stage, check if input (i.e. expected outputs from required stages)
 # already exist. If it exists, do not submit stage jobs
 check_expected_outputs = true
 
@@ -80,7 +80,7 @@ check_expected_outputs = true
 #intervals_path =
 
 # Only print the final merged config and a list of stages to be submitted.
-# Will skip any communication with Metamist, Hail Batch, and Cloud Storage, so 
+# Will skip any communication with Metamist, Hail Batch, and Cloud Storage, so
 # the code can be run without permissions.
 #dry_run = true
 
