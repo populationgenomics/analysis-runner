@@ -171,3 +171,26 @@ def write_config(config: dict) -> str:
     with config_path.open('w') as f:
         toml.dump(config, f)
     return str(config_path)
+
+
+def get_baseline_config(server_config, dataset, access_level, output_prefix) -> dict:
+    """Returns the baseline config of analysis-runner specified default values."""
+    return {
+        'hail': {
+            'billing_project': dataset,
+            'bucket': f'cpg-{dataset}-hail',
+        },
+        'workflow': {
+            'access_level': access_level,
+            'dataset': dataset,
+            'dataset_gcp_project': server_config[dataset]['projectId'],
+            'driver_image': DRIVER_IMAGE,
+            'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
+            'reference_prefix': REFERENCE_PREFIX,
+            'output_prefix': output_prefix,
+            'web_url_template': WEB_URL_TEMPLATE,
+        },
+        'references': {
+            'genome_build': 'GRCh38',
+        },
+    }

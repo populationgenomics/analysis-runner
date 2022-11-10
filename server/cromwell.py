@@ -20,13 +20,11 @@ from analysis_runner.git import prepare_git_job
 # pylint: disable=wrong-import-order
 from util import (
     DRIVER_IMAGE,
-    IMAGE_REGISTRY_PREFIX,
     PUBSUB_TOPIC,
-    REFERENCE_PREFIX,
-    WEB_URL_TEMPLATE,
     check_allowed_repos,
     check_dataset_and_group,
     get_analysis_runner_metadata,
+    get_baseline_config,
     get_email_from_request,
     get_server_config,
     publisher,
@@ -104,23 +102,10 @@ def add_cromwell_routes(
 
         timestamp = datetime.now().astimezone().isoformat()
 
-        config = params.get('config', {})
-        update_dict(
-            config,
-            {
-                'workflow': {
-                    'access_level': access_level,
-                    'dataset': dataset,
-                    'dataset_gcp_project': project,
-                    'driver_image': DRIVER_IMAGE,
-                    'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
-                    'reference_prefix': REFERENCE_PREFIX,
-                    'output_prefix': output_dir,
-                    'web_url_template': WEB_URL_TEMPLATE,
-                },
-            },
-        )
-
+        # Prepare the job's configuration and write it to a blob.
+        config = get_baseline_config(server_config, dataset, access_level, output_dir)
+        if user_config := params.get('config'):  # Update with user-specified configs.
+            update_dict(config, user_config)
         config_path = write_config(config)
 
         # This metadata dictionary gets stored at the output_dir location.
