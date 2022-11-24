@@ -24,5 +24,4 @@ RUN apt-get update && \
     git clone https://github.com/populationgenomics/hail.git && \
     cd hail/hail && \
     make install DEPLOY_REMOTE=1 && \
-    cd ../.. && \
-    rm -rf hail
+    cd ..   # we have to stay in the hail repo root for `hailctl start` to work
