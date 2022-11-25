@@ -18,7 +18,7 @@ from util import (
     check_allowed_repos,
     check_dataset_and_group,
     get_analysis_runner_metadata,
-    get_baseline_config,
+    get_baseline_run_config,
     get_email_from_request,
     get_server_config,
     publisher,
@@ -97,10 +97,16 @@ async def index(request):
     timestamp = datetime.datetime.now().astimezone().isoformat()
 
     # Prepare the job's configuration and write it to a blob.
-    config = get_baseline_config(server_config, dataset, access_level, output_prefix)
+    project_id = server_config[dataset]['projectId']
+    run_config = get_baseline_run_config(
+        project_id=project_id,
+        dataset=dataset,
+        access_level=access_level,
+        output_prefix=output_prefix,
+    )
     if user_config := params.get('config'):  # Update with user-specified configs.
-        update_dict(config, user_config)
-    config_path = write_config(config)
+        update_dict(run_config, user_config)
+    config_path = write_config(run_config)
 
     metadata = get_analysis_runner_metadata(
         timestamp=timestamp,
