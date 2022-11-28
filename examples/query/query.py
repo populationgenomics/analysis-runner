@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # pylint: disable=import-error
 """
 Example of running Hail Query script with analysis-runner.
@@ -9,9 +9,8 @@ from cpg_utils.hail_batch import init_batch
 
 init_batch()
 
-hl.utils.get_movie_lens('data/')
-users = hl.read_table('data/users.ht')
+mt = hl.read_matrix_table('gs://cpg-fewgenomes-test/mt/v1.mt')
 
-users.show()
+mt.show()
 
-print('There are {users.count()} users in the movie dataset')
+print(f'There are {mt.count()} rows in the dataset')
