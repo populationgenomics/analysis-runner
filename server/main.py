@@ -97,7 +97,9 @@ async def index(request):
     timestamp = datetime.datetime.now().astimezone().isoformat()
 
     # Prepare the job's configuration and write it to a blob.
-    config = get_baseline_config(server_config, dataset, access_level, output_prefix)
+    config = get_baseline_config(
+        server_config, dataset, access_level, output_prefix, driver=image
+    )
     if user_config := params.get('config'):  # Update with user-specified configs.
         update_dict(config, user_config)
     config_path = write_config(config)
