@@ -6,8 +6,9 @@ import uuid
 from shlex import quote
 from typing import Optional, List, Dict, Tuple
 from cpg_utils.config import get_config
-from cpg_utils.hail_batch import Namespace
+from cpg_utils.hail_batch import cpg_namespace
 import hailtop.batch as hb
+
 from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
 from analysis_runner.git import (
     get_git_default_remote,
@@ -30,7 +31,6 @@ WHEEL = f'gs://cpg-hail-ci/wheels/hail-{HAIL_VERSION}-py3-none-any.whl'
 
 _config = get_config()
 ACCESS_LEVEL = _config['workflow']['access_level']
-NAMESPACE = Namespace.from_access_level(ACCESS_LEVEL).value
 DATASET = _config['workflow']['dataset']
 DATASET_GCP_PROJECT = _config['workflow']['dataset_gcp_project']
 GCLOUD_CONFIG_SET_PROJECT = f'gcloud config set project {DATASET_GCP_PROJECT}'
@@ -210,6 +210,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
 
     # Note that the options and their values must be separated by an equal sign.
     # Using a space will break some options like --label
+    namespace = cpg_namespace(ACCESS_LEVEL)
     start_job_command = [
         'hailctl dataproc start',
         f'--region={region}',
@@ -220,8 +221,8 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         f'--properties="{",".join(spark_env)}"',
         f'--labels={labels_formatted}',
         f'--wheel={WHEEL}',
-        f'--bucket=cpg-{DATASET}-{NAMESPACE}-tmp',
-        f'--temp-bucket=cpg-{DATASET}-{NAMESPACE}-tmp',
+        f'--bucket=cpg-{DATASET}-{namespace}-tmp',
+        f'--temp-bucket=cpg-{DATASET}-{namespace}-tmp',
     ]
     if worker_machine_type:
         start_job_command.append(f'--worker-machine-type={worker_machine_type}')

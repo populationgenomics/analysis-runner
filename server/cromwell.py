@@ -24,7 +24,7 @@ from util import (
     check_allowed_repos,
     check_dataset_and_group,
     get_analysis_runner_metadata,
-    get_baseline_config,
+    get_baseline_run_config,
     get_email_from_request,
     get_server_config,
     publisher,
@@ -103,7 +103,9 @@ def add_cromwell_routes(
         timestamp = datetime.now().astimezone().isoformat()
 
         # Prepare the job's configuration and write it to a blob.
-        config = get_baseline_config(server_config, dataset, access_level, output_dir)
+        config = get_baseline_run_config(
+            server_config, dataset, access_level, output_dir
+        )
         if user_config := params.get('config'):  # Update with user-specified configs.
             update_dict(config, user_config)
         config_path = write_config(config)

@@ -10,7 +10,9 @@ from aiohttp import web, ClientSession
 from cloudpathlib import AnyPath
 from hailtop.config import get_deploy_config
 from google.cloud import secretmanager, pubsub_v1
+from cpg_utils.config import update_dict
 from cpg_utils.cloud import email_from_id_token, read_secret
+from cpg_utils.hail_batch import cpg_namespace
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
 GITHUB_ORG = 'populationgenomics'
@@ -22,10 +24,8 @@ ALLOWED_CONTAINER_IMAGE_PREFIXES = (
 )
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
-IMAGE_REGISTRY_PREFIX = 'australia-southeast1-docker.pkg.dev/cpg-common/images'
-REFERENCE_PREFIX = 'gs://cpg-reference'
+INFRA = 'gcp'
 CONFIG_PATH_PREFIX = 'gs://cpg-config'
-WEB_URL_TEMPLATE = 'https://{namespace}-web.populationgenomics.org.au/{dataset}'
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
@@ -121,8 +121,7 @@ def get_analysis_runner_metadata(
     Get well-formed analysis-runner metadata, requiring the core listed keys
     with some flexibility to provide your own keys (as **kwargs)
     """
-    bucket_type = 'test' if access_level == 'test' else 'main'
-    output_dir = f'gs://cpg-{dataset}-{bucket_type}/{output_prefix}'
+    output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
 
     return {
         'timestamp': timestamp,
@@ -173,9 +172,12 @@ def write_config(config: dict) -> str:
     return str(config_path)
 
 
-def get_baseline_config(server_config, dataset, access_level, output_prefix) -> dict:
-    """Returns the baseline config of analysis-runner specified default values."""
-    return {
+def get_baseline_run_config(project_id, dataset, access_level, output_prefix) -> dict:
+    """
+    Returns the baseline config of analysis-runner specified default values,
+    as well as pre-generated templates with common locations and resources.
+    """
+    baseline_config = {
         'hail': {
             'billing_project': dataset,
             'bucket': f'cpg-{dataset}-hail',
@@ -183,14 +185,23 @@ def get_baseline_config(server_config, dataset, access_level, output_prefix) -> 
         'workflow': {
             'access_level': access_level,
             'dataset': dataset,
-            'dataset_gcp_project': server_config[dataset]['projectId'],
+            'dataset_gcp_project': project_id,
             'driver_image': DRIVER_IMAGE,
-            'image_registry_prefix': IMAGE_REGISTRY_PREFIX,
-            'reference_prefix': REFERENCE_PREFIX,
             'output_prefix': output_prefix,
-            'web_url_template': WEB_URL_TEMPLATE,
-        },
-        'references': {
-            'genome_build': 'GRCh38',
         },
     }
+    template_paths = [
+        AnyPath(CONFIG_PATH_PREFIX) / 'templates' / suf
+        for suf in [
+            'images/images.toml',
+            'references/references.toml',
+            f'storage/{INFRA}/{dataset}-{cpg_namespace(access_level)}.toml',
+        ]
+    ]
+    if missing := [p for p in template_paths if not p.exists()]:
+        raise ValueError(f'Missing expected template configs: {missing}')
+
+    for path in template_paths:
+        with path.open() as f:
+            update_dict(baseline_config, toml.load(f))
+    return baseline_config
