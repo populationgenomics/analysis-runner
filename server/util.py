@@ -173,7 +173,7 @@ def write_config(config: dict) -> str:
 
 
 def get_baseline_run_config(
-        project_id, dataset, access_level, output_prefix, driver: str | None=None
+    project_id, dataset, access_level, output_prefix, driver: str | None = None
 ) -> dict:
     """
     Returns the baseline config of analysis-runner specified default values,
