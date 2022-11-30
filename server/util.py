@@ -172,10 +172,13 @@ def write_config(config: dict) -> str:
     return str(config_path)
 
 
-def get_baseline_run_config(project_id, dataset, access_level, output_prefix) -> dict:
+def get_baseline_run_config(
+        project_id, dataset, access_level, output_prefix, driver: str | None=None
+) -> dict:
     """
     Returns the baseline config of analysis-runner specified default values,
     as well as pre-generated templates with common locations and resources.
+    permits overriding the default driver image
     """
     baseline_config = {
         'hail': {
@@ -186,7 +189,7 @@ def get_baseline_run_config(project_id, dataset, access_level, output_prefix) ->
             'access_level': access_level,
             'dataset': dataset,
             'dataset_gcp_project': project_id,
-            'driver_image': DRIVER_IMAGE,
+            'driver_image': driver or DRIVER_IMAGE,
             'output_prefix': output_prefix,
         },
     }

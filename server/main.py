@@ -103,6 +103,7 @@ async def index(request):
         dataset=dataset,
         access_level=access_level,
         output_prefix=output_prefix,
+        driver=image
     )
     if user_config := params.get('config'):  # Update with user-specified configs.
         update_dict(run_config, user_config)
