@@ -12,6 +12,7 @@ from hailtop.config import get_deploy_config
 from google.cloud import secretmanager, pubsub_v1
 from cpg_utils.config import update_dict
 from cpg_utils.cloud import email_from_id_token, read_secret
+from cpg_utils.hail_batch import cpg_namespace
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
 GITHUB_ORG = 'populationgenomics'
@@ -120,8 +121,7 @@ def get_analysis_runner_metadata(
     Get well-formed analysis-runner metadata, requiring the core listed keys
     with some flexibility to provide your own keys (as **kwargs)
     """
-    bucket_type = 'test' if access_level == 'test' else 'main'
-    output_dir = f'gs://cpg-{dataset}-{bucket_type}/{output_prefix}'
+    output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
 
     return {
         'timestamp': timestamp,
@@ -190,17 +190,15 @@ def get_baseline_run_config(project_id, dataset, access_level, output_prefix) ->
             'output_prefix': output_prefix,
         },
     }
-    namespace = 'test' if access_level == 'test' else 'main'
     template_paths = [
         AnyPath(CONFIG_PATH_PREFIX) / 'templates' / suf
         for suf in [
             'images/images.toml',
             'references/references.toml',
-            f'storage/{INFRA}/{dataset}-{namespace}.toml',
+            f'storage/{INFRA}/{dataset}-{cpg_namespace(access_level)}.toml',
         ]
     ]
-    missing = [p for p in template_paths if not p.exists()]
-    if missing:
+    if missing := [p for p in template_paths if not p.exists()]:
         raise ValueError(f'Missing expected template configs: {missing}')
 
     for path in template_paths:

@@ -6,7 +6,9 @@ import uuid
 from shlex import quote
 from typing import Optional, List, Dict, Tuple
 from cpg_utils.config import get_config
+from cpg_utils.hail_batch import cpg_namespace
 import hailtop.batch as hb
+
 from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
 from analysis_runner.git import (
     get_git_default_remote,
@@ -208,7 +210,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
 
     # Note that the options and their values must be separated by an equal sign.
     # Using a space will break some options like --label
-    namespace = 'test' if ACCESS_LEVEL == 'test' else 'main'
+    namespace = cpg_namespace(ACCESS_LEVEL)
     start_job_command = [
         'hailctl dataproc start',
         f'--region={region}',
