@@ -64,16 +64,21 @@ def add_cromwell_routes(
 
         dataset = params['dataset']
         access_level = params['accessLevel']
+        cloud_environment = 'gcp'
         server_config = get_server_config()
         output_dir = validate_output_dir(params['output'])
-        check_dataset_and_group(server_config, dataset, email)
+        environment_config = check_dataset_and_group(
+            server_config=server_config,
+            environment=cloud_environment,
+            dataset=dataset,
+            email=email,
+        )
         repo = params['repo']
         check_allowed_repos(server_config, dataset, repo)
         labels = params.get('labels')
 
-        ds_config = server_config[dataset]
-        project = ds_config.get('projectId')
-        hail_token = ds_config.get(f'{access_level}Token')
+        project = environment_config.get('projectId')
+        hail_token = environment_config.get(f'{access_level}Token')
 
         if not hail_token:
             raise web.HTTPBadRequest(
@@ -103,12 +108,17 @@ def add_cromwell_routes(
         timestamp = datetime.now().astimezone().isoformat()
 
         # Prepare the job's configuration and write it to a blob.
+
         config = get_baseline_run_config(
-            server_config, dataset, access_level, output_dir
+            environment=cloud_environment,
+            gcp_project_id=project,
+            dataset=dataset,
+            access_level=access_level,
+            output_prefix=output_dir,
         )
         if user_config := params.get('config'):  # Update with user-specified configs.
             update_dict(config, user_config)
-        config_path = write_config(config)
+        config_path = write_config(config, cloud_environment)
 
         # This metadata dictionary gets stored at the output_dir location.
         metadata = get_analysis_runner_metadata(
@@ -125,6 +135,8 @@ def add_cromwell_routes(
             config_path=config_path,
             cwd=cwd,
             mode='cromwell',
+            # no support for other environments
+            environment=cloud_environment,
         )
 
         user_name = email.split('@')[0]
@@ -166,9 +178,12 @@ def add_cromwell_routes(
             input_dict=input_dict,
             input_paths=input_jsons,
             project=project,
+            environment=cloud_environment,
         )
 
-        url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))
+        url = run_batch_job_and_print_url(
+            batch, wait=params.get('wait', False), environment=cloud_environment
+        )
 
         # Publish the metadata to Pub/Sub.
         metadata['batch_url'] = url

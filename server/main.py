@@ -40,6 +40,8 @@ if USE_GCP_LOGGING:
 
 routes = web.RouteTableDef()
 
+SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp'}
+
 
 # pylint: disable=too-many-statements
 @routes.post('/')
@@ -54,7 +56,15 @@ async def index(request):
     server_config = get_server_config()
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
-    check_dataset_and_group(server_config, dataset, email)
+    cloud_environment = params.get('cloud_environment', 'gcp')
+    if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
+        raise web.HTTPBadRequest(
+            reason=f'analysis-runner does not yet support the {cloud_environment} environment'
+        )
+
+    environment_config = check_dataset_and_group(
+        server_config, cloud_environment, dataset, email
+    )
     repo = params['repo']
     check_allowed_repos(server_config, dataset, repo)
 
@@ -66,7 +76,8 @@ async def index(request):
 
     access_level = params['accessLevel']
     is_test = access_level == 'test'
-    hail_token = server_config[dataset].get(f'{access_level}Token')
+
+    hail_token = environment_config.get(f'{access_level}Token')
     if not hail_token:
         raise web.HTTPBadRequest(reason=f'Invalid access level "{access_level}"')
 
@@ -93,13 +104,14 @@ async def index(request):
         raise web.HTTPBadRequest(reason='Script parameter expects an array')
 
     # This metadata dictionary gets stored in the metadata bucket, at the output_dir location.
-    hail_version = await _get_hail_version()
+    hail_version = await _get_hail_version(environment=cloud_environment)
     timestamp = datetime.datetime.now().astimezone().isoformat()
 
     # Prepare the job's configuration and write it to a blob.
-    project_id = server_config[dataset]['projectId']
+
     run_config = get_baseline_run_config(
-        project_id=project_id,
+        environment=cloud_environment,
+        gcp_project_id=environment_config.get('projectId'),
         dataset=dataset,
         access_level=access_level,
         output_prefix=output_prefix,
@@ -107,7 +119,7 @@ async def index(request):
     )
     if user_config := params.get('config'):  # Update with user-specified configs.
         update_dict(run_config, user_config)
-    config_path = write_config(run_config)
+    config_path = write_config(run_config, environment=cloud_environment)
 
     metadata = get_analysis_runner_metadata(
         timestamp=timestamp,
@@ -123,6 +135,7 @@ async def index(request):
         driver_image=image,
         config_path=config_path,
         cwd=cwd,
+        environment=cloud_environment,
     )
 
     user_name = email.split('@')[0]
@@ -176,7 +189,9 @@ async def index(request):
     escaped_script = ' '.join(quote(s) for s in script if s)
     job.command(escaped_script)
 
-    url = run_batch_job_and_print_url(batch, wait=params.get('wait', False))
+    url = run_batch_job_and_print_url(
+        batch, wait=params.get('wait', False), environment=cloud_environment
+    )
 
     # Publish the metadata to Pub/Sub.
     metadata['batch_url'] = url
