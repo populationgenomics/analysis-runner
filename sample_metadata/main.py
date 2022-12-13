@@ -24,7 +24,7 @@ def sample_metadata(data, unused_context):
 
     sm_data = {
         'sample_ids': [],
-        'type': 'custom',
+        'type': 'analysis-runner',
         'status': 'unknown',
         'output': output_dir,
         'author': metadata.pop('user'),
