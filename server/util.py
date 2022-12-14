@@ -67,9 +67,9 @@ def get_email_from_request(request):
         raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
 
-def check_allowed_repos(server_config, dataset, repo):
+def check_allowed_repos(dataset_config, repo):
     """Check that repo is the in server_config allowedRepos for the dataset"""
-    allowed_repos = server_config[dataset]['allowedRepos']
+    allowed_repos = dataset_config['allowedRepos']
     if repo not in allowed_repos:
         raise web.HTTPForbidden(
             reason=(
@@ -118,7 +118,7 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
             reason=f'{email} is not a member of the {dataset} access group'
         )
 
-    return dataset_config[environment]
+    return dataset_config
 
 
 # pylint: disable=too-many-arguments

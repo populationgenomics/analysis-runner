@@ -53,7 +53,6 @@ async def index(request):
     # exception gets translated to a Bad Request error in the try block below.
     params = await request.json()
 
-    server_config = get_server_config()
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
     cloud_environment = params.get('cloud_environment', 'gcp')
@@ -62,11 +61,15 @@ async def index(request):
             reason=f'analysis-runner does not yet support the {cloud_environment} environment'
         )
 
-    environment_config = check_dataset_and_group(
-        server_config, cloud_environment, dataset, email
+    dataset_config = check_dataset_and_group(
+        server_config=get_server_config(),
+        environment=cloud_environment,
+        dataset=dataset,
+        email=email,
     )
+    environment_config = dataset_config.get(cloud_environment)
     repo = params['repo']
-    check_allowed_repos(server_config, dataset, repo)
+    check_allowed_repos(dataset_config=dataset_config, repo=repo)
 
     image = params.get('image') or DRIVER_IMAGE
     cpu = params.get('cpu', 1)
@@ -141,11 +144,12 @@ async def index(request):
     user_name = email.split('@')[0]
     batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
 
-    batch = hb.Batch(
-        backend=backend,
-        name=batch_name,
-        requester_pays_project=server_config[dataset]['projectId'],
-    )
+    extra_batch_params = {}
+
+    if cloud_environment == 'gcp':
+        extra_batch_params['requester_pays_project'] = environment_config['projectId']
+
+    batch = hb.Batch(backend=backend, name=batch_name, **extra_batch_params)
 
     job = batch.new_job(name='driver')
     job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)

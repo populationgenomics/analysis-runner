@@ -65,16 +65,16 @@ def add_cromwell_routes(
         dataset = params['dataset']
         access_level = params['accessLevel']
         cloud_environment = 'gcp'
-        server_config = get_server_config()
         output_dir = validate_output_dir(params['output'])
-        environment_config = check_dataset_and_group(
-            server_config=server_config,
+        dataset_config = check_dataset_and_group(
+            server_config=get_server_config(),
             environment=cloud_environment,
             dataset=dataset,
             email=email,
         )
+        environment_config = dataset_config.get(cloud_environment)
         repo = params['repo']
-        check_allowed_repos(server_config, dataset, repo)
+        check_allowed_repos(dataset_config=dataset_config, repo=repo)
         labels = params.get('labels')
 
         project = environment_config.get('projectId')
