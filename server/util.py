@@ -111,8 +111,9 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
             reason=f'The analysis-runner does not support checking group members for the {environment} environment'
         )
 
+    # force GCP projectId to check members
     group_members = read_secret(
-        dataset_config['projectId'], f'{dataset}-access-members-cache'
+        dataset_config['gcp']['projectId'], f'{dataset}-access-members-cache'
     ).split(',')
     if email not in group_members:
         raise web.HTTPForbidden(
