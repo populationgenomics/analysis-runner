@@ -178,7 +178,6 @@ def add_cromwell_routes(
             input_dict=input_dict,
             input_paths=input_jsons,
             project=project,
-            environment=cloud_environment,
         )
 
         url = run_batch_job_and_print_url(

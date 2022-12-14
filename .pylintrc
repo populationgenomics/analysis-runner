@@ -17,7 +17,7 @@
 disable=f-string-without-interpolation,logging-fstring-interpolation,inherit-non-class,
             too-few-public-methods,fixme,line-too-long,too-many-statements,
             too-many-lines,too-many-instance-attributes,R0801,c-extension-no-member,
-            no-member,W3101,import-error,no-name-in-module
+            no-member,import-error,no-name-in-module
 
 
 # Overriding variable name patterns to allow short 1- or 2-letter variables

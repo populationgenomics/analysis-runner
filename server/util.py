@@ -40,7 +40,7 @@ async def _get_hail_version(environment: str) -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
     if not environment == 'gcp':
         raise web.HTTPBadRequest(
-            f'Unsupported Hail Batch deploy config environment: {environment}'
+            reason=f'Unsupported Hail Batch deploy config environment: {environment}'
         )
 
     deploy_config = get_deploy_config()
