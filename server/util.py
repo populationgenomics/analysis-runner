@@ -165,9 +165,13 @@ def get_analysis_runner_metadata(
 
 def run_batch_job_and_print_url(batch, wait, environment):
     """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
+    if not environment == 'gcp':
+        raise web.HTTPBadRequest(
+            reason=f'Unsupported Hail Batch deploy config environment: {environment}'
+        )
     bc_batch = batch.run(wait=False)
 
-    deploy_config = get_deploy_config(environment)
+    deploy_config = get_deploy_config()
     url = deploy_config.url('batch', f'/batches/{bc_batch.id}')
 
     if wait:
