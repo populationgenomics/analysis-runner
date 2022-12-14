@@ -224,6 +224,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'config': _config,
         },
         headers={'Authorization': f'Bearer {_token}'},
+        timeout=60,
     )
     try:
         response.raise_for_status()

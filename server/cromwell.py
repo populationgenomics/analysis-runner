@@ -201,7 +201,8 @@ def add_cromwell_routes(
 
             token = get_cromwell_oauth_token()
             headers = {'Authorization': 'Bearer ' + str(token)}
-            req = requests.get(cromwell_metadata_url, headers=headers)
+            # longer timeout because metadata can take a while to fetch
+            req = requests.get(cromwell_metadata_url, headers=headers, timeout=120)
             if not req.ok:
                 raise web.HTTPInternalServerError(
                     reason=req.content.decode() or req.reason

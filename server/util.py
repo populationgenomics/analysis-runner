@@ -1,3 +1,4 @@
+# pylint: disable=too-many-function-args
 """
 Utility methods for analysis-runner server
 """
