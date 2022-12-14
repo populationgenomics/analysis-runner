@@ -37,6 +37,7 @@ def sample_metadata(data, unused_context):
             f'{AUDIENCE}/api/v1/analysis/{project}/',
             json=sm_data,
             headers={'Authorization': f'Bearer {token}'},
+            timeout=60,
         )
         r.raise_for_status()
         analysis_id = r.text
@@ -54,6 +55,6 @@ def get_identity_token() -> str:
     """
     meta_url = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity'
     url = f'{meta_url}?audience={AUDIENCE}&format=full'
-    r = requests.get(url=url, headers={'Metadata-Flavor': 'Google'})
+    r = requests.get(url=url, headers={'Metadata-Flavor': 'Google'}, timeout=30)
     r.raise_for_status()
     return r.text

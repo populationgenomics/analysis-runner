@@ -118,7 +118,7 @@ def _perform_version_check():
         'analysis-runner/main/analysis_runner/_version.py'
     )
     try:
-        resp = requests.get(version_url)
+        resp = requests.get(version_url, timeout=20)
         resp.raise_for_status()
         data = resp.text
     except requests.HTTPError as e:

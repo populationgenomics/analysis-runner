@@ -1,3 +1,4 @@
+# pylint: disable=too-many-function-args
 """
 Utility methods for analysis-runner server
 """
@@ -24,8 +25,8 @@ ALLOWED_CONTAINER_IMAGE_PREFIXES = (
 )
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
-INFRA = 'gcp'
-CONFIG_PATH_PREFIX = 'gs://cpg-config'
+
+CONFIG_PATH_PREFIXES = {'gcp': 'gs://cpg-config'}
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
@@ -36,8 +37,13 @@ def get_server_config() -> dict:
     return json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
 
 
-async def _get_hail_version() -> str:
+async def _get_hail_version(environment: str) -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
+    if not environment == 'gcp':
+        raise web.HTTPBadRequest(
+            reason=f'Unsupported Hail Batch deploy config environment: {environment}'
+        )
+
     deploy_config = get_deploy_config()
     url = deploy_config.url('batch', f'/api/v1alpha/version')
     async with ClientSession() as session:
@@ -62,9 +68,9 @@ def get_email_from_request(request):
         raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
 
-def check_allowed_repos(server_config, dataset, repo):
+def check_allowed_repos(dataset_config, repo):
     """Check that repo is the in server_config allowedRepos for the dataset"""
-    allowed_repos = server_config[dataset]['allowedRepos']
+    allowed_repos = dataset_config['allowedRepos']
     if repo not in allowed_repos:
         raise web.HTTPForbidden(
             reason=(
@@ -81,7 +87,7 @@ def validate_output_dir(output_dir: str):
     return output_dir.rstrip('/')  # Strip trailing slash.
 
 
-def check_dataset_and_group(server_config, dataset, email):
+def check_dataset_and_group(server_config, environment: str, dataset, email) -> dict:
     """Check that the email address is a member of the {dataset}-access@popgen group"""
     dataset_config = server_config.get(dataset)
     if not dataset_config:
@@ -92,6 +98,19 @@ def check_dataset_and_group(server_config, dataset, email):
             )
         )
 
+    if environment not in dataset_config:
+        raise web.HTTPBadRequest(
+            reason=f'Dataset {dataset} does not support the {environment} environment'
+        )
+
+    # do this to check access-members cache
+    gcp_project = dataset_config.get('gcp', {}).get('projectId')
+
+    if not gcp_project:
+        raise web.HTTPBadRequest(
+            reason=f'The analysis-runner does not support checking group members for the {environment} environment'
+        )
+
     group_members = read_secret(
         dataset_config['projectId'], f'{dataset}-access-members-cache'
     ).split(',')
@@ -99,6 +118,8 @@ def check_dataset_and_group(server_config, dataset, email):
         raise web.HTTPForbidden(
             reason=f'{email} is not a member of the {dataset} access group'
         )
+
+    return dataset_config
 
 
 # pylint: disable=too-many-arguments
@@ -115,6 +136,7 @@ def get_analysis_runner_metadata(
     driver_image,
     config_path,
     cwd,
+    environment,
     **kwargs,
 ):
     """
@@ -136,15 +158,15 @@ def get_analysis_runner_metadata(
         'driverImage': driver_image,
         'configPath': config_path,
         'cwd': cwd,
-        **kwargs,
+        'environment': environment**kwargs,
     }
 
 
-def run_batch_job_and_print_url(batch, wait):
+def run_batch_job_and_print_url(batch, wait, environment):
     """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
     bc_batch = batch.run(wait=False)
 
-    deploy_config = get_deploy_config()
+    deploy_config = get_deploy_config(environment)
     url = deploy_config.url('batch', f'/batches/{bc_batch.id}')
 
     if wait:
@@ -164,41 +186,55 @@ def validate_image(container: str, is_test: bool):
     )
 
 
-def write_config(config: dict) -> str:
+def write_config(config: dict, environment: str) -> str:
     """Writes the given config dictionary to a blob and returns its unique path."""
-    config_path = AnyPath(CONFIG_PATH_PREFIX) / (str(uuid.uuid4()) + '.toml')
+    prefix = CONFIG_PATH_PREFIXES.get(environment)
+    if not prefix:
+        raise web.HTTPBadRequest(reason=f'Bad environment for config: {environment}')
+
+    config_path = AnyPath(prefix) / (str(uuid.uuid4()) + '.toml')
     with config_path.open('w') as f:
         toml.dump(config, f)
     return str(config_path)
 
 
 def get_baseline_run_config(
-    project_id, dataset, access_level, output_prefix, driver: str | None = None
+    environment: str,
+    gcp_project_id,
+    dataset,
+    access_level,
+    output_prefix,
+    driver: str | None = None,
 ) -> dict:
     """
     Returns the baseline config of analysis-runner specified default values,
     as well as pre-generated templates with common locations and resources.
     permits overriding the default driver image
     """
+    config_prefix = CONFIG_PATH_PREFIXES.get(environment)
+    if not config_prefix:
+        raise web.HTTPBadRequest(reason=f'Bad environment for config: {environment}')
+
     baseline_config = {
         'hail': {
             'billing_project': dataset,
+            # TODO: how would this work for Azure
             'bucket': f'cpg-{dataset}-hail',
         },
         'workflow': {
             'access_level': access_level,
             'dataset': dataset,
-            'dataset_gcp_project': project_id,
+            'dataset_gcp_project': gcp_project_id,
             'driver_image': driver or DRIVER_IMAGE,
             'output_prefix': output_prefix,
         },
     }
     template_paths = [
-        AnyPath(CONFIG_PATH_PREFIX) / 'templates' / suf
+        AnyPath(config_prefix) / 'templates' / suf
         for suf in [
             'images/images.toml',
             'references/references.toml',
-            f'storage/{INFRA}/{dataset}-{cpg_namespace(access_level)}.toml',
+            f'storage/{environment}/{dataset}-{cpg_namespace(access_level)}.toml',
         ]
     ]
     if missing := [p for p in template_paths if not p.exists()]:
