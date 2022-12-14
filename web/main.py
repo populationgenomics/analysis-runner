@@ -65,7 +65,7 @@ def handler(dataset=None, filename=None):
     bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     bucket = storage_client.bucket(bucket_name)
 
-    dataset_project_id = dataset_config['projectId']
+    dataset_project_id = dataset_config['gcp']['projectId']
     members = (
         read_secret(dataset_project_id, f'{dataset}-web-access-members-cache')
         .lower()
