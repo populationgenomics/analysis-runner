@@ -198,7 +198,7 @@ def index():
         secret_value = ','.join(group_members)
 
         dataset = dataset_by_group[group]
-        project_id = config[dataset]['projectId']
+        project_id = config[dataset]['gcp']['projectId']
 
         # Check whether the current secret version is up-to-date.
         secret_name = f'{group}-members-cache'
