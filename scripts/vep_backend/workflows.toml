@@ -4,7 +4,7 @@
 image_registry_prefix = 'australia-southeast1-docker.pkg.dev/cpg-common/images'
 
 # Prefix to find reference files referenced in `refdata_yaml_path`
-reference_prefix = 'gs://cpg-reference'
+reference_prefix = 'gs://cpg-common-main/references'
 
 # Template to build HTTP URLs matching the dataset_path of category
 # "web". Should be parametrised by namespace and dataset in Jinja format:
