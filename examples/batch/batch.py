@@ -8,7 +8,7 @@ import hailtop.batch as hb
 import click
 from cpg_utils.hail_batch import copy_common_env, get_config, output_path, remote_tmpdir
 
-REF_FASTA = 'gs://cpg-reference/hg38/v0/Homo_sapiens_assembly38.fasta'
+REF_FASTA = 'gs://cpg-common-main/references/hg38/v0/Homo_sapiens_assembly38.fasta'
 SAMTOOLS_IMAGE = 'australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:v0'
 
 
