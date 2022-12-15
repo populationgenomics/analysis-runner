@@ -207,7 +207,10 @@ def index():
         if current_secret == secret_value:
             print(f'Secret {secret_name} is up-to-date')
         else:
-            cpg_utils.cloud.write_secret(project_id, secret_name, secret_value)
+            try:
+                cpg_utils.cloud.write_secret(project_id, secret_name, secret_value)
+            except Exception as e:  # pylint: disable=broad-except
+                print(f'Failed to write to {secret_name}: {e}')
             print(f'Updated secret {secret_name}')
 
     return ('', 204)
