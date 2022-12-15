@@ -21,6 +21,6 @@ if [ -z "$1" ]
 fi
 
 DATE=${1}
-CPG_ANNO=${2:-"gs://cpg-reference/seqr/"}
+CPG_ANNO=${2:-"gs://cpg-common-main/references/seqr/"}
 
 gcloud alpha storage cp -r "gs://seqr-reference-data/GRCh38/clinvar/clinvar.GRCh38.${DATE}.ht" "${CPG_ANNO}"

@@ -17,4 +17,4 @@ gcloud builds submit --timeout=1h --tag=australia-southeast1-docker.pkg.dev/anal
 
 ## Initialization script
 
-See [`install_common.sh`](install_common.sh) for the initialization script that typically gets run on Dataproc *master* nodes to install common dependencies. It currently is copied manually to `gs://cpg-reference/hail_dataproc/install_common.sh` and referenced in the `init` parameter of the `setup_dataproc` function.
+See [`install_common.sh`](install_common.sh) for the initialization script that typically gets run on Dataproc *master* nodes to install common dependencies. It currently is copied manually to `gs://cpg-common-main/references/hail_dataproc/install_common.sh` and referenced in the `init` parameter of the `setup_dataproc` function.
