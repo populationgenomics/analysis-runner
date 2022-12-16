@@ -146,7 +146,7 @@ cluster = dataproc.setup_dataproc(
     b,
     max_age='1h',
     packages=['click', 'selenium'],
-    init=['gs://cpg-common-main/references/hail_dataproc/install_common.sh'],
+    init=['gs://cpg-common-main/hail_dataproc/install_common.sh'],
     cluster_name='My Cluster with max-age=1h',
 )
 cluster.add_job('examples/dataproc/query.py', job_name='example')
