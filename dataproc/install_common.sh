@@ -40,7 +40,7 @@ pip3 install \
 # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
 cd /opt
 # Source: https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2
-gsutil cat gs://cpg-common-main/references/hail_dataproc/phantomjs-2.1.1-linux-x86_64.tar.bz2 | tar xj
+gsutil cat gs://cpg-common-main/hail_dataproc/phantomjs-2.1.1-linux-x86_64.tar.bz2 | tar xj
 cat <<EOF > /usr/local/bin/phantomjs
 #!/bin/bash
 export OPENSSL_CONF=/dev/null
