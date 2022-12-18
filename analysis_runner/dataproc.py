@@ -118,6 +118,7 @@ def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
     init: Optional[List[str]] = None,
+    init_timeout: Optional[str] = None,
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = False,
     depends_on: Optional[List[hb.batch.job.Job]] = None,
@@ -169,6 +170,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
     init: Optional[List[str]] = None,
+    init_timeout: Optional[str] = None,
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = False,
     cluster_name: Optional[str] = None,
@@ -238,13 +240,14 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         start_job_command.append(f'--packages={quote(",".join(packages))}')
     if init:
         start_job_command.append(f'--init={",".join(init)}')
+    if init_timeout:
+        start_job_command.append(f'--init_timeout={init_timeout}')
     if vep:
         start_job_command.append(f'--vep={vep}')
     if requester_pays_allow_all:
         start_job_command.append(f'--requester-pays-allow-all')
     if scopes:
         start_job_command.append(f'--scopes={",".join(scopes)}')
-
     if autoscaling_policy:
         start_job_command.append(f'--autoscaling-policy={autoscaling_policy}')
 
