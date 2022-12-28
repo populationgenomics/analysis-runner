@@ -60,6 +60,10 @@ if __name__ == '__main__':
 
     python_job = get_batch().new_bash_job(name='ingest and write table')
     copy_common_env(python_job)
+
+    print(bash_job.output)
+    print(type(bash_job.output))
+
     python_job.image(image)
     out_path = output_path('umap_table.ht')
     python_job.call(table_things, block_zipped=bash_job.output, output=out_path)
