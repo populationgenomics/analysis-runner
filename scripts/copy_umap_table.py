@@ -21,7 +21,7 @@ logging.basicConfig(
 
 
 if __name__ == '__main__':
-    init_batch(worker_memory='16G')
+    init_batch(worker_memory='highmem')
     """
     take the re-bgzipped bed file, ingest in hail
     update a datatype, and write out to cloud
