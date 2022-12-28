@@ -63,6 +63,8 @@ if __name__ == '__main__':
 
     python_job.image(get_config()['workflow']['driver_image'])
     out_path = output_path('umap_table.ht')
+    print(type(table_things))
+    print(type(out_path))
     python_job.call(table_things, block_zipped='gs://cpg-tob-wgs-test/matt_umap/umap_bedgraph.bgz', output=out_path)
     # python_job.depends_on(bash_job)
 
