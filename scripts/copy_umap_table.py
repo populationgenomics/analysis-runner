@@ -9,7 +9,6 @@ import sys
 import hail as hl
 
 from cpg_utils.hail_batch import init_batch, output_path
-from cpg_workflows.batch import get_batch
 
 
 # use logging to print statements, display at info level
@@ -22,7 +21,7 @@ logging.basicConfig(
 
 
 if __name__ == '__main__':
-    init_batch()
+    init_batch(worker_memory='16G')
     """
     take the re-bgzipped bed file, ingest in hail
     update a datatype, and write out to cloud
