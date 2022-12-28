@@ -44,13 +44,13 @@ def table_things(block_zipped: str, output: str):
 
 if __name__ == '__main__':
     # australia-southeast1-docker.pkg.dev/cpg-common/images/cpg_workflows
-    image = get_config()['workflow']['driver_image']
+    # image = get_config()['workflow']['driver_image']
     init_batch()
 
     # add a script job
     bash_job = get_batch().new_bash_job(name='WGet UMap')
     file = 'https://bismap.hoffmanlab.org/raw/hg38/k50.umap.bedgraph.gz'
-    bash_job.image(image)
+    bash_job.image('australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:latest')
     bash_job.command(
         (
             f'wget -o intermediate.gz {file};'
