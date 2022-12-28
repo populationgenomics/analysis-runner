@@ -30,4 +30,4 @@ if __name__ == '__main__':
 
     # swap the type to a float (defaults to string)
     ht = ht.transmute(target=hl.float64(ht.target))
-    ht.write(output_path('umap_table.ht'))
+    ht.write(output_path('umap_table.ht'), overwrite=True)
