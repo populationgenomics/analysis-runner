@@ -50,7 +50,7 @@ if __name__ == '__main__':
     # add a script job
     bash_job = get_batch().new_bash_job(name='WGet UMap')
     file = 'https://bismap.hoffmanlab.org/raw/hg38/k50.umap.bedgraph.gz'
-    bash_job.image('australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:latest')
+    bash_job.image('australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:1.16.1')
     bash_job.command(
         (
             f'wget -o intermediate.gz {file};'
