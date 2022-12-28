@@ -54,7 +54,7 @@ if __name__ == '__main__':
     bash_job.command(
         (
             f'wget -o intermediate.gz {file};'
-            f'gunzip -c intermediate.gz | bgzip -@ 10 > {bash_job.output}'
+            f'gunzip -c intermediate.gz | bgzip -@ 2 > {bash_job.output}'
         )
     )
 
