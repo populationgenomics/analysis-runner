@@ -53,15 +53,15 @@ if __name__ == '__main__':
     bash_job.image('australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:1.16.1')
     bash_job.command(
         (
-            f'wget -o intermediate.gz {file};'
-            f'gunzip -c intermediate.gz | bgzip -@ 2 > {bash_job.output}'
+            f'wget -o intermediate.gz {file} &&'
+            f'gunzip -c intermediate.gz | bgzip > {bash_job.output}'
         )
     )
 
     python_job = get_batch().new_bash_job(name='ingest and write table')
     copy_common_env(python_job)
-    out_path_bgz = output_path('umap_bedgraph.bz')
-    get_batch().write_output(bash_job.output, out_path_bgz)
+    out_path_bgz = output_path('umap_bedgraph.bgz')
+    get_batch().write_output(bash_job.output, out_path_bgz,)
 
     # python_job.image(image)
     # out_path = output_path('umap_table.ht')
