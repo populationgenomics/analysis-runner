@@ -43,29 +43,27 @@ def table_things(block_zipped: str, output: str):
 
 
 if __name__ == '__main__':
-    # australia-southeast1-docker.pkg.dev/cpg-common/images/cpg_workflows
-    # image = get_config()['workflow']['driver_image']
     init_batch()
 
-    # add a script job
-    bash_job = get_batch().new_bash_job(name='WGet UMap')
-    file = 'https://bismap.hoffmanlab.org/raw/hg38/k50.umap.bedgraph.gz'
-    bash_job.image('australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:1.16.1')
-    bash_job.command(
-        (
-            f'wget {file} &&'
-            f'gunzip -c k50.umap.bedgraph.gz | bgzip > {bash_job.output}'
-        )
-    )
+    # # add a script job
+    # bash_job = get_batch().new_bash_job(name='WGet UMap')
+    # file = 'https://bismap.hoffmanlab.org/raw/hg38/k50.umap.bedgraph.gz'
+    # bash_job.image('australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:1.16.1')
+    # bash_job.command(
+    #     (
+    #         f'wget {file} &&'
+    #         f'gunzip -c k50.umap.bedgraph.gz | bgzip > {bash_job.output}'
+    #     )
+    # )
+    # out_path_bgz = output_path('umap_bedgraph.bgz')
+    # get_batch().write_output(bash_job.output, out_path_bgz,)
 
     python_job = get_batch().new_bash_job(name='ingest and write table')
     copy_common_env(python_job)
-    out_path_bgz = output_path('umap_bedgraph.bgz')
-    get_batch().write_output(bash_job.output, out_path_bgz,)
 
-    # python_job.image(image)
-    # out_path = output_path('umap_table.ht')
-    # python_job.call(table_things, block_zipped=bash_job.output, output=out_path)
+    python_job.image(get_config()['workflow']['driver_image'])
+    out_path = output_path('umap_table.ht')
+    python_job.call(table_things, block_zipped='gs://cpg-tob-wgs-test/matt_umap/umap_bedgraph.bgz', output=out_path)
     # python_job.depends_on(bash_job)
 
     get_batch().run(wait=False)
