@@ -53,8 +53,8 @@ if __name__ == '__main__':
     bash_job.image('australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:1.16.1')
     bash_job.command(
         (
-            f'wget -o intermediate.gz {file} &&'
-            f'gunzip -c intermediate.gz | bgzip > {bash_job.output}'
+            f'wget {file} &&'
+            f'gunzip -c k50.umap.bedgraph.gz | bgzip > {bash_job.output}'
         )
     )
 
