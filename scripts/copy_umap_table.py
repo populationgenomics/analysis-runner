@@ -62,7 +62,7 @@ if __name__ == '__main__':
     copy_common_env(python_job)
     python_job.image(image)
     out_path = output_path('umap_table.ht')
-    python_job.call(table_things, block_zipped=python_job.output, output=out_path)
+    python_job.call(table_things, block_zipped=bash_job.output, output=out_path)
     python_job.depends_on(bash_job)
 
     get_batch().run(wait=False)
