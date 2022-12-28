@@ -60,13 +60,12 @@ if __name__ == '__main__':
 
     python_job = get_batch().new_bash_job(name='ingest and write table')
     copy_common_env(python_job)
+    out_path_bgz = output_path('umap_bedgraph.bz')
+    get_batch().write_output(bash_job.output, out_path_bgz)
 
-    print(bash_job.output)
-    print(type(bash_job.output))
-
-    python_job.image(image)
-    out_path = output_path('umap_table.ht')
-    python_job.call(table_things, block_zipped=bash_job.output, output=out_path)
-    python_job.depends_on(bash_job)
+    # python_job.image(image)
+    # out_path = output_path('umap_table.ht')
+    # python_job.call(table_things, block_zipped=bash_job.output, output=out_path)
+    # python_job.depends_on(bash_job)
 
     get_batch().run(wait=False)
