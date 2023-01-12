@@ -8,7 +8,7 @@ import sys
 from typing import List
 
 import requests
-import yaml
+import toml
 from cpg_utils.config import read_configs
 from cpg_utils.cloud import get_google_identity_token
 from analysis_runner.constants import get_server_endpoint
@@ -116,11 +116,16 @@ def run_config(  # pylint: disable=too-many-arguments
     try:
         response.raise_for_status()
         if config_output:
+            if not config_output.endswith('.toml'):
+                logger.warning(
+                    'The config is written as a .toml file, but the extension on the '
+                    'file you have provided is not .toml'
+                )
             with open(config_output, 'w+', encoding='utf-8') as f:
-                yaml.safe_dump(response.json(), f)
+                toml.dump(response.json(), f)
                 logger.info(f'Wrote config to {config_output}')
         else:
-            yaml.safe_dump(response.json(), sys.stdout)
+            toml.dump(response.json(), sys.stdout)
 
     except requests.HTTPError as e:
         logger.critical(
