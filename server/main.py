@@ -204,6 +204,59 @@ async def index(request):
     return web.Response(text=f'{url}\n')
 
 
+@routes.get('/config')
+async def config(request):
+    """
+    Generate CPG config, as JSON response
+    """
+    email = get_email_from_request(request)
+    # When accessing a missing entry in the params dict, the resulting KeyError
+    # exception gets translated to a Bad Request error in the try block below.
+    params = await request.json()
+
+    output_prefix = validate_output_dir(params['output'])
+    dataset = params['dataset']
+    cloud_environment = params.get('cloud_environment', 'gcp')
+    if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
+        raise web.HTTPBadRequest(
+            reason=f'analysis-runner config does not yet support the {cloud_environment} environment'
+        )
+
+    dataset_config = check_dataset_and_group(
+        server_config=get_server_config(),
+        environment=cloud_environment,
+        dataset=dataset,
+        email=email,
+    )
+    environment_config = dataset_config.get(cloud_environment)
+
+    image = params.get('image') or DRIVER_IMAGE
+    access_level = params['accessLevel']
+    is_test = access_level == 'test'
+
+    if not validate_image(image, is_test):
+        raise web.HTTPBadRequest(reason=f'Invalid image "{image}"')
+
+    # Prepare the job's configuration to return
+
+    run_config = get_baseline_run_config(
+        environment=cloud_environment,
+        gcp_project_id=environment_config.get('projectId'),
+        dataset=dataset,
+        access_level=access_level,
+        output_prefix=output_prefix,
+        driver=image,
+    )
+    if user_config := params.get('config'):  # Update with user-specified configs.
+        update_dict(run_config, user_config)
+
+    return web.Response(
+        status=200,
+        body=json.dumps(run_config).encode('utf-8'),
+        content_type='application/json',
+    )
+
+
 add_cromwell_routes(routes)
 
 

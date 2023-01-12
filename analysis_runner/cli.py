@@ -15,6 +15,7 @@ from analysis_runner.cli_analysisrunner import (
     run_analysis_runner_from_args,
 )
 from analysis_runner.cli_cromwell import add_cromwell_args, run_cromwell_from_args
+from analysis_runner.cli_config import add_config_args, run_config_from_args
 
 
 def main_from_args(args=None):
@@ -36,6 +37,7 @@ def main_from_args(args=None):
     modes: Dict[str, Tuple[Callable[[], argparse.ArgumentParser], Callable]] = {
         'analysis-runner': (add_analysis_runner_args, run_analysis_runner_from_args),
         'cromwell': (add_cromwell_args, run_cromwell_from_args),
+        'config': (add_config_args, run_config_from_args),
     }
 
     args = args or sys.argv[1:]
