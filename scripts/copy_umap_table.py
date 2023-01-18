@@ -23,11 +23,11 @@ logging.basicConfig(
 
 if __name__ == '__main__':
     """
-    see for prior attempts:
-    github.com/populationgenomics/analysis-runner/blob/8937fef011f59a757c41bfa4a0800318083f8315/scripts/copy_umap_table.py
-    getting the output of a bash job into a python job 
-    caused some errors I couldn't troubleshoot
+    This could probably be streamlined better
+    ran into some issues communicating the bashjob.output
+    into a python job as input
     """
+
     init_batch(worker_memory='highmem')
 
     # add a script job
