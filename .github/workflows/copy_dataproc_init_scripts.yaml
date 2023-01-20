@@ -1,0 +1,23 @@
+name: Copy Dataproc init scripts
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+jobs:
+  copy_init_scripts:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: "checkout repo"
+      uses: actions/checkout@v2
+
+    - name: "gcloud setup"
+      uses: google-github-actions/setup-gcloud@v0
+      with:
+        project_id: analysis-runner
+        service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+
+    - name: "copy scripts"
+      run: |
+        gcloud storage cp "dataproc/init_scripts/*.sh" gs://cpg-common-main/hail_dataproc
