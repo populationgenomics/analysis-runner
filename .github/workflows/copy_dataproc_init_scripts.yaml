@@ -20,4 +20,4 @@ jobs:
 
     - name: "copy scripts"
       run: |
-        gcloud storage cp "dataproc/init_scripts/*.sh" gs://cpg-common-main/hail_dataproc
+        gcloud storage cp "dataproc/init_scripts/*.sh" gs://cpg-common-main/hail_dataproc/
