@@ -32,7 +32,7 @@ def main(input_vcf: str, output_root: str):
     bcftools_job.command(
         f"""
         bgzip -c {vcf_in_batch} > {bcftools_job.vcf_sorted['vcf.gz']}
-        tabix -p {bcftools_job.vcf_sorted['vcf.gz']}
+        tabix -p vcf {bcftools_job.vcf_sorted['vcf.gz']}
         """
     )
 
