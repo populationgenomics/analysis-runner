@@ -31,10 +31,10 @@ def main(input_vcf: str, output_root: str):
     vcf_in_batch = get_batch().read_input(input_vcf)
     bcftools_job.command(
         (
-            'echo "I AM RUNNING"'
-            'set -ex'
-            f'bgzip -c {vcf_in_batch} > {bcftools_job.vcf_sorted["vcf.gz"]}'
-            f'tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]}'
+            'echo "I AM RUNNING" \n'
+            'set -ex \n'
+            f'bgzip -c {vcf_in_batch} > {bcftools_job.vcf_sorted["vcf.gz"]} \n'
+            f'tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]} \n'
         )
     )
 
