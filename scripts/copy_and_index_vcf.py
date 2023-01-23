@@ -31,11 +31,17 @@ def main(input_vcf: str, output_root: str):
     )
     bcftools_job.command(
         f"""
-set -ex;
+set -ex
 
-bgzip -c {vcf_in_batch} > {bcftools_job.vcf_sorted['vcf.gz']};
-        
+ls
+
+bgzip -c {vcf_in_batch} > {bcftools_job.vcf_sorted['vcf.gz']}
+
+ls
+
 tabix -p vcf {bcftools_job.vcf_sorted['vcf.gz']}
+
+ls
         """
     )
 
