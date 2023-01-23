@@ -17,7 +17,7 @@ def main(input_vcf: str, output_root: str):
     does the stuff
     """
 
-    bcftools_job = get_batch().new_bash_job('Compress and index')
+    bcftools_job = get_batch().new_job('Compress and index')
     bcftools_job.image(get_config()['images']['bcftools'])
 
     bcftools_job.declare_resource_group(
