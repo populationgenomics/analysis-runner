@@ -34,7 +34,7 @@ def main(input_vcf: str, output_root: str):
     bcftools_job.command(
         f'bgzip -c {vcf_in_batch} > {bcftools_job.vcf_sorted["vcf.gz"]}'
     )
-    # bcftools_job.command(f'tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]}')
+    bcftools_job.command(f'tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]}')
 
     # get_batch().write_output(bcftools_job.vcf_sorted, output_root)
 
