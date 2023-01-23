@@ -37,7 +37,7 @@ def main(input_vcf: str, output_root: str):
     for i in range(1000):
         bcftools_job.command(f'echo tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]}')
 
-    bcftools_job.command(f'tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]}')
+    bcftools_job.command(f'tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]} || true')
 
     # get_batch().write_output(bcftools_job.vcf_sorted, output_root)
 
