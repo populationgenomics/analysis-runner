@@ -20,23 +20,23 @@ def main(input_vcf: str, output_root: str):
     bcftools_job = get_batch().new_job('Compress and index')
     bcftools_job.image(get_config()['images']['bcftools'])
 
-    bcftools_job.declare_resource_group(
-        vcf_sorted={
-            'vcf.gz': '{root}.vcf.gz',
-            'vcf.gz.tbi': '{root}.vcf.gz.tbi',
-        }
-    )
+    # bcftools_job.declare_resource_group(
+    #    vcf_sorted={
+    #        'vcf.gz': '{root}.vcf.gz',
+    #        'vcf.gz.tbi': '{root}.vcf.gz.tbi',
+    #    }
+    # )
 
     # read the input file in
-    vcf_in_batch = get_batch().read_input(input_vcf)
-    bcftools_job.command('set -ex')
+    # vcf_in_batch = get_batch().read_input(input_vcf)
+    # bcftools_job.command('set -ex')
     bcftools_job.command('echo "I AM RUNNING"')
-    bcftools_job.command(
-        f'bgzip -c {vcf_in_batch} > {bcftools_job.vcf_sorted["vcf.gz"]}'
-    )
-    bcftools_job.command(f'tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]}')
+    # bcftools_job.command(
+    # f'bgzip -c {vcf_in_batch} > {bcftools_job.vcf_sorted["vcf.gz"]}'
+    # )
+    # bcftools_job.command(f'tabix -p vcf {bcftools_job.vcf_sorted["vcf.gz"]}')
 
-    get_batch().write_output(bcftools_job.vcf_sorted, output_root)
+    # get_batch().write_output(bcftools_job.vcf_sorted, output_root)
 
     get_batch().run(wait=False)
 
