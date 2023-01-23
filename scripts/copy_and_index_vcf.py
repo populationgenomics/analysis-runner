@@ -17,9 +17,6 @@ def main(input_vcf: str, output_root: str):
     does the stuff
     """
 
-    # read the input file in
-    vcf_in_batch = get_batch().read_input(input_vcf)
-
     bcftools_job = get_batch().new_job('Compress and index')
     bcftools_job.image(get_config()['images']['bcftools'])
 
@@ -29,8 +26,13 @@ def main(input_vcf: str, output_root: str):
             'vcf.gz.tbi': '{root}.vcf.gz.tbi',
         }
     )
+
+    # read the input file in
+    vcf_in_batch = get_batch().read_input(input_vcf)
     bcftools_job.command(
         f"""
+        echo "I AM RUNNING"
+
 set -ex
 
 ls
