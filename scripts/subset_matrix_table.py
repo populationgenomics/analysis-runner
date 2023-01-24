@@ -131,6 +131,11 @@ def main(
         mt.write(matrixtable_path, overwrite=True)
         logging.info(f'Wrote new MT to {matrixtable_path!r}')
 
+    if out_format in ['ht', 'both']:
+        table_path = f'{output_path}.ht'
+        mt.rows().write(table_path, overwrite=True)
+        logging.info(f'Wrote new HT to {table_path!r}')
+
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
         vcf_path = f'{output_path}.vcf.bgz'
@@ -211,9 +216,10 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--format',
-        help='Write output in this format',
+        help='Write output in this format. "both" writes MT and VCF, "HT" writes the '
+             'rows from a MatrixTable (no genotypes)',
         default='mt',
-        choices=['both', 'mt', 'vcf'],
+        choices=['both', 'mt', 'vcf', 'ht'],
     )
     parser.add_argument('--chr', help='Contig portion of a locus', required=False)
     parser.add_argument(
