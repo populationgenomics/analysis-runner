@@ -6,7 +6,7 @@ import mimetypes
 import os
 from flask import Flask, abort, request, Response
 
-from cpg_utils.cloud import read_secret
+from cpg_utils.cloud import read_secret, check_member_in_cached_group_members
 import google.cloud.storage
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -31,12 +31,12 @@ def handler(dataset=None, filename=None):
     """Main entry point for serving."""
     if not dataset or not filename:
         logger.warning('Invalid request parameters')
-        abort(400)
+        return abort(400)
 
     iap_jwt = request.headers.get('x-goog-iap-jwt-assertion')
     if not iap_jwt:
         logger.warning('Missing x-goog-iap-jwt-assertion header')
-        abort(403)
+        return abort(403)
 
     try:
         decoded_jwt = google.oauth2.id_token.verify_token(
@@ -50,29 +50,21 @@ def handler(dataset=None, filename=None):
         email = decoded_jwt['email'].lower()
     except Exception:  # pylint: disable=broad-except
         logger.exception('Failed to extract email from ID token')
-        abort(403)
+        return abort(403)
 
     # Don't allow reading `.access` files.
     if os.path.basename(filename) == '.access':
-        abort(403)
+        return abort(403)
 
     server_config = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
-    dataset_config = server_config.get(dataset)
-    if not dataset_config:
+    if not dataset not in server_config:
         logger.warning(f'Invalid dataset "{dataset}"')
         abort(400)
 
     bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     bucket = storage_client.bucket(bucket_name)
 
-    dataset_project_id = dataset_config['gcp']['projectId']
-    members = (
-        read_secret(dataset_project_id, f'{dataset}-web-access-members-cache')
-        .lower()
-        .split(',')
-    )
-
-    if email not in members:
+    if not check_member_in_cached_group_members(f'{dataset}-web-access', email):
         # Second chance: if there's a '.access' file in the first subdirectory,
         # check if the email is listed there.
         split_subdir = filename.split('/', maxsplit=1)

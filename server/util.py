@@ -12,7 +12,11 @@ from cloudpathlib import AnyPath
 from hailtop.config import get_deploy_config
 from google.cloud import secretmanager, pubsub_v1
 from cpg_utils.config import update_dict
-from cpg_utils.cloud import email_from_id_token, read_secret
+from cpg_utils.cloud import (
+    email_from_id_token,
+    read_secret,
+    check_member_in_cached_group_members,
+)
 from cpg_utils.hail_batch import cpg_namespace
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
@@ -110,14 +114,9 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
         raise web.HTTPBadRequest(
             reason=f'The analysis-runner does not support checking group members for the {environment} environment'
         )
-
-    # force GCP projectId to check members
-    group_members = read_secret(
-        dataset_config['gcp']['projectId'], f'{dataset}-access-members-cache'
-    ).split(',')
-    if email not in group_members:
+    if not check_member_in_cached_group_members(f'{dataset}-analysis', email):
         raise web.HTTPForbidden(
-            reason=f'{email} is not a member of the {dataset} access group'
+            reason=f'{email} is not a member of the {dataset} analysis group'
         )
 
     return dataset_config
