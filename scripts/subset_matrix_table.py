@@ -217,7 +217,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--format',
         help='Write output in this format. "both" writes MT and VCF, "HT" writes the '
-             'rows from a MatrixTable (no genotypes)',
+        'rows from a MatrixTable (no genotypes)',
         default='mt',
         choices=['both', 'mt', 'vcf', 'ht'],
     )
