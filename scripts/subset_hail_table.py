@@ -15,7 +15,7 @@ import sys
 
 import hail as hl
 
-from cpg_utils.hail_batch import output_path, init_batch
+from cpg_utils.hail_batch import dataset_path, init_batch
 from cpg_utils.config import get_config
 
 
@@ -43,6 +43,7 @@ def main(
     ht_path: str,
     output_root: str,
     locus: hl.IntervalExpression | None,
+    out_format: str,
     biallelic: bool = False,
 ):
     """
@@ -52,11 +53,8 @@ def main(
     ht_path : path to input Table
     output_root : prefix for file naming
     locus : an optional parsed interval for locus-based selection
+    out_format : the format(s) to write in - ht, vcf, both (default 'ht')
     biallelic : if True, filter the output MT to biallelic sites only
-
-    Returns
-    -------
-
     """
 
     ht = hl.read_table(ht_path)
@@ -68,13 +66,17 @@ def main(
         ht = ht.filter(hl.len(ht.alleles) == 2)
 
     # create the output path; make sure we're only ever writing to test
-    actual_output_path = output_path(output_root).replace(
-        f'cpg-{get_config()["workflow"]["dataset"]}-main',
-        f'cpg-{get_config()["workflow"]["dataset"]}-test',
-    )
+    # create the output path; only ever writing to test
+    output_path = dataset_path(get_config()['storage']['default']['test'], output_root)
 
     # write the Table to a new output path
-    ht.write(f'{actual_output_path}.ht', overwrite=True)
+    if out_format in ['ht', 'both']:
+        # write the MT to a new output path
+        ht.write(f'{output_path}.ht', overwrite=True)
+
+    # if VCF, export as a VCF as well
+    if out_format in ['vcf', 'both']:
+        hl.export_vcf(ht, f'{output_path}.vcf.bgz', tabix=True)
 
 
 def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
@@ -147,11 +149,18 @@ if __name__ == '__main__':
     parser.add_argument('--chr', help='Contig portion of a locus', required=False)
     parser.add_argument(
         '--pos',
-        help='Pos portion of a locus. Can be "12345" or "12345-67890" for a range',
+        help='Pos portion of a locus. Can be "12345" or "12345-67890" for a range. '
+             'Start and end values can be the strings "start" and "end"',
         required=False,
     )
     parser.add_argument(
         '--biallelic', help='Remove non-biallelic sites', action='store_true'
+    )
+    parser.add_argument(
+        '--format',
+        help='Write output in this format',
+        default='ht',
+        choices=['both', 'ht', 'vcf'],
     )
     args, unknown = parser.parse_known_args()
 
@@ -166,4 +175,5 @@ if __name__ == '__main__':
         output_root=args.out,
         locus=locus_interval,
         biallelic=args.biallelic,
+        out_format=args.format,
     )
