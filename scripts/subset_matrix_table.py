@@ -131,16 +131,16 @@ def main(
         mt.write(matrixtable_path, overwrite=True)
         logging.info(f'Wrote new MT to {matrixtable_path!r}')
 
-    if out_format in ['ht', 'both']:
-        table_path = f'{output_path}.ht'
-        mt.rows().write(table_path, overwrite=True)
-        logging.info(f'Wrote new HT to {table_path!r}')
-
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
         vcf_path = f'{output_path}.vcf.bgz'
         hl.export_vcf(mt, vcf_path, tabix=True)
         logging.info(f'Wrote new table to {vcf_path!r}')
+
+    if out_format == 'ht':
+        table_path = f'{output_path}.ht'
+        mt.rows().write(table_path, overwrite=True)
+        logging.info(f'Wrote new HT to {table_path!r}')
 
 
 def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
