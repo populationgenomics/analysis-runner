@@ -243,6 +243,7 @@ def get_baseline_run_config(
             f'storage/{environment}/{dataset}-{cpg_namespace(access_level)}.toml',
         ]
     ]
+    template_paths.append(AnyPath(config_prefix) / 'infrastructure.toml')
     if missing := [p for p in template_paths if not p.exists()]:
         raise ValueError(f'Missing expected template configs: {missing}')
 
