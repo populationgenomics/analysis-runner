@@ -11,6 +11,7 @@ The pos format can be a single int, or a "start-end"
 
 from argparse import ArgumentParser
 import logging
+import os
 import sys
 
 import hail as hl
@@ -65,18 +66,23 @@ def main(
     if biallelic:
         ht = ht.filter(hl.len(ht.alleles) == 2)
 
-    # create the output path; make sure we're only ever writing to test
     # create the output path; only ever writing to test
-    output_path = dataset_path(get_config()['storage']['default']['test'], output_root)
+    output_path = dataset_path(
+        os.path.join(get_config()['workflow']['output_prefix'], output_root),
+        access_level='test',
+    )
 
     # write the Table to a new output path
     if out_format in ['ht', 'both']:
-        # write the MT to a new output path
-        ht.write(f'{output_path}.ht', overwrite=True)
+        table_path = f'{output_path}.ht'
+        ht.write(table_path, overwrite=True)
+        logging.info(f'Wrote new table to {table_path!r}')
 
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
-        hl.export_vcf(ht, f'{output_path}.vcf.bgz', tabix=True)
+        vcf_path = f'{output_path}.vcf.bgz'
+        hl.export_vcf(ht, vcf_path, tabix=True)
+        logging.info(f'Wrote new table to {vcf_path!r}')
 
 
 def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
@@ -150,7 +156,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--pos',
         help='Pos portion of a locus. Can be "12345" or "12345-67890" for a range. '
-             'Start and end values can be the strings "start" and "end"',
+        'Start and end values can be the strings "start" and "end"',
         required=False,
     )
     parser.add_argument(

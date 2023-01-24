@@ -15,6 +15,7 @@ Default behaviour is to remove any sites where the requested samples
 
 from argparse import ArgumentParser
 import logging
+import os
 import sys
 
 import hail as hl
@@ -120,15 +121,21 @@ def main(
         mt = mt.filter_rows(hl.len(mt.alleles) >= 2)
 
     # create the output path; only ever writing to test
-    output_path = dataset_path(get_config()['storage']['default']['test'], output_root)
+    output_path = dataset_path(
+        os.path.join(get_config()['workflow']['output_prefix'], output_root),
+        access_level='test',
+    )
 
     if out_format in ['mt', 'both']:
-        # write the MT to a new output path
-        mt.write(f'{output_path}.mt', overwrite=True)
+        matrixtable_path = f'{output_path}.mt'
+        mt.write(matrixtable_path, overwrite=True)
+        logging.info(f'Wrote new MT to {matrixtable_path!r}')
 
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
-        hl.export_vcf(mt, f'{output_path}.vcf.bgz', tabix=True)
+        vcf_path = f'{output_path}.vcf.bgz'
+        hl.export_vcf(mt, vcf_path, tabix=True)
+        logging.info(f'Wrote new table to {vcf_path!r}')
 
 
 def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
