@@ -6,7 +6,7 @@ import mimetypes
 import os
 from flask import Flask, abort, request, Response
 
-from cpg_utils.cloud import read_secret, check_member_in_cached_group_members
+from cpg_utils.cloud import read_secret, is_member_in_cached_group
 import google.cloud.storage
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -59,12 +59,12 @@ def handler(dataset=None, filename=None):
     server_config = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
     if not dataset not in server_config:
         logger.warning(f'Invalid dataset "{dataset}"')
-        abort(400)
+        return abort(400)
 
     bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     bucket = storage_client.bucket(bucket_name)
 
-    if not check_member_in_cached_group_members(f'{dataset}-web-access', email):
+    if not is_member_in_cached_group(f'{dataset}-web-access', email):
         # Second chance: if there's a '.access' file in the first subdirectory,
         # check if the email is listed there.
         split_subdir = filename.split('/', maxsplit=1)
@@ -73,18 +73,18 @@ def handler(dataset=None, filename=None):
             blob = bucket.get_blob(access_list_filename)
             if blob is None:
                 logger.warning(f'{email} is not a member of the {dataset} access group')
-                abort(403)
+                return abort(403)
             access_list = blob.download_as_string().decode('utf-8').lower().splitlines()
             if email not in access_list:
                 logger.warning(
                     f'{email} is not in {dataset} access group or {access_list_filename}'
                 )
-                abort(403)
+                return abort(403)
 
     logger.info(f'Fetching blob gs://{bucket_name}/{filename}')
     blob = bucket.get_blob(filename)
     if blob is None:
-        abort(404)
+        return abort(404)
 
     response = Response(blob.download_as_string())
     response.headers['Content-Type'] = (

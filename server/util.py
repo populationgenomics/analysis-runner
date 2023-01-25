@@ -15,7 +15,7 @@ from cpg_utils.config import update_dict
 from cpg_utils.cloud import (
     email_from_id_token,
     read_secret,
-    check_member_in_cached_group_members,
+    is_member_in_cached_group,
 )
 from cpg_utils.hail_batch import cpg_namespace
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
@@ -114,7 +114,7 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
         raise web.HTTPBadRequest(
             reason=f'The analysis-runner does not support checking group members for the {environment} environment'
         )
-    if not check_member_in_cached_group_members(f'{dataset}-analysis', email):
+    if not is_member_in_cached_group(f'{dataset}-analysis', email):
         raise web.HTTPForbidden(
             reason=f'{email} is not a member of the {dataset} analysis group'
         )
