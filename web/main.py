@@ -1,3 +1,4 @@
+# pylint: disable=too-many-return-statements
 """Web server which proxies requests to per-dataset "web" buckets."""
 
 import json
@@ -6,7 +7,7 @@ import mimetypes
 import os
 from flask import Flask, abort, request, Response
 
-from cpg_utils.cloud import read_secret
+from cpg_utils.cloud import read_secret, is_member_in_cached_group
 import google.cloud.storage
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -20,6 +21,9 @@ assert BUCKET_SUFFIX
 IAP_EXPECTED_AUDIENCE = os.getenv('IAP_EXPECTED_AUDIENCE')
 assert IAP_EXPECTED_AUDIENCE
 
+MEMBERS_CACHE_LOCATION = os.getenv('MEMBERS_CACHE_LOCATION')
+assert MEMBERS_CACHE_LOCATION
+
 app = Flask(__name__)
 
 storage_client = google.cloud.storage.Client()
@@ -31,12 +35,12 @@ def handler(dataset=None, filename=None):
     """Main entry point for serving."""
     if not dataset or not filename:
         logger.warning('Invalid request parameters')
-        abort(400)
+        return abort(400)
 
     iap_jwt = request.headers.get('x-goog-iap-jwt-assertion')
     if not iap_jwt:
         logger.warning('Missing x-goog-iap-jwt-assertion header')
-        abort(403)
+        return abort(403)
 
     try:
         decoded_jwt = google.oauth2.id_token.verify_token(
@@ -50,29 +54,23 @@ def handler(dataset=None, filename=None):
         email = decoded_jwt['email'].lower()
     except Exception:  # pylint: disable=broad-except
         logger.exception('Failed to extract email from ID token')
-        abort(403)
+        return abort(403)
 
     # Don't allow reading `.access` files.
     if os.path.basename(filename) == '.access':
-        abort(403)
+        return abort(403)
 
     server_config = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
-    dataset_config = server_config.get(dataset)
-    if not dataset_config:
+    if not dataset not in server_config:
         logger.warning(f'Invalid dataset "{dataset}"')
-        abort(400)
+        return abort(400)
 
     bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     bucket = storage_client.bucket(bucket_name)
 
-    dataset_project_id = dataset_config['gcp']['projectId']
-    members = (
-        read_secret(dataset_project_id, f'{dataset}-web-access-members-cache')
-        .lower()
-        .split(',')
-    )
-
-    if email not in members:
+    if not is_member_in_cached_group(
+        f'{dataset}-web-access', email, members_cache_location=MEMBERS_CACHE_LOCATION
+    ):
         # Second chance: if there's a '.access' file in the first subdirectory,
         # check if the email is listed there.
         split_subdir = filename.split('/', maxsplit=1)
@@ -81,18 +79,18 @@ def handler(dataset=None, filename=None):
             blob = bucket.get_blob(access_list_filename)
             if blob is None:
                 logger.warning(f'{email} is not a member of the {dataset} access group')
-                abort(403)
+                return abort(403)
             access_list = blob.download_as_string().decode('utf-8').lower().splitlines()
             if email not in access_list:
                 logger.warning(
                     f'{email} is not in {dataset} access group or {access_list_filename}'
                 )
-                abort(403)
+                return abort(403)
 
     logger.info(f'Fetching blob gs://{bucket_name}/{filename}')
     blob = bucket.get_blob(filename)
     if blob is None:
-        abort(404)
+        return abort(404)
 
     response = Response(blob.download_as_string())
     response.headers['Content-Type'] = (
