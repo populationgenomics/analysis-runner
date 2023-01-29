@@ -35,7 +35,7 @@ def handler(dataset=None, filename=None):
     """Main entry point for serving."""
     if not dataset or not filename:
         logger.warning('Invalid request parameters')
-        return abort(400)
+        return abort(400, 'Either the dataset or filename was not present')
 
     iap_jwt = request.headers.get('x-goog-iap-jwt-assertion')
     if not iap_jwt:
@@ -58,19 +58,31 @@ def handler(dataset=None, filename=None):
 
     # Don't allow reading `.access` files.
     if os.path.basename(filename) == '.access':
-        return abort(403)
+        return abort(403, 'Unable to read .access files')
 
     server_config = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
-    if not dataset not in server_config:
+    if dataset not in server_config:
         logger.warning(f'Invalid dataset "{dataset}"')
-        return abort(400)
+        return abort(403, 'Invalid dataset')
 
     bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     bucket = storage_client.bucket(bucket_name)
 
-    if not is_member_in_cached_group(
-        f'{dataset}-web-access', email, members_cache_location=MEMBERS_CACHE_LOCATION
-    ):
+    logger.warning(f'Looking up members in {dataset}-web-access group')
+    try:
+        in_web_access_group = is_member_in_cached_group(
+            f'{dataset}-web-access',
+            email,
+            members_cache_location=MEMBERS_CACHE_LOCATION,
+        )
+        logger.warning(
+            f'Successfully looked up web-access members, {in_web_access_group}'
+        )
+    except Exception as e:  # pylint: disable=broad-except
+        in_web_access_group = False
+        logger.warning(f'Unsuccessful in membership lookup: {e}')
+
+    if not in_web_access_group:
         # Second chance: if there's a '.access' file in the first subdirectory,
         # check if the email is listed there.
         split_subdir = filename.split('/', maxsplit=1)
@@ -90,7 +102,7 @@ def handler(dataset=None, filename=None):
     logger.info(f'Fetching blob gs://{bucket_name}/{filename}')
     blob = bucket.get_blob(filename)
     if blob is None:
-        return abort(404)
+        return abort(404, 'File was not found')
 
     response = Response(blob.download_as_string())
     response.headers['Content-Type'] = (
