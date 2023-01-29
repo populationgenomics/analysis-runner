@@ -30,6 +30,9 @@ ALLOWED_CONTAINER_IMAGE_PREFIXES = (
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
 
+MEMBERS_CACHE_LOCATION = os.getenv('MEMBERS_CACHE_LOCATION')
+assert MEMBERS_CACHE_LOCATION
+
 CONFIG_PATH_PREFIXES = {'gcp': 'gs://cpg-config'}
 
 secret_manager = secretmanager.SecretManagerServiceClient()
@@ -114,7 +117,7 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
         raise web.HTTPBadRequest(
             reason=f'The analysis-runner does not support checking group members for the {environment} environment'
         )
-    if not is_member_in_cached_group(f'{dataset}-analysis', email):
+    if not is_member_in_cached_group(f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION):
         raise web.HTTPForbidden(
             reason=f'{email} is not a member of the {dataset} analysis group'
         )
@@ -237,6 +240,7 @@ def get_baseline_run_config(
     template_paths = [
         AnyPath(config_prefix) / 'templates' / suf
         for suf in [
+            'infrastructure.toml',
             'images/images.toml',
             'references/references.toml',
             f'storage/{environment}/{dataset}-{cpg_namespace(access_level)}.toml',

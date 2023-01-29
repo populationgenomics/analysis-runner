@@ -212,7 +212,7 @@ async def config(request):
     email = get_email_from_request(request)
     # When accessing a missing entry in the params dict, the resulting KeyError
     # exception gets translated to a Bad Request error in the try block below.
-    params = await request.json()
+    params = request.query
 
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
