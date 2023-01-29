@@ -68,19 +68,15 @@ def handler(dataset=None, filename=None):
     bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     bucket = storage_client.bucket(bucket_name)
 
-    logger.warning(f'Looking up members in {dataset}-web-access group')
+    in_web_access_group = False
     try:
         in_web_access_group = is_member_in_cached_group(
             f'{dataset}-web-access',
             email,
             members_cache_location=MEMBERS_CACHE_LOCATION,
         )
-        logger.warning(
-            f'Successfully looked up web-access members, {in_web_access_group}'
-        )
     except Exception as e:  # pylint: disable=broad-except
-        in_web_access_group = False
-        logger.warning(f'Unsuccessful in membership lookup: {e}')
+        logger.warning(f'Failed to access group membership cache: {e}')
 
     if not in_web_access_group:
         # Second chance: if there's a '.access' file in the first subdirectory,
