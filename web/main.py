@@ -1,3 +1,4 @@
+# pylint: disable=too-many-return-statements
 """Web server which proxies requests to per-dataset "web" buckets."""
 
 import json
@@ -19,6 +20,9 @@ assert BUCKET_SUFFIX
 # See https://cloud.google.com/iap/docs/signed-headers-howto
 IAP_EXPECTED_AUDIENCE = os.getenv('IAP_EXPECTED_AUDIENCE')
 assert IAP_EXPECTED_AUDIENCE
+
+MEMBERS_CACHE_LOCATION = os.getenv('MEMBERS_CACHE_LOCATION')
+assert MEMBERS_CACHE_LOCATION
 
 app = Flask(__name__)
 
@@ -64,7 +68,9 @@ def handler(dataset=None, filename=None):
     bucket_name = f'cpg-{dataset}-{BUCKET_SUFFIX}'
     bucket = storage_client.bucket(bucket_name)
 
-    if not is_member_in_cached_group(f'{dataset}-web-access', email):
+    if not is_member_in_cached_group(
+        f'{dataset}-web-access', email, members_cache_location=MEMBERS_CACHE_LOCATION
+    ):
         # Second chance: if there's a '.access' file in the first subdirectory,
         # check if the email is listed there.
         split_subdir = filename.split('/', maxsplit=1)
