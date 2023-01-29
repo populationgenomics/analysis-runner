@@ -117,7 +117,9 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
         raise web.HTTPBadRequest(
             reason=f'The analysis-runner does not support checking group members for the {environment} environment'
         )
-    if not is_member_in_cached_group(f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION):
+    if not is_member_in_cached_group(
+        f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION
+    ):
         raise web.HTTPForbidden(
             reason=f'{email} is not a member of the {dataset} analysis group'
         )
