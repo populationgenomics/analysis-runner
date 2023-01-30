@@ -103,7 +103,7 @@ def run_config(  # pylint: disable=too-many-arguments
 
     response = requests.get(
         server_endpoint,
-        json={
+        params={
             'dataset': dataset,
             'output': output_dir,
             'accessLevel': access_level,

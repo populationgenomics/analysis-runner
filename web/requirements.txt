@@ -1,4 +1,4 @@
-cpg-utils==4.3.6
+cpg-utils==4.12.0
 cryptography==3.3.2
 flask==2.1.2
 gunicorn==20.1.0
