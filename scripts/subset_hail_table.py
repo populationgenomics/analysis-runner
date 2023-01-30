@@ -11,13 +11,11 @@ The pos format can be a single int, or a "start-end"
 
 from argparse import ArgumentParser
 import logging
-import os
 import sys
 
 import hail as hl
 
 from cpg_utils.hail_batch import output_path, init_batch
-from cpg_utils.config import get_config
 
 
 def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
