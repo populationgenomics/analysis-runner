@@ -20,7 +20,6 @@ import sys
 import hail as hl
 
 from cpg_utils.hail_batch import output_path, init_batch
-from cpg_utils.config import get_config
 
 
 def subset_to_samples(
@@ -40,10 +39,10 @@ def subset_to_samples(
     -------
     The original MT reduced to only the selected samples, and depending on the
     keep_hom_ref flag, only sites where that sample subset contain alt calls
-
     """
 
     missing_samples = samples.difference(set(mt.s.collect()))
+
     if missing_samples:
         raise Exception(f'Sample(s) missing from subset: {", ".join(missing_samples)}')
 
@@ -80,11 +79,12 @@ def subset_to_locus(mt: hl.MatrixTable, locus: hl.IntervalExpression) -> hl.Matr
 
 def main(
     mt_path: str,
-    output_root: str,
+    prefix: str,
     samples: set[str],
     out_format: str,
     locus: hl.IntervalExpression | None,
-    keep_hom_ref: bool,
+    all_ref: bool,
+    sample_ref: bool,
     biallelic: bool = False,
 ):
     """
@@ -92,42 +92,48 @@ def main(
     Parameters
     ----------
     mt_path : path to input MatrixTable
-    output_root : prefix for file naming
+    prefix : prefix for file naming
     samples : a set of samples to reduce the joint-call to
     out_format : whether to write as a MT, VCF, or Both
     locus : an optional parsed interval for locus-based selection
-    keep_hom_ref : if true, retain all sites in the subset
+    all_ref : if true, retain sites without alt calls in the subset
+    sample_ref : if true, retain called reference sites
     biallelic : if True, filter the output MT to biallelic sites only
-
-    Returns
-    -------
-
     """
 
     mt = hl.read_matrix_table(mt_path)
 
     if samples:
-        mt = subset_to_samples(mt, samples=samples, keep_hom_ref=keep_hom_ref)
+        mt = subset_to_samples(mt, samples=samples, keep_hom_ref=sample_ref)
 
     if isinstance(locus, hl.IntervalExpression):
         mt = subset_to_locus(mt, locus=locus)
 
+    # biallelic flag reduces to [ref, alt] rows
     if biallelic:
         mt = mt.filter_rows(hl.len(mt.alleles) == 2)
 
-    # create the output path; make sure we're only ever writing to test
-    actual_output_path = output_path(output_root).replace(
-        f'cpg-{get_config()["workflow"]["dataset"]}-main',
-        f'cpg-{get_config()["workflow"]["dataset"]}-test',
-    )
+    # base assumption is that we want to remove reference blocks (monoallelic)
+    # this filter permits multi-allelics
+    elif not all_ref:
+        mt = mt.filter_rows(hl.len(mt.alleles) >= 2)
 
+    # write data to test output paths
     if out_format in ['mt', 'both']:
-        # write the MT to a new output path
-        mt.write(f'{actual_output_path}.mt', overwrite=True)
+        matrixtable_path = output_path(f'{prefix}.mt', test=True)
+        mt.write(matrixtable_path, overwrite=True)
+        logging.info(f'Wrote new MT to {matrixtable_path!r}')
 
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
-        hl.export_vcf(mt, f'{actual_output_path}.vcf.bgz', tabix=True)
+        vcf_path = output_path(f'{prefix}.vcf.bgz', test=True)
+        hl.export_vcf(mt, vcf_path, tabix=True)
+        logging.info(f'Wrote new table to {vcf_path!r}')
+
+    if out_format == 'ht':
+        table_path = f'{output_path}.ht'
+        mt.rows().write(table_path, overwrite=True)
+        logging.info(f'Wrote new HT to {table_path!r}')
 
 
 def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
@@ -203,9 +209,10 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--format',
-        help='Write output in this format',
+        help='Write output in this format. "both" writes MT and VCF, "HT" writes the '
+        'rows from a MatrixTable (no genotypes)',
         default='mt',
-        choices=['both', 'mt', 'vcf'],
+        choices=['both', 'mt', 'vcf', 'ht'],
     )
     parser.add_argument('--chr', help='Contig portion of a locus', required=False)
     parser.add_argument(
@@ -214,27 +221,44 @@ if __name__ == '__main__':
         required=False,
     )
     parser.add_argument(
-        '--keep_ref',
-        help='Output will retain all sites, even where the sample subset is HomRef',
+        '--keep_all_ref',
+        help='Output will retain sites which represent reference calls; e.g. if input '
+        'MT has not been densified, this flag will cause the output to contain '
+        'rows with a single allele, representing a reference call or block. This '
+        'argument conflicts with --biallelic',
         action='store_true',
     )
     parser.add_argument(
-        '--biallelic', help='Remove non-biallelic sites', action='store_true'
+        '--keep_sample_ref',
+        help='Output will retain sites where the sample subset is HomRef; e.g. if '
+        'you subset to a group of samples such that no remaining sample has an '
+        'alt call, the default behaviour is to drop those calls',
+        action='store_true',
+    )
+    parser.add_argument(
+        '--biallelic',
+        help='Remove non-biallelic sites. This argument conflicts with --keep_all_ref',
+        action='store_true',
     )
     args, unknown = parser.parse_known_args()
 
     if unknown:
-        raise Exception(f'Unknown args, could not parse: "{unknown}"')
+        raise Exception(f'Unknown args, could not parse: {unknown!r}')
+
+    assert not (
+        args.biallelic and args.keep_all_ref
+    ), 'choose one of --biallelic and --keep_all_ref'
 
     init_batch()
     locus_interval = clean_locus(args.chr, args.pos)
 
     main(
         mt_path=args.i,
-        output_root=args.out,
+        prefix=args.out,
         samples=set(args.s) if args.s else None,
         out_format=args.format,
         locus=locus_interval,
-        keep_hom_ref=args.keep_ref,
+        all_ref=args.keep_all_ref,
+        sample_ref=args.keep_sample_ref,
         biallelic=args.biallelic,
     )
