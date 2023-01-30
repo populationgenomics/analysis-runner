@@ -16,7 +16,7 @@ import sys
 
 import hail as hl
 
-from cpg_utils.hail_batch import dataset_path, init_batch
+from cpg_utils.hail_batch import output_path, init_batch
 from cpg_utils.config import get_config
 
 
@@ -66,21 +66,18 @@ def main(
     if biallelic:
         ht = ht.filter(hl.len(ht.alleles) == 2)
 
-    # create the output path; only ever writing to test
-    output_path = dataset_path(
-        os.path.join(get_config()['workflow']['output_prefix'], output_root),
-        access_level='test',
-    )
+    # just in case
+    output_root = output_root.removesuffix('.ht')
 
-    # write the Table to a new output path
+    # write data to a test output path
     if out_format in ['ht', 'both']:
-        table_path = f'{output_path}.ht'
+        table_path = output_path(f'{output_root}.ht', test=True)
         ht.write(table_path, overwrite=True)
         logging.info(f'Wrote new table to {table_path!r}')
 
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
-        vcf_path = f'{output_path}.vcf.bgz'
+        vcf_path = output_path(f'{output_root}.vcf.bgz', test=True)
         hl.export_vcf(ht, vcf_path, tabix=True)
         logging.info(f'Wrote new table to {vcf_path!r}')
 

@@ -15,13 +15,11 @@ Default behaviour is to remove any sites where the requested samples
 
 from argparse import ArgumentParser
 import logging
-import os
 import sys
 
 import hail as hl
 
-from cpg_utils.hail_batch import dataset_path, init_batch
-from cpg_utils.config import get_config
+from cpg_utils.hail_batch import output_path, init_batch
 
 
 def subset_to_samples(
@@ -81,7 +79,7 @@ def subset_to_locus(mt: hl.MatrixTable, locus: hl.IntervalExpression) -> hl.Matr
 
 def main(
     mt_path: str,
-    output_root: str,
+    prefix: str,
     samples: set[str],
     out_format: str,
     locus: hl.IntervalExpression | None,
@@ -94,7 +92,7 @@ def main(
     Parameters
     ----------
     mt_path : path to input MatrixTable
-    output_root : prefix for file naming
+    prefix : prefix for file naming
     samples : a set of samples to reduce the joint-call to
     out_format : whether to write as a MT, VCF, or Both
     locus : an optional parsed interval for locus-based selection
@@ -120,20 +118,15 @@ def main(
     elif not all_ref:
         mt = mt.filter_rows(hl.len(mt.alleles) >= 2)
 
-    # create the output path; only ever writing to test
-    output_path = dataset_path(
-        os.path.join(get_config()['workflow']['output_prefix'], output_root),
-        access_level='test',
-    )
-
+    # write data to test output paths
     if out_format in ['mt', 'both']:
-        matrixtable_path = f'{output_path}.mt'
+        matrixtable_path = output_path(f'{prefix}.mt', test=True)
         mt.write(matrixtable_path, overwrite=True)
         logging.info(f'Wrote new MT to {matrixtable_path!r}')
 
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
-        vcf_path = f'{output_path}.vcf.bgz'
+        vcf_path = output_path(f'{prefix}.vcf.bgz', test=True)
         hl.export_vcf(mt, vcf_path, tabix=True)
         logging.info(f'Wrote new table to {vcf_path!r}')
 
@@ -261,7 +254,7 @@ if __name__ == '__main__':
 
     main(
         mt_path=args.i,
-        output_root=args.out,
+        prefix=args.out,
         samples=set(args.s) if args.s else None,
         out_format=args.format,
         locus=locus_interval,
