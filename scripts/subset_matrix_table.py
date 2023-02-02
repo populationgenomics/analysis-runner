@@ -44,7 +44,9 @@ def subset_to_samples(
     missing_samples = samples.difference(set(mt.s.collect()))
 
     if missing_samples:
-        raise Exception(f'Sample(s) missing from subset: {", ".join(missing_samples)}')
+        raise AssertionError(
+            f'Sample(s) missing from subset: {", ".join(missing_samples)}'
+        )
 
     mt = mt.filter_cols(hl.set(samples).contains(mt.s))
 
@@ -73,7 +75,7 @@ def subset_to_locus(mt: hl.MatrixTable, locus: hl.IntervalExpression) -> hl.Matr
 
     mt = mt.filter_rows(locus.contains(mt.locus))
     if mt.count_rows() == 0:
-        raise Exception(f'No rows remain after applying Locus filter {locus}')
+        raise ValueError(f'No rows remain after applying Locus filter {locus}')
     return mt
 
 
@@ -152,7 +154,7 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         return None
 
     if pos and not contig:
-        raise Exception(f'Positional filtering requires a chromosome')
+        raise AssertionError(f'Positional filtering requires a chromosome')
 
     if contig and not pos:
         start = 'start'
@@ -188,7 +190,6 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
 
 
 if __name__ == '__main__':
-
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(levelname)s %(module)s:%(lineno)d - %(message)s',
@@ -243,7 +244,7 @@ if __name__ == '__main__':
     args, unknown = parser.parse_known_args()
 
     if unknown:
-        raise Exception(f'Unknown args, could not parse: {unknown!r}')
+        raise ValueError(f'Unknown args, could not parse: {unknown!r}')
 
     assert not (
         args.biallelic and args.keep_all_ref

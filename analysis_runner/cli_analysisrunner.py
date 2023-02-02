@@ -117,7 +117,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     """
 
     if repository is not None and commit is None:
-        raise Exception(
+        raise ValueError(
             "You must supply the '--commit <SHA>' parameter "
             "when specifying the '--repository'"
         )
@@ -258,4 +258,4 @@ def _perform_shebang_check(script):
             message += (
                 f', consider inserting "{suggestion_shebang}" at the top of this file'
             )
-        raise Exception(message)
+        raise AssertionError(message)

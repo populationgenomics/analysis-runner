@@ -106,7 +106,6 @@ def main(
 
 
 if __name__ == '__main__':
-
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(levelname)s %(module)s:%(lineno)d - %(message)s',
@@ -123,7 +122,7 @@ if __name__ == '__main__':
     args, unknown = parser.parse_known_args()
 
     if unknown:
-        raise Exception(f'Unknown args, could not parse: "{unknown}"')
+        raise ValueError(f'Unknown args, could not parse: "{unknown}"')
 
     main(
         project=args.project,
