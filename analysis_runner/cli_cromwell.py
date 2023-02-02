@@ -167,7 +167,7 @@ def _run_cromwell(
     Prepare parameters for cromwell analysis-runner job
     """
     if repository is not None and commit is None:
-        raise Exception(
+        raise ValueError(
             "You must supply the '--commit <SHA>' parameter "
             "when specifying the '--repository'"
         )
@@ -398,7 +398,6 @@ def parse_additional_args(args: List[str]) -> Dict[str, any]:
 
     for arg in args:
         if not arg.startswith('--'):
-
             if new_value is None:
                 # if it's the first value we're seeing, set it
                 new_value = arg

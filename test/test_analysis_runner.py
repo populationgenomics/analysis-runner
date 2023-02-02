@@ -57,7 +57,6 @@ def apply_mock_behaviour(
 
 
 class TestCliAnalysisRunner(unittest.TestCase):
-
     ANALYSIS_RUNNER_ARGS = [
         '--dataset',
         'fewgenomes',
@@ -74,7 +73,6 @@ class TestCliAnalysisRunner(unittest.TestCase):
     @patch(IMPORT_AR_IDENTITY_TOKEN_PATH)
     @patch(REQUEST_POST_PATH)
     def test_regular_cli(self, mock_post: MagicMock, mock_identity_token: MagicMock):
-
         apply_mock_behaviour(
             mock_post=mock_post, mock_identity_token=mock_identity_token
         )
@@ -87,7 +85,6 @@ class TestCliAnalysisRunner(unittest.TestCase):
     @patch(IMPORT_AR_IDENTITY_TOKEN_PATH)
     @patch(REQUEST_POST_PATH)
     def test_cli_with_mode(self, mock_post: MagicMock, mock_identity_token: MagicMock):
-
         apply_mock_behaviour(
             mock_post=mock_post, mock_identity_token=mock_identity_token
         )
@@ -130,7 +127,6 @@ class TestCliCromwell(unittest.TestCase):
     def test_status_cli(
         self, mock_print: MagicMock, mock_get: MagicMock, mock_id_token
     ):
-
         apply_mock_behaviour(mock_identity_token=mock_id_token)
         cm = {
             'id': '<mocked-id>',

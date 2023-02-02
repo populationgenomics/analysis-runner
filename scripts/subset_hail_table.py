@@ -34,7 +34,7 @@ def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
 
     ht = ht.filter(locus.contains(ht.locus))
     if ht.count() == 0:
-        raise Exception(f'No rows remain after applying Locus filter {locus}')
+        raise ValueError(f'No rows remain after applying Locus filter {locus}')
     return ht
 
 
@@ -96,7 +96,7 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         return None
 
     if pos and not contig:
-        raise Exception(f'Positional filtering requires a chromosome')
+        raise ValueError(f'Positional filtering requires a chromosome')
 
     if contig and not pos:
         start = 'start'
@@ -132,7 +132,6 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
 
 
 if __name__ == '__main__':
-
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(levelname)s %(module)s:%(lineno)d - %(message)s',
@@ -166,7 +165,7 @@ if __name__ == '__main__':
     args, unknown = parser.parse_known_args()
 
     if unknown:
-        raise Exception(f'Unknown args, could not parse: "{unknown}"')
+        raise ValueError(f'Unknown args, could not parse: "{unknown}"')
 
     init_batch()
     locus_interval = clean_locus(args.chr, args.pos)
