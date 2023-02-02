@@ -21,11 +21,11 @@ def get_output_of_command(command: List[str], description: str) -> str:
     except KeyboardInterrupt:
         raise
     except subprocess.CalledProcessError as e:
-        raise Exception(
+        raise IOError(
             f"Couldn't call {description} by calling '{' '.join(command)}', {e}"
         ) from e
     except Exception as e:
-        raise Exception(
+        raise type(e)(
             f"Couldn't process {description} through calling '{' '.join(command)}', {e}"
         ) from e
 
@@ -105,10 +105,10 @@ def get_repo_name_from_remote(remote_name: str) -> str:
         organization, repo = match.groups()
 
     if organization not in SUPPORTED_ORGANIZATIONS:
-        raise Exception(f'Unsupported GitHub organization "{organization}"')
-
+        raise ValueError(f'Unsupported GitHub organization "{organization}"')
     if not repo:
-        raise Exception(f'Unsupported remote format: "{remote_name}"')
+        raise ValueError(f'Unsupported remote format: "{remote_name}"')
+
     if repo.endswith('.git'):
         repo = repo[:-4]
 

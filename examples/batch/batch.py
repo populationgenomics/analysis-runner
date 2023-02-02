@@ -40,12 +40,10 @@ def main(cram_path: str, region: str):  # pylint: disable=missing-function-docst
 
     # Working with CRAM files requires the reference fasta
     ref = b.read_input_group(
-        **dict(
-            base=REF_FASTA,
-            fai=REF_FASTA + '.fai',
-            dict=REF_FASTA.replace('.fasta', '').replace('.fna', '').replace('.fa', '')
-            + '.dict',
-        )
+        base=REF_FASTA,
+        fai=REF_FASTA + '.fai',
+        dict=REF_FASTA.replace('.fasta', '').replace('.fna', '').replace('.fa', '')
+        + '.dict',
     )
 
     # This image contains basic bioinformatics tools like samtools, bcftools, Picard, etc.
