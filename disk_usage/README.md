@@ -6,7 +6,7 @@ explicitly listing all blobs. In contrast to `gsutil du`, we aggregate at the fo
 Example invocation (replace `$DATASET` accordingly):
 
 ```sh
-analysis-runner --dataset $DATASET --cpu 0.5 --access-level standard --output-dir "disk_usage/$(date +'%Y-%m-%d')" --description "disk usage stats" disk_usage.py
+analysis-runner --dataset $DATASET --cpu 0.5 --access-level full --output-dir "disk_usage/$(date +'%Y-%m-%d')" --description "disk usage stats" disk_usage.py
 ```
 
 For datasets with an extremely large number of blobs, consider setting `--no-preemptible`.
