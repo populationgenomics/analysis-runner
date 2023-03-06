@@ -26,6 +26,13 @@ BUCKET_SUFFIXES = [
     'test-web',
 ]
 
+STORAGE_COST_MONTHLY_PER_GB_SYDNEY = {
+    'STANDARD': 0.023,
+    'NEARLINE': 0.016,
+    'COLDLINE': 0.006,
+    'ARCHIVE': 0.0025,
+}
+
 
 def aggregate_level(name: str) -> str:
     """
@@ -73,8 +80,14 @@ def main():
             folder = f'/{aggregate_level(blob.name)}'
             while True:
                 path = f'gs://{bucket_name}{folder}'
-                aggregate_stats[path]['size'] += blob.size
-                aggregate_stats[path]['num_blobs'] += 1
+                stats = aggregate_stats[path]
+                stats['size'] += blob.size
+                stats[f'{blob.storage_class}_bytes'] += blob.size
+                stats['num_blobs'] += 1
+                size_in_gb = blob.size / 2**30
+                stats['monthly_storage_cost'] += (  # Assumes the bucket is in Sydney.
+                    size_in_gb * STORAGE_COST_MONTHLY_PER_GB_SYDNEY[blob.storage_class]
+                )
                 if not folder:
                     break
                 folder = folder[: folder.rfind('/')]
