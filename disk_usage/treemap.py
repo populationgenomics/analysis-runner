@@ -48,10 +48,10 @@ def main():
 
     def append_row(name, parent, values):
         size = values['size']
-        standard_bytes = values.get('STANDARD_bytes')
-        nearline_bytes = values.get('NEARLINE_bytes')
-        coldline_bytes = values.get('COLDLINE_bytes')
-        archive_bytes = values.get('ARCHIVE_bytes')
+        standard_bytes = values.get('STANDARD_bytes', 0)
+        nearline_bytes = values.get('NEARLINE_bytes', 0)
+        coldline_bytes = values.get('COLDLINE_bytes', 0)
+        archive_bytes = values.get('ARCHIVE_bytes', 0)
         # Map total bytes to a single `hotness` value in 0..1 based on storage class.
         hotness = (
             standard_bytes * 1
@@ -75,7 +75,7 @@ def main():
             )
         )
 
-    root_values = {}
+    root_values = defaultdict(int)
     group_by_dataset = args.group_by_dataset
     datasets: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for input_path in args.input:
