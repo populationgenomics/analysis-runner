@@ -246,6 +246,7 @@ def get_baseline_run_config(
             'images/images.toml',
             'references/references.toml',
             f'storage/{environment}/{dataset}-{cpg_namespace(access_level)}.toml',
+            'infrastructure.toml',
         ]
     ]
     if missing := [p for p in template_paths if not p.exists()]:
