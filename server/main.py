@@ -261,13 +261,18 @@ async def config(request):
 add_cromwell_routes(routes)
 
 
-def prepare_exception_json_response(status_code: int, message: str, tb: str) -> web.Response:
+def prepare_exception_json_response(
+    status_code: int, message: str, tb: str
+) -> web.Response:
     """Prepare web.Response for"""
     return web.Response(
         status=status_code,
-        body=json.dumps({'message': message, 'success': False, 'traceback': tb}).encode('utf-8'),
+        body=json.dumps({'message': message, 'success': False, 'traceback': tb}).encode(
+            'utf-8'
+        ),
         content_type='application/json',
     )
+
 
 def prepare_response_from_exception(ex: Exception):
     """Prepare json_response from exception"""
