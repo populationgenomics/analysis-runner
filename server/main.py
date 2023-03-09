@@ -204,7 +204,7 @@ async def index(request):
     return web.Response(text=f'{url}\n')
 
 
-@routes.get('/config')
+@routes.post('/config')
 async def config(request):
     """
     Generate CPG config, as JSON response
@@ -212,7 +212,7 @@ async def config(request):
     email = get_email_from_request(request)
     # When accessing a missing entry in the params dict, the resulting KeyError
     # exception gets translated to a Bad Request error in the try block below.
-    params = request.query
+    params = await request.json()
 
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
