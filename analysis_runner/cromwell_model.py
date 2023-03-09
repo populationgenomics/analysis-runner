@@ -122,7 +122,6 @@ class WorkflowMetadataModel:
         return WorkflowMetadataModel(calls=calls, **new_d)
 
     def display(self, expand_completed=False, monochrome=False):
-
         duration_seconds = get_seconds_duration_between_cromwell_dates(
             self.start, self.end
         )
@@ -301,7 +300,6 @@ class CallMetadata:
 
 
 def unwrap_caused_by(failures: List):
-
     inner_failures = []
     for failure in failures:
         m = failure.get('message', '')

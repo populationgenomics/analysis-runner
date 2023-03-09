@@ -16,7 +16,6 @@ import sys
 import hail as hl
 
 from cpg_utils.hail_batch import output_path, init_batch
-from cpg_utils.config import get_config
 
 
 def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
@@ -35,7 +34,7 @@ def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
 
     ht = ht.filter(locus.contains(ht.locus))
     if ht.count() == 0:
-        raise Exception(f'No rows remain after applying Locus filter {locus}')
+        raise ValueError(f'No rows remain after applying Locus filter {locus}')
     return ht
 
 
@@ -43,6 +42,7 @@ def main(
     ht_path: str,
     output_root: str,
     locus: hl.IntervalExpression | None,
+    out_format: str,
     biallelic: bool = False,
 ):
     """
@@ -52,11 +52,8 @@ def main(
     ht_path : path to input Table
     output_root : prefix for file naming
     locus : an optional parsed interval for locus-based selection
+    out_format : the format(s) to write in - ht, vcf, both (default 'ht')
     biallelic : if True, filter the output MT to biallelic sites only
-
-    Returns
-    -------
-
     """
 
     ht = hl.read_table(ht_path)
@@ -67,14 +64,20 @@ def main(
     if biallelic:
         ht = ht.filter(hl.len(ht.alleles) == 2)
 
-    # create the output path; make sure we're only ever writing to test
-    actual_output_path = output_path(output_root).replace(
-        f'cpg-{get_config()["workflow"]["dataset"]}-main',
-        f'cpg-{get_config()["workflow"]["dataset"]}-test',
-    )
+    # just in case
+    output_root = output_root.removesuffix('.ht')
 
-    # write the Table to a new output path
-    ht.write(f'{actual_output_path}.ht', overwrite=True)
+    # write data to a test output path
+    if out_format in ['ht', 'both']:
+        table_path = output_path(f'{output_root}.ht', test=True)
+        ht.write(table_path, overwrite=True)
+        logging.info(f'Wrote new table to {table_path!r}')
+
+    # if VCF, export as a VCF as well
+    if out_format in ['vcf', 'both']:
+        vcf_path = output_path(f'{output_root}.vcf.bgz', test=True)
+        hl.export_vcf(ht, vcf_path, tabix=True)
+        logging.info(f'Wrote new table to {vcf_path!r}')
 
 
 def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
@@ -93,7 +96,7 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         return None
 
     if pos and not contig:
-        raise Exception(f'Positional filtering requires a chromosome')
+        raise ValueError(f'Positional filtering requires a chromosome')
 
     if contig and not pos:
         start = 'start'
@@ -129,7 +132,6 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
 
 
 if __name__ == '__main__':
-
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(levelname)s %(module)s:%(lineno)d - %(message)s',
@@ -147,16 +149,23 @@ if __name__ == '__main__':
     parser.add_argument('--chr', help='Contig portion of a locus', required=False)
     parser.add_argument(
         '--pos',
-        help='Pos portion of a locus. Can be "12345" or "12345-67890" for a range',
+        help='Pos portion of a locus. Can be "12345" or "12345-67890" for a range. '
+        'Start and end values can be the strings "start" and "end"',
         required=False,
     )
     parser.add_argument(
         '--biallelic', help='Remove non-biallelic sites', action='store_true'
     )
+    parser.add_argument(
+        '--format',
+        help='Write output in this format',
+        default='ht',
+        choices=['both', 'ht', 'vcf'],
+    )
     args, unknown = parser.parse_known_args()
 
     if unknown:
-        raise Exception(f'Unknown args, could not parse: "{unknown}"')
+        raise ValueError(f'Unknown args, could not parse: "{unknown}"')
 
     init_batch()
     locus_interval = clean_locus(args.chr, args.pos)
@@ -166,4 +175,5 @@ if __name__ == '__main__':
         output_root=args.out,
         locus=locus_interval,
         biallelic=args.biallelic,
+        out_format=args.format,
     )

@@ -621,7 +621,6 @@ fi
 def _copy_resource_group_into_batch(
     j, *, rdict, output: CromwellOutputType, idx: Optional[int]
 ):
-
     rg = output.resource_group
 
     j.declare_resource_group(
@@ -656,7 +655,6 @@ def _copy_resource_group_into_batch(
     for jq_el, error_description, output_name in zip(
         jq_els, error_descriptions, rg.keys()
     ):
-
         j.command(
             f"""
         OUTPUT_TYPE=$(cat {rdict} | jq '.{jq_el}' | jq -r type)

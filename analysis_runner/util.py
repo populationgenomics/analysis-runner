@@ -107,7 +107,6 @@ def confirm_choice(choice: str):
 
 
 def _perform_version_check():
-
     current_version = __version__
 
     # with this URL, we're looking for a line with format:
