@@ -101,9 +101,9 @@ def run_config(  # pylint: disable=too-many-arguments
     )
     _token = get_google_identity_token(server_endpoint)
 
-    response = requests.get(
+    response = requests.post(
         server_endpoint,
-        params={
+        json={
             'dataset': dataset,
             'output': output_dir,
             'accessLevel': access_level,

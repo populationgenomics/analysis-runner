@@ -3,6 +3,7 @@
 import datetime
 import json
 import logging
+import traceback
 from shlex import quote
 import hailtop.batch as hb
 from aiohttp import web
@@ -204,7 +205,7 @@ async def index(request):
     return web.Response(text=f'{url}\n')
 
 
-@routes.get('/config')
+@routes.post('/config')
 async def config(request):
     """
     Generate CPG config, as JSON response
@@ -212,7 +213,7 @@ async def config(request):
     email = get_email_from_request(request)
     # When accessing a missing entry in the params dict, the resulting KeyError
     # exception gets translated to a Bad Request error in the try block below.
-    params = request.query
+    params = await request.json()
 
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
@@ -260,36 +261,42 @@ async def config(request):
 add_cromwell_routes(routes)
 
 
-def prepare_exception_json_response(status_code: int, message: str) -> web.Response:
+def prepare_exception_json_response(
+    status_code: int, message: str, tb: str
+) -> web.Response:
     """Prepare web.Response for"""
     return web.Response(
         status=status_code,
-        body=json.dumps({'message': message, 'success': False}).encode('utf-8'),
+        body=json.dumps({'message': message, 'success': False, 'traceback': tb}).encode(
+            'utf-8'
+        ),
         content_type='application/json',
     )
 
 
 def prepare_response_from_exception(ex: Exception):
     """Prepare json_response from exception"""
-    logging.error(f'Request failed with exception: {repr(ex)}')
+    tb = ''.join(traceback.format_exception(type(ex), ex, ex.__traceback__))
+
+    logging.error(f'Request failed with exception:\n{tb}')
 
     if isinstance(ex, web.HTTPException):
         return prepare_exception_json_response(
-            status_code=ex.status_code, message=ex.reason
+            status_code=ex.status_code, message=ex.reason, tb=tb
         )
     if isinstance(ex, KeyError):
         keys = ', '.join(ex.args)
         return prepare_exception_json_response(
-            400, f'Missing request parameter: {keys}'
+            400, message=f'Missing request parameter: {keys}', tb=tb
         )
     if isinstance(ex, ValueError):
-        return prepare_exception_json_response(400, ', '.join(ex.args))
+        return prepare_exception_json_response(400, ', '.join(ex.args), tb=tb)
 
     if hasattr(ex, 'message'):
         m = ex.message
     else:
         m = str(ex)
-    return prepare_exception_json_response(500, message=m)
+    return prepare_exception_json_response(500, message=m, tb=tb)
 
 
 async def error_middleware(_, handler):
