@@ -28,6 +28,7 @@ def copy_to_release(project: str, path: str):
     subprocess.run(f'gsutil cp {path} {release_path}', shell=True, check=True)
     logging.info(f'Copied {release_path}')
 
+
 @click.command()
 @click.option('--project', '-p', help='Metamist name of the project', required=True)
 @click.argument('samples', nargs=-1)
@@ -52,6 +53,7 @@ def main(project: str, samples):
         copy_to_release(project, cram['output'])
         copy_to_release(project, cram['output'] + '.crai')
 
+
 if __name__ == '__main__':
     logging.basicConfig(
         level=logging.INFO,
@@ -60,4 +62,4 @@ if __name__ == '__main__':
         stream=sys.stderr,
     )
 
-    main()
+    main()  # pylint: disable=no-value-for-parameter
