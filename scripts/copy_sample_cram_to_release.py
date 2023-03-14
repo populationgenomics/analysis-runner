@@ -18,6 +18,28 @@ from sample_metadata.apis import AnalysisApi
 from sample_metadata.models import AnalysisType
 
 
+def check_paths_exist(paths: list[str]):
+    """
+    Checks a list of gs:// paths to see if they point to an existing blob
+    Logs the invalid paths if any are found
+    """
+    invalid_paths = False
+    for path in paths:
+        # gsutil ls <path> returns '<path>\n' if path exists
+        result = subprocess.run(
+            ['gsutil', 'ls', path], check=True, capture_output=True, text=True
+        ).stdout.strip('\n')
+        if result == path:
+            continue
+        # If path does not exist, log the path and set invalid_paths to True
+        logging.info(f'Invalid path: {path}')
+        invalid_paths = True
+
+    if invalid_paths:
+        return False
+    return True
+
+
 def copy_to_release(project: str, paths: list[str]):
     """
     Copy many files from main bucket paths to the release bucket with todays date as directory
@@ -60,7 +82,9 @@ def main(project: str, samples):
         cram_paths.append(cram['output'])
         cram_paths.append(cram['output'] + '.crai')
 
-    copy_to_release(project, cram_paths)
+    # Check if all paths are valid and execute the copy commands if they are
+    if check_paths_exist(cram_paths):
+        copy_to_release(project, cram_paths)
 
 
 if __name__ == '__main__':
