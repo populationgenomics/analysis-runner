@@ -13,7 +13,7 @@ from typing import List, Dict, Optional, Any
 from cpg_utils.config import get_config
 from hailtop.batch import Resource
 from hailtop.batch.job import Job
-from analysis_runner.cli_cromwell import WorkflowMetadataModel, visualise_cromwell_metadata
+from analysis_runner.cli_cromwell import WorkflowMetadataModel
 from analysis_runner.constants import (
     CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
