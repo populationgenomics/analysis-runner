@@ -13,6 +13,7 @@ from typing import List, Dict, Optional, Any
 from cpg_utils.config import get_config
 from hailtop.batch import Resource
 from hailtop.batch.job import Job
+from analysis_runner.cli_cromwell import WorkflowMetadataModel, visualise_cromwell_metadata
 from analysis_runner.constants import (
     CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
@@ -388,9 +389,8 @@ def watch_workflow(
             status = r.json().get('status')
             _remaining_exceptions = max_sequential_exception_count
 
-            # if workflow has concluded print logging to hail batch log
-            # only do once workflow has reached a final state so as not
-            # to duplicate
+            # if workflow has concluded print logging to hail batch log only do
+            # once workflow has reached a final state so as not to duplicate
             if status.lower() in terminal_statuses:
                 logger.info('Cromwell workflow has concluded - fetching log')
                 metadata_url = (
@@ -408,7 +408,10 @@ def watch_workflow(
                     )
                     time.sleep(wait_time)
                     continue
-                logger.info(json.dumps(metadata_output.json(), indent=4))
+
+                metadata_model = WorkflowMetadataModel.parse(metadata_output.json())
+                # default args: expand_completed = False, monochrome = False
+                logger.info(metadata_model.display())
 
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
