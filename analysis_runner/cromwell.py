@@ -360,6 +360,7 @@ def watch_workflow(
     logger.info(f'Received workflow ID: {workflow_id}')
 
     failed_statuses = {'failed', 'aborted'}
+    terminal_statuses = {'succeeded'} | failed_statuses
     subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
     url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
     _remaining_exceptions = max_sequential_exception_count
@@ -386,6 +387,30 @@ def watch_workflow(
                 continue
             status = r.json().get('status')
             _remaining_exceptions = max_sequential_exception_count
+
+            # if workflow has concluded print logging to hail batch log
+            # only do once workflow has reached a final state so as not
+            # to duplicate
+            if status.lower() in terminal_statuses:
+                logger.info('Cromwell workflow has concluded - fetching log')
+                metadata_url = (
+                    'https://cromwell.populationgenomics.org.au/api/workflows'
+                    f'/v1/{workflow_id}/metadata'
+                )
+                metadata_output = requests.get(
+                    metadata_url,
+                    headers={'Authorization': f'Bearer {token}'},
+                    timeout=60,
+                )
+                if not metadata_output.ok:
+                    logger.warning(
+                        'Failed to fetch metadata, ' f'trying in {wait_time} secs'
+                    )
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.info(json.dumps(metadata_output.json(), indent=4))
+
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
                 # process outputs here
@@ -401,7 +426,7 @@ def watch_workflow(
                 if not r_outputs.ok:
                     logger.warning(
                         'Received error when fetching cromwell outputs, '
-                        'will retry in 15 seconds'
+                        f'will retry in {wait_time} seconds'
                     )
                     time.sleep(wait_time)
                     continue
