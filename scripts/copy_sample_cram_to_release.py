@@ -25,12 +25,15 @@ def copy_to_release(project: str, paths: list[str]):
     today = time.strftime('%Y-%m-%d')
     release_path = f'gs://cpg-{project}-release/{today}/'
 
-    subprocess.run(['gcloud', 'storage', '--billing-project', project, 'cp', *paths, release_path], check=True)
+    subprocess.run(
+        ['gcloud', 'storage', '--billing-project', project, 'cp', *paths, release_path],
+        check=True,
+    )
     logging.info(f'Copied {paths} into {release_path}')
 
 
 @click.command()
-@click.option('--project', '-p', help='Metamist name of the project', default="")
+@click.option('--project', '-p', help='Metamist name of the project', default='')
 @click.argument('samples', nargs=-1)
 def main(project: str, samples):
     """
