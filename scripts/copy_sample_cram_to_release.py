@@ -25,7 +25,7 @@ def copy_to_release(project: str, path: str):
         f'cpg-{project}-release',
     )
 
-    subprocess.run(f'gsutil cp {path} {release_path}', shell=True, check=True)
+    subprocess.run(['gsutil', 'cp', '-u', project, path, release_path], check=True)
     logging.info(f'Copied {release_path}')
 
 
