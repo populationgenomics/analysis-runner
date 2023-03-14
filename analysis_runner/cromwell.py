@@ -411,6 +411,7 @@ def watch_workflow(
 
                 metadata_model = WorkflowMetadataModel.parse(metadata_output.json())
                 # default args: expand_completed = False, monochrome = False
+                logger.info(metadata_url)
                 logger.info(metadata_model.display())
 
             if status.lower() == 'succeeded':
