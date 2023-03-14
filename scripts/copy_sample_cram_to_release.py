@@ -45,19 +45,22 @@ def main(project: str, samples):
         config = get_config()
         project = config['workflow']['dataset']
 
-    sample_ids = list(samples)
+    # sample_ids = list(samples)
 
-    # Retrieve latest crams for selected samples
-    latest_crams = AnalysisApi().get_latest_analysis_for_samples_and_type(
-        AnalysisType('cram'), project, request_body=sample_ids
-    )
+    # # Retrieve latest crams for selected samples
+    # latest_crams = AnalysisApi().get_latest_analysis_for_samples_and_type(
+    #     AnalysisType('cram'), project, request_body=sample_ids
+    # )
 
-    # Get all paths of files to be copied to release
-    cram_paths = []
-    for cram in latest_crams:
-        #cram_paths.append(cram['output'])
-        cram_paths.append(cram['output'] + '.crai')
-
+    # # Get all paths of files to be copied to release
+    # cram_paths = []
+    # for cram in latest_crams:
+    #     #cram_paths.append(cram['output'])
+    #     cram_paths.append(cram['output'] + '.crai')
+    cram_paths = ['gs://cpg-perth-neuro-test/ed_test_20230314/test1.rtf',
+                  'gs://cpg-perth-neuro-test/ed_test_20230314/test2.rtf',
+                  'gs://cpg-perth-neuro-test/ed_test_20230314/test3.rtf',
+                  'gs://cpg-perth-neuro-test/ed_test_20230314/test4.rtf']
     copy_to_release(project, cram_paths)
 
 
