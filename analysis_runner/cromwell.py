@@ -408,8 +408,7 @@ def watch_workflow(
                     )
                     time.sleep(wait_time)
                     continue
-                else:
-                    logger.info(json.dumps(metadata_output.json(), indent=4))
+                logger.info(json.dumps(metadata_output.json(), indent=4))
 
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
