@@ -11,8 +11,7 @@ analysis-runner \
     --access-level <level> \
     vep_batch_backend.py \
     --vcf-path <path-to-vcf> \
-    --output-ht <output-of-annotated-vcf> \
-    --scatter-count <number-of-fragments>
+    --output-ht <output-of-annotated-vcf>
 ```
 
 As an example, the following invocation would run VEP annotation for a VCF file in the `test` bucket for the `tx-adapt` dataset.
@@ -20,14 +19,12 @@ As an example, the following invocation would run VEP annotation for a VCF file 
 ```sh
 analysis-runner \
     --config vep_config.toml \
-    --config workflows.toml \
     --dataset tx-adapt \
     --description "run VEP using batch backend"  \
     --output-dir "vep_batch/v0" \
-    --image australia-southeast1-docker.pkg.dev/cpg-common/images/cpg_workflows:latest \
-    --access-level test vep_batch_backend.py \
+    --access-level test \
+    vep_batch_backend.py \
     # full path of VCF file
     --vcf-path "gs://cpg-tx-adapt-test/vep/indels.vcf.bgz" \
-    --output-ht "vep/batch/annotated_indels.ht" \
-    --scatter-count 5
+    --output-ht "vep/batch/annotated_indels.ht" 
 ```
