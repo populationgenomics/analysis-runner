@@ -19,10 +19,17 @@ from cpg_utils.hail_batch import (
 
 
 @click.command('Transfer_datasets from signed URLs')
+@click.option(
+    '--filenames',
+    is_flag=True,
+    default=False,
+    help='Use filenames defined before each url',
+)
 @click.option('--presigned-url-file-path')
-def main(presigned_url_file_path: str):
+def main(presigned_url_file_path: str, filenames: bool):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
+    If each signed url is prefixed by a filename and a space, use the --filenames flag
     GCP suffix in target GCP bucket is defined using analysis-runner's --output
     """
 
@@ -34,7 +41,15 @@ def main(presigned_url_file_path: str):
     assert all({billing_project, cpg_driver_image, dataset, output_prefix})
 
     with AnyPath(presigned_url_file_path).open() as file:
-        presigned_urls = [line.strip() for line in file.readlines() if line.strip()]
+        if filenames:
+            names = [
+                line.strip().split(' ')[0] for line in file.readlines() if line.strip()
+            ]
+            presigned_urls = [
+                line.strip().split(' ')[1] for line in file.readlines() if line.strip()
+            ]
+        else:
+            presigned_urls = [line.strip() for line in file.readlines() if line.strip()]
 
     incorrect_urls = [url for url in presigned_urls if not url.startswith('https://')]
     if incorrect_urls:
@@ -50,7 +65,10 @@ def main(presigned_url_file_path: str):
 
     # may as well batch them to reduce the number of VMs
     for idx, url in enumerate(presigned_urls):
-        filename = os.path.basename(url).split('?')[0]
+        if filenames:
+            filename = names[idx]
+        else:
+            filename = os.path.basename(url).split('?')[0]
         j = batch.new_job(f'URL {idx} ({filename})')
         quoted_url = quote(url)
         authenticate_cloud_credentials_in_job(job=j)
