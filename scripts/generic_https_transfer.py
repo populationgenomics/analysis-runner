@@ -45,6 +45,7 @@ def main(presigned_url_file_path: str, filenames: bool):
             names = [
                 line.strip().split(' ')[0] for line in file.readlines() if line.strip()
             ]
+            file.seek[0]  # reset readlines() to start of file
             presigned_urls = [
                 line.strip().split(' ')[1] for line in file.readlines() if line.strip()
             ]
