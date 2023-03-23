@@ -6,11 +6,11 @@ Given a gcp directory, extract all .tar.gz files in the directory
 into output_dir defined in the call to analysis runner
 """
 
-import logging
-import sys
-import re
 import io
+import logging
 import os
+import re
+import sys
 import tarfile
 import click
 
@@ -91,7 +91,7 @@ def main(search_path: str):
     search_path :   The GCP directory containing the .tar.gz files
     """
     config = get_config()
-    output_dir = config['workflow']['output_dir']
+    output_dir = config['workflow']['output_prefix']
 
     bucket_name, subdir = get_path_components_from_path(search_path)
 
