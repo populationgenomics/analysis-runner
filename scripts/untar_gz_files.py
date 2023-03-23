@@ -74,9 +74,9 @@ def untar_gz_files(
             logging.info(f'Untaring {blob_name}')
 
             for member in tar.getnames():
-                tar.extract(member, path=os.path.join(f'gs://{bucket_name}',subdir, destination, member))
+                tar.extract(member, path=f'gs://{bucket_name}/{subdir}/{destination}/')
                 #output_blob.upload_from_file(file_object)
-                logging.info(f'{member} extracted to {os.path.join(bucket_name, subdir, destination, member)}')
+                logging.info(f'{member} extracted to gs://{bucket_name}/{subdir}/{destination}/')
 
 
 @click.command()
