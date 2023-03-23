@@ -2,23 +2,24 @@
 
 
 """
-Given a gcp directory, unzips and untars all .tar.gz files in the directory
+Given a gcp directory, extract all .tar.gz files in the directory
+into output_dir defined in the call to analysis runner
 """
 
 import logging
 import sys
-import click
 import re
 import io
 import os
 import tarfile
+import click
 
 # pylint: disable=E0401,E0611
 from cpg_utils.config import get_config
 from google.cloud import storage
 
-rmatch_str = r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/'
-path_pattern = re.compile(rmatch_str)
+RMATCH_STR = r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/'
+path_pattern = re.compile(RMATCH_STR)
 
 client = storage.Client()
 
@@ -40,48 +41,45 @@ def get_path_components_from_path(path):
 def get_tarballs_from_path(bucket_name: str, subdir: str):
     """
     Checks a gs://bucket/subdir/ path for .tar.gz files
-    Returns a list of .tar.gz file paths in the directory path
+    Returns a list of .tar.gz blob paths found in the subdirectory
     """
 
-    tarballs_in_bucket_subdir = []
     blob_names = []
     for blob in client.list_blobs(bucket_name, prefix=(subdir + '/'), delimiter='/'):
         if not blob.name.endswith('.tar.gz'):
             continue
-        tarballs_in_bucket_subdir.append(f'gs://{bucket_name}/{blob.name}')
         blob_names.append(blob.name)
 
-    logging.info(
-        f'{len(tarballs_in_bucket_subdir)} .tar.gz files found in {subdir} of {bucket_name}'
-    )
+    logging.info(f'{len(blob_names)} .tar.gz files found in {subdir} of {bucket_name}')
 
-    return tarballs_in_bucket_subdir, blob_names
+    return blob_names
 
 
 def untar_gz_files(
     bucket_name: str,
     subdir: str,
-    paths: list[str],
     blob_names: list[str],
     destination: str,
 ):
     """
-    Opens and extracts .tar.gz files provided as a list of gs:// paths
+    Opens and extracts .tar.gz files provided as a list of blob names
     Dumps the extracted data into a destination directory appended to the
     original gs:// search path.
     """
     input_bucket = client.get_bucket(bucket_name)
 
-    for idx, path in enumerate(paths):
-        input_blob = input_bucket.get_blob(blob_names[idx]).download_as_string()
-        tar = tarfile.open(fileobj=io.BytesIO(input_blob))
-        logging.info(f'Untaring {path}')
+    for blob_name in blob_names:
+        input_blob = input_bucket.get_blob(blob_name).download_as_string()
+        with tarfile.open(fileobj=io.BytesIO(input_blob)) as tar:
+            logging.info(f'Untaring {blob_name}')
 
-        for member in tar.getnames():
-            file_object = tar.extractfile(member)
-            output_blob = input_bucket.blob(os.path.join(subdir, destination, member))
-            output_blob.upload_from_file(file_object)
-            logging.info(f'{member} extracted to gs://{bucket_name}/{subdir}/')
+            for member in tar.getnames():
+                file_object = tar.extractfile(member)
+                output_blob = input_bucket.blob(
+                    os.path.join(subdir, destination, member)
+                )
+                output_blob.upload_from_file(file_object)
+                logging.info(f'{member} extracted to gs://{bucket_name}/{subdir}/')
 
 
 @click.command()
@@ -97,9 +95,9 @@ def main(search_path: str):
 
     bucket_name, subdir = get_path_components_from_path(search_path)
 
-    tarballs, blobs = get_tarballs_from_path(bucket_name, subdir)
+    blobs = get_tarballs_from_path(bucket_name, subdir)
 
-    untar_gz_files(bucket_name, subdir, tarballs, blobs, output_dir)
+    untar_gz_files(bucket_name, subdir, blobs, output_dir)
 
 
 if __name__ == '__main__':
