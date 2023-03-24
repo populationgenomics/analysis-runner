@@ -84,10 +84,10 @@ def untar_gz_files(
 
         extracted_from_tarball = os.listdir(f'./{subdir}/extracted')
         if len(extracted_from_tarball) == 1:
-            folder = extracted_from_tarball[0]
+            extracted_from_tarball = extracted_from_tarball[0]
         
         # Check if the tarball contained a directory, if yes then get files inside
-        if folder and os.path.isdir(f'./{subdir}/extracted/{folder}'):
+        if os.path.isdir(f'./{subdir}/extracted/{extracted_from_tarball}'):
             is_directory = True
             folder = extracted_from_tarball
             extracted_files = os.listdir(f'./{subdir}/extracted/{folder}')
