@@ -75,7 +75,7 @@ def untar_gz_files(
             #tar.extractall(path=f'./{destination}/')
             #logging.info(f'extracted tarball to gs://{bucket_name}/{subdir}/{destination}/')
             for member in tar.getnames():
-                tar.extract(member, path=f'./{blob_name}/{member}')
+                tar.extract(member, path=f'./{blob_name}')
                 output_blob = input_bucket.blob(
                     os.path.join(subdir, destination, member)
                 )
