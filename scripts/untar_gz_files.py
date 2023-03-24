@@ -69,7 +69,7 @@ def untar_gz_files(
 
     for blob_name in blob_names:
         # input_blob = input_bucket.get_blob(blob_name).download_to_filename(f'./{blob_name}')
-        if not os.path.exists(f'./{blob_name}'):
+        if not os.path.exists(f'./{subdir}'):
             os.makedirs(f'./{subdir}')
             os.makedirs(f'./{subdir}/extracted')
 
