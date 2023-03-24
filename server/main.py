@@ -1,7 +1,8 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
 # pylint: disable=wrong-import-order
-import datetime
+import os
 import json
+import datetime
 import logging
 import traceback
 from shlex import quote
@@ -15,6 +16,9 @@ from cromwell import add_cromwell_routes
 from util import (
     DRIVER_IMAGE,
     PUBSUB_TOPIC,
+    SUPPORTED_CLOUD_ENVIRONMENTS,
+    DEFAULT_CLOUD_ENVIRONMENT,
+    DEPLOY_CONFIG_PATHS,
     _get_hail_version,
     check_allowed_repos,
     check_dataset_and_group,
@@ -41,9 +45,6 @@ if USE_GCP_LOGGING:
 
 routes = web.RouteTableDef()
 
-SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp'}
-
-
 # pylint: disable=too-many-statements
 @routes.post('/')
 async def index(request):
@@ -56,11 +57,14 @@ async def index(request):
 
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
-    cloud_environment = params.get('cloud_environment', 'gcp')
+    cloud_environment = params.get('cloud_environment', DEFAULT_CLOUD_ENVIRONMENT)
     if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
             reason=f'analysis-runner does not yet support the {cloud_environment} environment'
         )
+    
+    # Set hail backend to the correct one based on the cloud environment
+    os.environ['HAIL_DEPLOY_CONFIG_FILE'] = DEPLOY_CONFIG_PATHS.get(cloud_environment)
 
     dataset_config = check_dataset_and_group(
         server_config=get_server_config(),
@@ -229,7 +233,6 @@ async def config(request):
         dataset=dataset,
         email=email,
     )
-    environment_config = dataset_config.get(cloud_environment)
 
     image = params.get('image') or DRIVER_IMAGE
     access_level = params['accessLevel']
@@ -241,8 +244,8 @@ async def config(request):
     # Prepare the job's configuration to return
 
     run_config = get_baseline_run_config(
-        environment=cloud_environment,
-        gcp_project_id=environment_config.get('projectId'),
+        environment='gcp',
+        gcp_project_id=dataset_config.get('gcp', {}).get('projectId'),
         dataset=dataset,
         access_level=access_level,
         output_prefix=output_prefix,

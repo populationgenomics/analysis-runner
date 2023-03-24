@@ -33,7 +33,18 @@ assert DRIVER_IMAGE
 MEMBERS_CACHE_LOCATION = os.getenv('MEMBERS_CACHE_LOCATION')
 assert MEMBERS_CACHE_LOCATION
 
-CONFIG_PATH_PREFIXES = {'gcp': 'gs://cpg-config'}
+SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp', 'azure'}
+DEFAULT_CLOUD_ENVIRONMENT = 'gcp'
+
+DEPLOY_CONFIG_PATHS = {
+    'gcp': '/deploy-config/deploy-config-gcp.json',
+    'azure': '/deploy-config/deploy-config-azure.json'
+}
+
+CONFIG_PATH_PREFIXES = {
+    'gcp': 'gs://cpg-config',
+    'azure': 'hail-az://cpg-config'
+}
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
@@ -46,7 +57,7 @@ def get_server_config() -> dict:
 
 async def _get_hail_version(environment: str) -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
-    if not environment == 'gcp':
+    if environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
             reason=f'Unsupported Hail Batch deploy config environment: {environment}'
         )
@@ -110,13 +121,22 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
             reason=f'Dataset {dataset} does not support the {environment} environment'
         )
 
-    # do this to check access-members cache
-    gcp_project = dataset_config.get('gcp', {}).get('projectId')
+    if environment == 'gcp':
+        # do this to check access-members cache
+        gcp_project = dataset_config.get('gcp', {}).get('projectId')
 
-    if not gcp_project:
-        raise web.HTTPBadRequest(
-            reason=f'The analysis-runner does not support checking group members for the {environment} environment'
-        )
+        if not gcp_project:
+            raise web.HTTPBadRequest(
+                reason=f'The analysis-runner does not support checking group members for the {environment} environment'
+            )
+    elif environment == 'azure':
+        azure_resource_group = dataset_config.get('azure', {}).get('resourceGroup')
+
+        if not azure_resource_group:
+            raise web.HTTPBadRequest(
+                reason=f'The analysis-runner does not support checking group members for the {environment} environment'
+            )
+
     if not is_member_in_cached_group(
         f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION
     ):
@@ -228,8 +248,6 @@ def get_baseline_run_config(
     baseline_config = {
         'hail': {
             'billing_project': dataset,
-            # TODO: how would this work for Azure
-            'bucket': f'cpg-{dataset}-hail',
         },
         'workflow': {
             'access_level': access_level,
