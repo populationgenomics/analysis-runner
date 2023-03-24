@@ -84,16 +84,16 @@ def untar_gz_files(
         logging.info(f'Extracted {extracted_files}')
         for file in extracted_files:
             output_blob = input_bucket.blob(os.path.join(subdir, destination, file))
-            output_blob.upload_from_filename(f'./{blob_name}/{extracted_files}/{file}')
+            output_blob.upload_from_filename(f'./{subdir}/extracted/{file}')
             logging.info(
                 f'Uploaded {file} to gs://{bucket_name}/{blob_name}/{destination}/'
             )
             subprocess.run(
-                ['rm', f'./{blob_name}/{extracted_files}/{file}'], check=True
+                ['rm', f'./{subdir}/extracted/{file}'], check=True
             )
             logging.info(f'Deleted {file} from disk')
-        subprocess.run(['rm', f'./{blob_name}'], check=True)
-        logging.info(f'Deleted tarball from ./{blob_name}')
+        subprocess.run(['rm', f'{blob_name}'], check=True)
+        logging.info(f'Deleted tarball {blob_name}')
 
     logging.info('All tarballs extracted and uploaded. Finishing...')
 
