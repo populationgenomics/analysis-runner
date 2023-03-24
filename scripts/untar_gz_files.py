@@ -70,13 +70,13 @@ def untar_gz_files(
     for blob_name in blob_names:
         # input_blob = input_bucket.get_blob(blob_name).download_to_filename(f'./{blob_name}')
         if not os.path.exists(f'./{blob_name}'):
-            os.makedirs(f'./{blob_name}')
-            os.makedirs(f'./{blob_name}/extracted')
+            os.makedirs(f'./{subdir}')
+            os.makedirs(f'./{subdir}/extracted')
 
         input_bucket.get_blob(blob_name).download_to_filename(blob_name)
         logging.info(f'Untaring {blob_name}')
         subprocess.run(
-            ['tar', '-xzf', f'{blob_name}', '-C', f'./{blob_name}/extracted'],
+            ['tar', '-xzf', f'{blob_name}', '-C', f'./{subdir}/extracted'],
             check=True,
         )
         logging.info(f'Untared {blob_name}')
