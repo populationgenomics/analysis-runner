@@ -65,7 +65,7 @@ def untar_gz_files(
     Extracts the files from the tarball into a folder called extracted
     Uploads and then deletes each extracted file, one by one.
     Deletes the original downloaded tarball after all its files are uploaded.
-    
+
     The uploaded files end up in a directory denoted by the destination
     appended to the original gs:// search path.
     """
@@ -87,7 +87,7 @@ def untar_gz_files(
         logging.info(f'Untared {blob_name}')
 
         extracted_from_tarball = os.listdir(f'./{subdir}/extracted')
-                
+
         # Check if the tarball compressed a single directory, if yes then get files inside
         if os.path.isdir(f'./{subdir}/extracted/{extracted_from_tarball[0]}'):
             is_directory = True
@@ -106,7 +106,7 @@ def untar_gz_files(
                 filepath = f'./{subdir}/extracted/{folder}/{file}'
             else:
                 filepath = f'./{subdir}/extracted/{file}'
-            
+
             output_blob.upload_from_filename(filepath)
             logging.info(
                 f'Uploaded {file} to gs://{bucket_name}/{blob_name}/{destination}/'
@@ -116,23 +116,11 @@ def untar_gz_files(
             subprocess.run(['rm', f'{filepath}'], check=True)
             logging.info(f'Deleted {file} from disk')
 
-        # Delete tarball after all extracted files uploaded & deleted    
+        # Delete tarball after all extracted files uploaded & deleted
         subprocess.run(['rm', f'{blob_name}'], check=True)
         logging.info(f'Deleted tarball {blob_name}')
 
     logging.info('All tarballs extracted and uploaded. Finishing...')
-
-    # with tarfile.open(fileobj=io.BytesIO(input_blob)) as tar:
-    #     logging.info(f'Untaring {blob_name}')
-    #     for member in tar.getnames():
-    #         tar.extract(member, path=f'./{blob_name}')
-    #         output_blob = input_bucket.blob(
-    #             os.path.join(subdir, destination, member)
-    #         )
-    #         output_blob.upload_from_filename(f'./{blob_name}/{member}')
-    #         logging.info(
-    #             f'{member} extracted to gs://{bucket_name}/{subdir}/{destination}/{member}'
-    #         )
 
 
 @click.command()
