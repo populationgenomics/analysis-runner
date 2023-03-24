@@ -68,11 +68,12 @@ def untar_gz_files(
     input_bucket = client.get_bucket(bucket_name)
 
     for blob_name in blob_names:
-        # input_blob = input_bucket.get_blob(blob_name).download_to_filename(f'./{blob_name}')
+        # Make the extraction directory on the disk
         if not os.path.exists(f'./{subdir}'):
             os.makedirs(f'./{subdir}')
             os.makedirs(f'./{subdir}/extracted')
 
+        # Download and extract the tarball
         input_bucket.get_blob(blob_name).download_to_filename(blob_name)
         logging.info(f'Untaring {blob_name}')
         subprocess.run(
@@ -80,26 +81,40 @@ def untar_gz_files(
             check=True,
         )
         logging.info(f'Untared {blob_name}')
-        extracted_files = os.listdir(f'./{subdir}/extracted')
-        is_directory = False
-        if os.path.isdir(f'./{subdir}/extracted/{os.path.basename(blob_name)}'):
+
+        extracted_from_tarball = os.listdir(f'./{subdir}/extracted')
+        if len(extracted_from_tarball) == 1:
+            folder = extracted_from_tarball[0]
+        
+        # Check if the tarball contained a directory, if yes then get files inside
+        if os.path.isdir(f'./{subdir}/extracted/{folder}'):
             is_directory = True
-            extracted_files = os.listdir(f'./{subdir}/extracted/{os.path.basename(blob_name)}')
+            folder = extracted_from_tarball
+            extracted_files = os.listdir(f'./{subdir}/extracted/{folder}')
+        else:
+            is_directory = False
+            extracted_files = os.listdir(f'./{subdir}/extracted')
         logging.info(f'Extracted {extracted_files}')
+
+        # Iterate through extracted files, upload them to bucket, then delete them
         for file in extracted_files:
             output_blob = input_bucket.blob(os.path.join(subdir, destination, file))
+
             if is_directory:
-                filepath = f'./{subdir}/extracted/{os.path.basename(blob_name)}/{file}'
+                filepath = f'./{subdir}/extracted/{folder}/{file}'
             else:
                 filepath = f'./{subdir}/extracted/{file}'
+            
             output_blob.upload_from_filename(filepath)
             logging.info(
                 f'Uploaded {file} to gs://{bucket_name}/{blob_name}/{destination}/'
             )
-            subprocess.run(
-                ['rm', f'{filepath}'], check=True
-            )
+
+            # Delete file after upload
+            subprocess.run(['rm', f'{filepath}'], check=True)
             logging.info(f'Deleted {file} from disk')
+
+        # Delete tarball after all extracted files uploaded & deleted    
         subprocess.run(['rm', f'{blob_name}'], check=True)
         logging.info(f'Deleted tarball {blob_name}')
 
