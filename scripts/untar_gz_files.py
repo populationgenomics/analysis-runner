@@ -6,13 +6,11 @@ Given a gcp directory, extract all .tar.gz files in the directory
 into output_dir defined in the call to analysis runner
 """
 
-import io
 import logging
 import os
 import re
 import subprocess
 import sys
-import tarfile
 import click
 
 # pylint: disable=E0401,E0611
@@ -70,35 +68,45 @@ def untar_gz_files(
     input_bucket = client.get_bucket(bucket_name)
 
     for blob_name in blob_names:
-        #input_blob = input_bucket.get_blob(blob_name).download_to_filename(f'./{blob_name}')
+        # input_blob = input_bucket.get_blob(blob_name).download_to_filename(f'./{blob_name}')
+        if not os.path.exists(f'./{subdir}'):
+            os.makedirs(f'./{subdir}')
+
         input_bucket.get_blob(blob_name).download_to_filename(f'./{blob_name}')
         logging.info(f'Untaring {blob_name}')
-        subprocess.run(['tar', '-xzf', f'./{blob_name}', '-C', f'./{blob_name}/extracted'])
+        subprocess.run(
+            ['tar', '-xzf', f'./{blob_name}', '-C', f'./{blob_name}/extracted'],
+            check=True,
+        )
         logging.info(f'Untared {blob_name}')
         extracted_files = os.listdir(f'./{blob_name}/extracted')
         logging.info(f'Extracted {extracted_files}')
         for file in extracted_files:
             output_blob = input_bucket.blob(os.path.join(subdir, destination, file))
             output_blob.upload_from_filename(f'./{blob_name}/{extracted_files}/{file}')
-            logging.info(f'Uploaded {file} to gs://{bucket_name}/{blob_name}/{destination}/')
-            subprocess.run(['rm', f'./{blob_name}/{extracted_files}/{file}'])
+            logging.info(
+                f'Uploaded {file} to gs://{bucket_name}/{blob_name}/{destination}/'
+            )
+            subprocess.run(
+                ['rm', f'./{blob_name}/{extracted_files}/{file}'], check=True
+            )
             logging.info(f'Deleted {file} from disk')
-        subprocess.run(['rm', f'./{blob_name}'])
+        subprocess.run(['rm', f'./{blob_name}'], check=True)
         logging.info(f'Deleted tarball from ./{blob_name}')
 
     logging.info('All tarballs extracted and uploaded. Finishing...')
 
-        # with tarfile.open(fileobj=io.BytesIO(input_blob)) as tar:
-        #     logging.info(f'Untaring {blob_name}')
-        #     for member in tar.getnames():
-        #         tar.extract(member, path=f'./{blob_name}')
-        #         output_blob = input_bucket.blob(
-        #             os.path.join(subdir, destination, member)
-        #         )
-        #         output_blob.upload_from_filename(f'./{blob_name}/{member}')
-        #         logging.info(
-        #             f'{member} extracted to gs://{bucket_name}/{subdir}/{destination}/{member}'
-        #         )
+    # with tarfile.open(fileobj=io.BytesIO(input_blob)) as tar:
+    #     logging.info(f'Untaring {blob_name}')
+    #     for member in tar.getnames():
+    #         tar.extract(member, path=f'./{blob_name}')
+    #         output_blob = input_bucket.blob(
+    #             os.path.join(subdir, destination, member)
+    #         )
+    #         output_blob.upload_from_filename(f'./{blob_name}/{member}')
+    #         logging.info(
+    #             f'{member} extracted to gs://{bucket_name}/{subdir}/{destination}/{member}'
+    #         )
 
 
 @click.command()
