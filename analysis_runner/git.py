@@ -157,24 +157,24 @@ def prepare_git_job(
 
     # Note: for private GitHub repos we'd need to use a token to clone.
     # we need to do this at runtime, which is a little gross
-    job.command("""
+    job.command(
+        """
     # get secret names from config if they exist
     secret_name=$(python -c "from cpg_utils.config import get_config; print(get_config(print_config=False).get('infrastructure', {}).get('git_credentials_secret_name', ''))")
     secret_project=$(python -c "from cpg_utils.config import get_config; print(get_config(print_config=False).get('infrastructure', {}).get('git_credentials_secret_project', ''))")
-    
+
     if [ ! -z "$secret_name" ] && [ ! -z "$secret_project" ]; then
         # configure git credentials store if credentials are set
         gcloud --project $secret_project secrets versions access --secret $secret_name latest > ~/.git-credentials
         git config --global credential.helper "store"
     fi
-    """)
+    """
+    )
 
     # Any job commands here are evaluated in a bash shell, so user arguments should
     # be escaped to avoid command injection.
     repo_path = f'https://github.com/{GITHUB_ORG}/{repo_name}.git'
-    job.command(
-        f'git clone --recurse-submodules {quote(repo_path)}'
-    )
+    job.command(f'git clone --recurse-submodules {quote(repo_path)}')
     job.command(f'cd {quote(repo_name)}')
     # Except for the "test" access level, we check whether commits have been
     # reviewed by verifying that the given commit is in the main branch.
