@@ -81,15 +81,23 @@ def untar_gz_files(
         )
         logging.info(f'Untared {blob_name}')
         extracted_files = os.listdir(f'./{subdir}/extracted')
+        is_directory = False
+        if os.path.isdir(f'./{subdir}/extracted/{os.path.basename(blob_name)}'):
+            is_directory = True
+            extracted_files = os.listdir(f'./{subdir}/extracted/{os.path.basename(blob_name)}')
         logging.info(f'Extracted {extracted_files}')
         for file in extracted_files:
             output_blob = input_bucket.blob(os.path.join(subdir, destination, file))
-            output_blob.upload_from_filename(f'./{subdir}/extracted/{file}')
+            if is_directory:
+                filepath = f'./{subdir}/extracted/{os.path.basename(blob_name)}/{file}'
+            else:
+                filepath = f'./{subdir}/extracted/{file}'
+            output_blob.upload_from_filename(filepath)
             logging.info(
                 f'Uploaded {file} to gs://{bucket_name}/{blob_name}/{destination}/'
             )
             subprocess.run(
-                ['rm', f'./{subdir}/extracted/{file}'], check=True
+                ['rm', f'{filepath}'], check=True
             )
             logging.info(f'Deleted {file} from disk')
         subprocess.run(['rm', f'{blob_name}'], check=True)
