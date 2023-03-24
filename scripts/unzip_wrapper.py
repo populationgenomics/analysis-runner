@@ -107,6 +107,7 @@ def main(search_path: str):
 
     get_batch().run(wait=False)
 
+
 if __name__ == '__main__':
     logging.basicConfig(
         level=logging.INFO,
