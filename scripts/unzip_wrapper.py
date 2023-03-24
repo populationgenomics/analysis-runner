@@ -15,7 +15,7 @@ from google.cloud import storage
 
 from cpg_workflows.batch import get_batch
 from cpg_utils.config import get_config
-from cpg_utils.hail_batch import authenticate_cloud_credentials_in_job
+from cpg_utils.hail_batch import authenticate_cloud_credentials_in_job, copy_common_env
 
 
 CLIENT = storage.Client()
@@ -96,6 +96,7 @@ def main(search_path: str):
         job.cpu(2)
         job.storage(blobsize)
         authenticate_cloud_credentials_in_job(job)
+        copy_common_env(job)
         job.command(
             f'{UNZIP_SCRIPT} '
             f'--bucket {bucket_name} '
