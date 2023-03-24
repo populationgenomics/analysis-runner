@@ -86,7 +86,7 @@ def main(search_path: str):
 
     if len(blobs) == 0:
         logging.info('Nothing to do, quitting')
-        exit(0)
+        sys.exit(0)
 
     # iterate over targets, set each one off in parallel
     for blobname, blobsize in blobs:
