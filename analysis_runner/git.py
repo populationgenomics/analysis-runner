@@ -156,7 +156,10 @@ def prepare_git_job(
     )
 
     # Note: for private GitHub repos we'd need to use a token to clone.
-    # we need to do this at runtime, which is a little gross
+    #   - store the token on secret manager
+    #   - The git_credentials_secret_{name,project} values are set by cpg-infrastructure
+    #   - check at runtime whether we can get the token
+    #   - if so, set up the git credentials store with that value
     job.command(
         """
     # get secret names from config if they exist
