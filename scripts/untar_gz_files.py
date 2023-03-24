@@ -61,9 +61,13 @@ def untar_gz_files(
     destination: str,
 ):
     """
-    Opens and extracts .tar.gz files provided as a list of blob names
-    Dumps the extracted data into a destination directory appended to the
-    original gs:// search path.
+    Downloads the .tar.gz files in blob_names to the disk
+    Extracts the files from the tarball into a folder called extracted
+    Uploads and then deletes each extracted file, one by one.
+    Deletes the original downloaded tarball after all its files are uploaded.
+    
+    The uploaded files end up in a directory denoted by the destination
+    appended to the original gs:// search path.
     """
     input_bucket = client.get_bucket(bucket_name)
 
@@ -83,13 +87,11 @@ def untar_gz_files(
         logging.info(f'Untared {blob_name}')
 
         extracted_from_tarball = os.listdir(f'./{subdir}/extracted')
-        if len(extracted_from_tarball) == 1:
-            extracted_from_tarball = extracted_from_tarball[0]
-        
-        # Check if the tarball contained a directory, if yes then get files inside
-        if os.path.isdir(f'./{subdir}/extracted/{extracted_from_tarball}'):
+                
+        # Check if the tarball compressed a single directory, if yes then get files inside
+        if os.path.isdir(f'./{subdir}/extracted/{extracted_from_tarball[0]}'):
             is_directory = True
-            folder = extracted_from_tarball
+            folder = extracted_from_tarball[0]
             extracted_files = os.listdir(f'./{subdir}/extracted/{folder}')
         else:
             is_directory = False
