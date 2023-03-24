@@ -109,7 +109,7 @@ def untar_gz_files(
 
             output_blob.upload_from_filename(filepath)
             logging.info(
-                f'Uploaded {file} to gs://{bucket_name}/{blob_name}/{destination}/'
+                f'Uploaded {file} to gs://{bucket_name}/{subdir}/{destination}/'
             )
 
             # Delete file after upload
