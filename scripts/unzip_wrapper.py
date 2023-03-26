@@ -22,9 +22,9 @@ CLIENT = storage.Client()
 RMATCH_STR = r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/'
 PATH_PATTERN = re.compile(RMATCH_STR)
 GB = 1024 * 1024 * 1024  # dollars
-UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
+UNZIP_SCRIPT = os.path.join(os.getcwd(),'untar_gz_files.py')  #(os.path.dirname(__file__), 'untar_gz_files.py')
 
-
+exit()
 def get_path_components_from_path(path):
     """
     Returns the bucket_name and subdir for GS only paths
