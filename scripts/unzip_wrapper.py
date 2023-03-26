@@ -102,7 +102,7 @@ def main(search_path: str):
         copy_common_env(job)
         prepare_git_job(job, organisation='populationgenomics', repo_name='analysis-runner', commit=COMMIT_HASH)
         job.command(
-            f'{UNZIP_SCRIPT} '
+            f'python3 {UNZIP_SCRIPT} '
             f'--bucket {bucket_name} '
             f'--subdir {subdir} '
             f'--blob_name {blobname} '
