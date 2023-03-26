@@ -97,7 +97,7 @@ def main(search_path: str):
         job = get_batch().new_job(name=f'decompress {blobname}')
         job.image(get_config()['workflow']['driver_image'])
         job.cpu(2)
-        job.storage(blobsize)
+        job.storage(str(blobsize)+'Gi')
         authenticate_cloud_credentials_in_job(job)
         copy_common_env(job)
         prepare_git_job(job, organisation='populationgenomics', repo_name='analysis-runner', commit=COMMIT_HASH)
