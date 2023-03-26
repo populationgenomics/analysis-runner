@@ -15,6 +15,7 @@ from google.cloud import storage
 
 from cpg_workflows.batch import get_batch
 from cpg_utils.config import get_config
+from cpg_utils.git import prepare_git_job
 from cpg_utils.hail_batch import authenticate_cloud_credentials_in_job, copy_common_env
 
 
@@ -23,6 +24,7 @@ RMATCH_STR = r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/'
 PATH_PATTERN = re.compile(RMATCH_STR)
 GB = 1024 * 1024 * 1024  # dollars
 UNZIP_SCRIPT = os.path.join(os.getcwd(),'untar_gz_files.py')  #(os.path.dirname(__file__), 'untar_gz_files.py')
+
 
 def get_path_components_from_path(path):
     """
@@ -96,6 +98,7 @@ def main(search_path: str):
         job.storage(blobsize)
         authenticate_cloud_credentials_in_job(job)
         copy_common_env(job)
+        prepare_git_job(job)
         job.command(
             f'{UNZIP_SCRIPT} '
             f'--bucket {bucket_name} '
