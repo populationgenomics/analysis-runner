@@ -169,13 +169,28 @@ def prepare_git_job(
         job.command(
             """
 # get secret names from config if they exist
-secret_name=$(python3 -c "from cpg_utils.config import get_config; print(get_config(print_config=False).get('infrastructure', {}).get('git_credentials_secret_name', ''))")
-secret_project=$(python3 -c "from cpg_utils.config import get_config; print(get_config(print_config=False).get('infrastructure', {}).get('git_credentials_secret_project', ''))")
+secret_name=$(python3 -c '
+try:
+    from cpg_utils.config import get_config
+    print(get_config(print_config=False).get("infrastructure", {}).get("git_credentials_secret_name", ""))
+except:
+    pass
+' || echo '')
+
+secret_project=$(python3 -c '
+try:
+    from cpg_utils.config import get_config
+    print(get_config(print_config=False).get("infrastructure", {}).get("git_credentials_secret_project", ""))
+except:
+    pass
+' || echo '')
 
 if [ ! -z "$secret_name" ] && [ ! -z "$secret_project" ]; then
-# configure git credentials store if credentials are set
-gcloud --project $secret_project secrets versions access --secret $secret_name latest > ~/.git-credentials
-git config --global credential.helper "store"
+    # configure git credentials store if credentials are set
+    gcloud --project $secret_project secrets versions access --secret $secret_name latest > ~/.git-credentials
+    git config --global credential.helper "store"
+else
+    echo 'No git credentials secret found, unable to check out private repositories.'
 fi
         """
         )
