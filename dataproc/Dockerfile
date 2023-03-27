@@ -25,4 +25,5 @@ RUN apt-get update && \
     cd hail/hail && \
     make install DEPLOY_REMOTE=1 && \
     cd ../.. && \
-    rm -rf hail
+    rm -rf hail && \
+    pip3 install cpg-utils
