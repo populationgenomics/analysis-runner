@@ -25,7 +25,7 @@ RMATCH_STR = r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/'
 PATH_PATTERN = re.compile(RMATCH_STR)
 GB = 1024 * 1024 * 1024  # dollars
 UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
-COMMIT_HASH = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+COMMIT_HASH = subprocess.check_output(['git', 'describe', '--always']).strip().decode()
 
 
 def get_path_components_from_path(path):
@@ -97,10 +97,15 @@ def main(search_path: str):
         job = get_batch().new_job(name=f'decompress {blobname}')
         job.image(get_config()['workflow']['driver_image'])
         job.cpu(2)
-        job.storage(str(blobsize)+'Gi')
+        job.storage(str(blobsize) + 'Gi')
         authenticate_cloud_credentials_in_job(job)
         copy_common_env(job)
-        prepare_git_job(job, organisation='populationgenomics', repo_name='analysis-runner', commit=COMMIT_HASH)
+        prepare_git_job(
+            job,
+            organisation='populationgenomics',
+            repo_name='analysis-runner',
+            commit=COMMIT_HASH,
+        )
         job.command(
             f'python3 {UNZIP_SCRIPT} '
             f'--bucket {bucket_name} '
