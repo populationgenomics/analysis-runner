@@ -57,7 +57,7 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
 
         # image size is double and a half the tar size in GB, or 30GB
         # whichever is larger
-        job_gb = max([30, (blob.size // GB) * 2.5])
+        job_gb = max([30, int((blob.size // GB) * 2.5)])
 
         blob_details.append((blob.name, job_gb))
 
