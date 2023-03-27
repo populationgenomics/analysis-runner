@@ -55,17 +55,20 @@ def main(bucket: str, subdir: str, blob_name: str, outdir: str):
 
     # Recursively get all paths to everything extracted from tarball
     extracted_from_tarball = pathlib.Path(f'./{subdir}/extracted')
-    all_extracted_paths = [str(path) for path in list(extracted_from_tarball.rglob('*'))]
+    all_extracted_paths = [
+        str(path) for path in list(extracted_from_tarball.rglob('*'))
+    ]
 
     # Discard paths that are directories, keep paths to files
     extracted_file_paths = []
     for extracted_path in all_extracted_paths:
         if not os.path.isdir(extracted_path):
             extracted_file_paths.append(extracted_path)
-            
 
     # Check if the tarball compressed a single directory, if yes then get files inside
-    logging.info(f'Extracted {[os.path.basename(path) for path in extracted_file_paths]}')
+    logging.info(
+        f'Extracted {[os.path.basename(path) for path in extracted_file_paths]}'
+    )
 
     # Iterate through extracted files, upload them to bucket, then delete them
     for filepath in extracted_file_paths:
