@@ -7,6 +7,7 @@ Given a single TAG.GZ, extract and upload
 
 import logging
 import os
+import pathlib
 import subprocess
 import sys
 import click
@@ -52,26 +53,24 @@ def main(bucket: str, subdir: str, blob_name: str, outdir: str):
     )
     logging.info(f'Untared {blob_name}')
 
-    extracted_from_tarball = os.listdir(f'./{subdir}/extracted')
+    # Recursively get all paths to everything extracted from tarball
+    extracted_from_tarball = pathlib.Path(f'./{subdir}/extracted')
+    all_extracted_paths = [str(path) for path in list(extracted_from_tarball.rglob('*'))]
+
+    # Discard paths that are directories, keep paths to files
+    extracted_file_paths = []
+    for extracted_path in all_extracted_paths:
+        if not os.path.isdir(extracted_path):
+            extracted_file_paths.append(extracted_path)
+            
 
     # Check if the tarball compressed a single directory, if yes then get files inside
-    if os.path.isdir(f'./{subdir}/extracted/{extracted_from_tarball[0]}'):
-        is_directory = True
-        folder = extracted_from_tarball[0]
-        extracted_files = os.listdir(f'./{subdir}/extracted/{folder}')
-    else:
-        is_directory = False
-        extracted_files = os.listdir(f'./{subdir}/extracted')
-    logging.info(f'Extracted {extracted_files}')
+    logging.info(f'Extracted {[os.path.basename(path) for path in extracted_file_paths]}')
 
     # Iterate through extracted files, upload them to bucket, then delete them
-    for file in extracted_files:
+    for filepath in extracted_file_paths:
+        file = os.path.basename(filepath)
         output_blob = input_bucket.blob(os.path.join(subdir, outdir, file))
-
-        if is_directory:
-            filepath = f'./{subdir}/extracted/{folder}/{file}'
-        else:
-            filepath = f'./{subdir}/extracted/{file}'
 
         output_blob.upload_from_filename(filepath)
         logging.info(f'Uploaded {file} to gs://{bucket}/{subdir}/{outdir}/')
