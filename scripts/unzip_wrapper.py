@@ -55,9 +55,9 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
         if not blob.name.endswith('.tar.gz'):
             continue
 
-        # image size is double the tar size in GB, or 30GB
+        # image size is double and a half the tar size in GB, or 30GB
         # whichever is larger
-        job_gb = max([30, (blob.size // GB) * 2])
+        job_gb = max([30, (blob.size // GB) * 2.5])
 
         blob_details.append((blob.name, job_gb))
 
@@ -96,7 +96,7 @@ def main(search_path: str):
         # create and config job
         job = get_batch().new_job(name=f'decompress {blobname}')
         job.image(get_config()['workflow']['driver_image'])
-        job.cpu(2)
+        job.cpu(4)
         job.storage(f'{blobsize}Gi')
         authenticate_cloud_credentials_in_job(job)
         copy_common_env(job)
