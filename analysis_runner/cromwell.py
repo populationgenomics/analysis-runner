@@ -389,8 +389,7 @@ def watch_workflow(
             status = r.json().get('status')
             _remaining_exceptions = max_sequential_exception_count
 
-            # if workflow has concluded print logging to hail batch log only do
-            # once workflow has reached a final state so as not to duplicate
+            # if workflow has concluded print logging to hail batch log
             if status.lower() in terminal_statuses:
                 logger.info('Cromwell workflow has concluded - fetching log')
                 metadata_url = (
