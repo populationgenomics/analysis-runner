@@ -107,13 +107,30 @@ def set_up_batch_job(blobname: str, blobsize: int) -> hailtop.batch.job.Job:
 @click.option(
     '--search-path', '-p', help='GCP bucket/directory to search', required=True
 )
-def main(search_path: str):
+@click.option('--concurrency', help='# jobs to run simultaneously', default=3)
+def main(search_path: str, concurrency: int):
     """
     Who runs the world? main()
 
     Args:
         search_path (str): path to find tarballs in
+        concurrency (int): limit concurrent jobs to this value
     """
+
+    all_jobs = []
+
+    def job_limit(limit_job: hailtop.batch.job.Job):
+        """
+        limit concurrent jobs
+        if the list of accrued jobs is at/over the concurrency limit
+        make this job depend on a prior job's completion
+
+        Args:
+            limit_job (Job): the job to add to the list
+        """
+        if len(all_jobs) >= concurrency:
+            limit_job.depends_on(all_jobs[-concurrency])
+        all_jobs.append(limit_job)
 
     config = get_config()
     output_dir = config['workflow']['output_prefix']
@@ -143,6 +160,10 @@ def main(search_path: str):
             f'--extracted {job.extracted} '
             f'--outdir {output_dir} '
         )
+
+        # limit concurrent executions
+        job_limit(job)
+
 
     get_batch().run(wait=False)
 
