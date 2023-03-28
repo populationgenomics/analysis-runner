@@ -13,7 +13,7 @@ from typing import List, Dict, Optional, Any
 from cpg_utils.config import get_config
 from hailtop.batch import Resource
 from hailtop.batch.job import Job
-from analysis_runner.cli_cromwell import WorkflowMetadataModel
+from analysis_runner.cli_cromwell import _check_cromwell_status
 from analysis_runner.constants import (
     CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
@@ -392,26 +392,7 @@ def watch_workflow(
             # if workflow has concluded print logging to hail batch log
             if status.lower() in terminal_statuses:
                 logger.info('Cromwell workflow has concluded - fetching log')
-                metadata_url = (
-                    'https://cromwell.populationgenomics.org.au/api/workflows'
-                    f'/v1/{workflow_id}/metadata'
-                )
-                metadata_output = requests.get(
-                    metadata_url,
-                    headers={'Authorization': f'Bearer {token}'},
-                    timeout=60,
-                )
-                if not metadata_output.ok:
-                    logger.warning(
-                        'Failed to fetch metadata, ' f'trying in {wait_time} secs'
-                    )
-                    time.sleep(wait_time)
-                    continue
-
-                metadata_model = WorkflowMetadataModel.parse(metadata_output.json())
-                # default args: expand_completed = False, monochrome = False
-                logger.info(metadata_url)
-                logger.info(metadata_model.display())
+                _check_cromwell_status(workflow_id)
 
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
