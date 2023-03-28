@@ -6,6 +6,7 @@ import os
 import json
 import uuid
 import toml
+import distutils
 
 from aiohttp import web, ClientSession
 from cloudpathlib import AnyPath
@@ -36,9 +37,11 @@ assert MEMBERS_CACHE_LOCATION
 SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp', 'azure'}
 DEFAULT_CLOUD_ENVIRONMENT = 'gcp'
 
+USE_LOCAL_SERVER = distutils.util.strtobool(os.getenv('ANALYSIS_RUNNER_LOCAL', 'False'))
+PREFIX = os.path.dirname(os.path.abspath(__file__)) if USE_LOCAL_SERVER else '/deploy-config/'
 DEPLOY_CONFIG_PATHS = {
-    'gcp': '/deploy-config/deploy-config-gcp.json',
-    'azure': '/deploy-config/deploy-config-azure.json'
+    'gcp': f'{PREFIX}deploy-config-gcp.json',
+    'azure': f'{PREFIX}deploy-config-azure.json'
 }
 
 CONFIG_PATH_PREFIXES = {

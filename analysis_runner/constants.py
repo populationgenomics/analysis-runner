@@ -1,6 +1,7 @@
 """Constants for analysis-runner"""
 
 import os
+import distutils
 
 SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
 SERVER_TEST_ENDPOINT = 'https://server-test-a2pko7ameq-ts.a.run.app'
@@ -13,7 +14,7 @@ GCLOUD_ACTIVATE_AUTH = (
     'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
 )
 
-USE_LOCAL_SERVER = os.getenv('ANALYSIS_RUNNER_LOCAL', False)
+USE_LOCAL_SERVER = distutils.util.strtobool(os.getenv('ANALYSIS_RUNNER_LOCAL', 'False'))
 
 
 def get_server_endpoint(is_test: bool = False):

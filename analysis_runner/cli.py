@@ -78,4 +78,4 @@ optional arguments:
 
 
 if __name__ == '__main__':
-    main_from_args()
+    main_from_args(args=sys.argv[1:])
