@@ -19,14 +19,14 @@ from analysis_runner.git import (
     check_if_commit_is_on_remote,
 )
 from analysis_runner.util import (
-    SUPPORTED_CLOUD_ENVIRONMENTS,
-    DEFAULT_CLOUD_ENVIRONMENT,
     add_general_args,
     _perform_version_check,
     confirm_choice,
     logger,
 )
 
+SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp', 'azure'}
+DEFAULT_CLOUD_ENVIRONMENT = 'gcp'
 
 def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     """
