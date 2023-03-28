@@ -119,19 +119,6 @@ def main(search_path: str, concurrency: int):
 
     all_jobs = []
 
-    def job_limit(limit_job: hailtop.batch.job.Job):
-        """
-        limit concurrent jobs
-        if the list of accrued jobs is at/over the concurrency limit
-        make this job depend on a prior job's completion
-
-        Args:
-            limit_job (Job): the job to add to the list
-        """
-        if len(all_jobs) >= concurrency:
-            limit_job.depends_on(all_jobs[-concurrency])
-        all_jobs.append(limit_job)
-
     config = get_config()
     output_dir = config['workflow']['output_prefix']
 
@@ -161,9 +148,12 @@ def main(search_path: str, concurrency: int):
             f'--outdir {output_dir} '
         )
 
-        # limit concurrent executions
-        job_limit(job)
-
+        # limit concurrent jobs
+        # if the list of accrued jobs is at/over the concurrency limit
+        # make this job depend on a prior job's completion
+        if len(all_jobs) >= concurrency:
+            job.depends_on(all_jobs[-concurrency])
+        all_jobs.append(job)
 
     get_batch().run(wait=False)
 
