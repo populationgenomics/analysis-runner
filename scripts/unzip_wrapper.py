@@ -8,24 +8,27 @@ wrapped to modulate the batch job storage
 import logging
 import os
 import re
-import subprocess
 import sys
 
 import click
+import hailtop.batch.job
 from google.cloud import storage
 
 from cpg_workflows.batch import get_batch
 from cpg_utils.config import get_config
-from cpg_utils.git import prepare_git_job
+from cpg_utils.git import (
+    prepare_git_job,
+    get_git_commit_ref_of_current_repository,
+    get_organisation_name_from_current_directory,
+    get_repo_name_from_current_directory,
+)
 from cpg_utils.hail_batch import authenticate_cloud_credentials_in_job, copy_common_env
 
 
 CLIENT = storage.Client()
-RMATCH_STR = r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/'
-PATH_PATTERN = re.compile(RMATCH_STR)
-GB = 1024 * 1024 * 1024  # dollars
+GB = 1024 * 1024 * 1024
+PATH_PATTERN = re.compile(r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/')
 UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
-COMMIT_HASH = subprocess.check_output(['git', 'describe', '--always']).strip().decode()
 
 
 def get_path_components_from_path(path):
@@ -45,9 +48,15 @@ def get_path_components_from_path(path):
 def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int]]:
     """
     Checks a gs://bucket/subdir/ path for .tar.gz files
-    Returns a list of:
-        - .tar.gz blob paths found in the subdirectory
-        - the size of image to use when unpacking the tarball
+    Returns found object and sizes
+
+    Args:
+        bucket_name (str): name of the bucket to search
+        subdir (str): subdirectory path in the bucket
+
+    Returns:
+        a list of tuples, each tuple contains
+        (full path to tar.gz file, size of storage to use unpacking)
     """
 
     blob_details = []
@@ -58,14 +67,40 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
         # image size is double and a half the tar size in GB, or 30GB
         # whichever is larger
         job_gb = max([30, int((blob.size // GB) * 2.5)])
+        full_blob_name = f'gs://{bucket_name}/{blob.name}'
 
-        blob_details.append((blob.name, job_gb))
+        blob_details.append((full_blob_name, job_gb))
 
     logging.info(
         f'{len(blob_details)} .tar.gz files found in {subdir} of {bucket_name}'
     )
 
     return blob_details
+
+
+def set_up_batch_job(blobname: str, blobsize: int) -> hailtop.batch.job.Job:
+    """
+
+    Args:
+        blobname ():
+        blobsize (int):
+
+    Returns:
+
+    """
+    job = get_batch().new_job(name=f'decompress {blobname}')
+    job.cpu(4)
+    job.image(get_config()['workflow']['driver_image'])
+    job.storage(f'{blobsize}Gi')
+    authenticate_cloud_credentials_in_job(job)
+    copy_common_env(job)
+    prepare_git_job(
+        job=job,
+        organisation=get_organisation_name_from_current_directory(),
+        repo_name=get_repo_name_from_current_directory(),
+        commit=get_git_commit_ref_of_current_repository(),
+    )
+    return job
 
 
 @click.command()
@@ -94,24 +129,19 @@ def main(search_path: str):
     # iterate over targets, set each one off in parallel
     for blobname, blobsize in blobs:
         # create and config job
-        job = get_batch().new_job(name=f'decompress {blobname}')
-        job.image(get_config()['workflow']['driver_image'])
-        job.cpu(4)
-        job.storage(f'{blobsize}Gi')
-        authenticate_cloud_credentials_in_job(job)
-        copy_common_env(job)
-        prepare_git_job(
-            job,
-            organisation='populationgenomics',
-            repo_name='analysis-runner',
-            commit=COMMIT_HASH,
-        )
+        job = set_up_batch_job(blobname, blobsize)
+
+        # read this blob into the batch
+        batch_blob = get_batch().read_input(path=blobname)
+
+        # set the command
         job.command(
             f'python3 {UNZIP_SCRIPT} '
             f'--bucket {bucket_name} '
             f'--subdir {subdir} '
-            f'--blob_name {blobname} '
-            f'--outdir {output_dir}'
+            f'--blob_name {batch_blob} '
+            f'--extracted {job.extracted} '
+            f'--outdir {output_dir} '
         )
 
     get_batch().run(wait=False)

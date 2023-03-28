@@ -23,40 +23,36 @@ client = storage.Client()
 @click.option('--subdir', help='', required=True)
 @click.option('--blob_name', help='', required=True)
 @click.option('--outdir', help='', required=True)
-def main(bucket: str, subdir: str, blob_name: str, outdir: str):
+@click.option('--extracted', help='', required=True)
+def main(bucket: str, subdir: str, blob_name: str, outdir: str, extracted: str):
     """
     runs an extraction and upload for a single file
 
-    TODO - could make this even easier by having the wrapper
-    TODO - copy the single tarball into the job image
-    TODO - leaving extraction and upload as the only tasks
+    Args:
+        bucket (str): name of the bucket to connect to
+        subdir (str): name of the path within the bucket
+        blob_name (str): name of the tarball
+        outdir (str): where to write to
+        extracted (str): attached storage path to extract into
 
-    :param bucket: str, name of the bucket to connect to
-    :param subdir: str, name of the path within the bucket
-    :param blob_name: str, name of the tarball
-    :param outdir: str, where to write to
+    Returns:
+
     """
 
-    input_bucket = client.get_bucket(bucket)
+    bucket_client = client.get_bucket(bucket)
 
-    # Make the extraction directory on the disk
-    if not os.path.exists(f'./{subdir}'):
-        os.makedirs(f'./{subdir}')
-        os.makedirs(f'./{subdir}/extracted')
-
-    # Download and extract the tarball
-    input_bucket.get_blob(blob_name).download_to_filename(blob_name)
+    # Extract the tarball
     logging.info(f'Untaring {blob_name}')
+
     subprocess.run(
-        ['tar', '-xzf', f'{blob_name}', '-C', f'./{subdir}/extracted'],
+        ['tar', '-xzf', f'{blob_name}', '-C', extracted],
         check=True,
     )
     logging.info(f'Untared {blob_name}')
 
     # Recursively get all paths to everything extracted from tarball
-    extracted_from_tarball = pathlib.Path(f'./{subdir}/extracted')
     extracted_file_paths = [
-        str(path) for path in extracted_from_tarball.rglob('*') if not path.is_dir()
+        str(path) for path in pathlib.Path(extracted).rglob('*') if not path.is_dir()
     ]
 
     # Check if the tarball compressed a single directory, if yes then get files inside
@@ -67,7 +63,7 @@ def main(bucket: str, subdir: str, blob_name: str, outdir: str):
     # Iterate through extracted files, upload them to bucket, then delete them
     for filepath in extracted_file_paths:
         file = os.path.basename(filepath)
-        output_blob = input_bucket.blob(os.path.join(subdir, outdir, file))
+        output_blob = bucket_client.blob(os.path.join(subdir, outdir, file))
 
         output_blob.upload_from_filename(filepath)
         logging.info(f'Uploaded {file} to gs://{bucket}/{subdir}/{outdir}/')
