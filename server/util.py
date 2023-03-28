@@ -43,7 +43,7 @@ DEPLOY_CONFIG_PATHS = {
 
 CONFIG_PATH_PREFIXES = {
     'gcp': 'gs://cpg-config',
-    'azure': 'hail-az://cpg-config'
+    'azure': 'az://cpgcommon/cpg-config'
 }
 
 secret_manager = secretmanager.SecretManagerServiceClient()
@@ -168,7 +168,12 @@ def get_analysis_runner_metadata(
     Get well-formed analysis-runner metadata, requiring the core listed keys
     with some flexibility to provide your own keys (as **kwargs)
     """
-    output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
+    if environment == 'gcp':
+        output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
+    elif environment == 'azure':
+        # TODO: need a way for analysis runner to know where to save metadata
+        prefix = CONFIG_PATH_PREFIXES.get(environment)
+        output_dir = AnyPath(prefix) / 
 
     return {
         'timestamp': timestamp,

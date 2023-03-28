@@ -57,7 +57,7 @@ async def index(request):
 
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
-    cloud_environment = params.get('cloud_environment', DEFAULT_CLOUD_ENVIRONMENT)
+    cloud_environment = params.get('cloud', DEFAULT_CLOUD_ENVIRONMENT)
     if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
             reason=f'analysis-runner does not yet support the {cloud_environment} environment'
@@ -221,7 +221,7 @@ async def config(request):
 
     output_prefix = validate_output_dir(params['output'])
     dataset = params['dataset']
-    cloud_environment = params.get('cloud_environment', 'gcp')
+    cloud_environment = params.get('cloud', DEFAULT_CLOUD_ENVIRONMENT)
     if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
             reason=f'analysis-runner config does not yet support the {cloud_environment} environment'

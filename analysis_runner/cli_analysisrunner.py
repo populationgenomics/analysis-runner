@@ -19,6 +19,8 @@ from analysis_runner.git import (
     check_if_commit_is_on_remote,
 )
 from analysis_runner.util import (
+    SUPPORTED_CLOUD_ENVIRONMENTS,
+    DEFAULT_CLOUD_ENVIRONMENT,
     add_general_args,
     _perform_version_check,
     confirm_choice,
@@ -34,6 +36,15 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser('analysis-runner subparser')
 
     add_general_args(parser)
+
+    parser.add_argument(
+        '-c',
+        '--cloud',
+        required=False,
+        default=DEFAULT_CLOUD_ENVIRONMENT,
+        choices=SUPPORTED_CLOUD_ENVIRONMENTS,
+        help=f'Backend cloud environment to use. Supported options are ({", ".join(SUPPORTED_CLOUD_ENVIRONMENTS)})',
+    )
 
     parser.add_argument(
         '--image',
@@ -104,6 +115,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     commit=None,
     repository=None,
     cwd=None,
+    cloud=DEFAULT_CLOUD_ENVIRONMENT,
     image=None,
     cpu=None,
     memory=None,
@@ -216,6 +228,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'script': _script,
             'description': description,
             'cwd': _cwd,
+            'cloud': cloud,
             'image': image,
             'cpu': cpu,
             'memory': memory,
