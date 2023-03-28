@@ -6,7 +6,7 @@ analysis-runner \
     --output-dir test \
     --cloud azure \
     --access-level test \
-    --config test/hail_batch_job.toml \
+    --config examples/batch/hail_batch_job.toml \
     --image cpg_workflows:latest \
-    test/test_cpg_infra.py \
+    examples/batch/test_cpg_infra.py \
     test

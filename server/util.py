@@ -173,7 +173,7 @@ def get_analysis_runner_metadata(
     elif environment == 'azure':
         # TODO: need a way for analysis runner to know where to save metadata
         prefix = CONFIG_PATH_PREFIXES.get(environment)
-        output_dir = AnyPath(prefix) / 
+        # output_dir = AnyPath(prefix) / 
 
     return {
         'timestamp': timestamp,

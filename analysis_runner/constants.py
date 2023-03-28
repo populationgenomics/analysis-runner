@@ -1,5 +1,7 @@
 """Constants for analysis-runner"""
 
+import os
+
 SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
 SERVER_TEST_ENDPOINT = 'https://server-test-a2pko7ameq-ts.a.run.app'
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
@@ -11,13 +13,17 @@ GCLOUD_ACTIVATE_AUTH = (
     'gcloud -q auth activate-service-account --key-file=/gsa-key/key.json'
 )
 
+USE_LOCAL_SERVER = os.getenv('ANALYSIS_RUNNER_LOCAL', False)
+
 
 def get_server_endpoint(is_test: bool = False):
     """
     Get the server endpoint {production / test}
     Do it in a function so it's easy to fix if the logic changes
     """
-    if is_test:
+    if USE_LOCAL_SERVER:
+        return 'http://localhost:8080'
+    elif is_test:
         return SERVER_TEST_ENDPOINT
 
     return SERVER_ENDPOINT
