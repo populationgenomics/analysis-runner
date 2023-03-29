@@ -392,7 +392,7 @@ def watch_workflow(
             # if workflow has concluded print logging to hail batch log
             if status.lower() in terminal_statuses:
                 logger.info('Cromwell workflow has concluded - fetching log')
-                _check_cromwell_status(workflow_id, json_output='')
+                _check_cromwell_status(workflow_id)
 
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
