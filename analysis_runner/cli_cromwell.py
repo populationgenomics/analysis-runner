@@ -262,7 +262,7 @@ curl --location --request POST \\
         )
 
 
-def _check_cromwell_status(workflow_id, json_output: Optional[str] = None, *args, **kwargs):
+def _check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwargs):
     """Check cromwell status with workflow_id"""
 
     url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
