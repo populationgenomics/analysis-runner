@@ -13,6 +13,7 @@ from typing import List, Dict, Optional, Any
 from cpg_utils.config import get_config
 from hailtop.batch import Resource
 from hailtop.batch.job import Job
+from analysis_runner.cli_cromwell import _check_cromwell_status
 from analysis_runner.constants import (
     CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
@@ -360,6 +361,7 @@ def watch_workflow(
     logger.info(f'Received workflow ID: {workflow_id}')
 
     failed_statuses = {'failed', 'aborted'}
+    terminal_statuses = {'succeeded'} | failed_statuses
     subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
     url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
     _remaining_exceptions = max_sequential_exception_count
@@ -386,6 +388,12 @@ def watch_workflow(
                 continue
             status = r.json().get('status')
             _remaining_exceptions = max_sequential_exception_count
+
+            # if workflow has concluded print logging to hail batch log
+            if status.lower() in terminal_statuses:
+                logger.info('Cromwell workflow has concluded - fetching log')
+                _check_cromwell_status(workflow_id, json_output=None)
+
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
                 # process outputs here
@@ -401,7 +409,7 @@ def watch_workflow(
                 if not r_outputs.ok:
                     logger.warning(
                         'Received error when fetching cromwell outputs, '
-                        'will retry in 15 seconds'
+                        f'will retry in {wait_time} seconds'
                     )
                     time.sleep(wait_time)
                     continue
