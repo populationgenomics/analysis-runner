@@ -135,6 +135,7 @@ def prepare_git_job(
     commit: str,
     is_test: bool = True,
     print_all_statements=True,
+    get_deploy_token: bool = True,
 ):
     """
     Takes a hail batch job, and:
@@ -142,6 +143,10 @@ def prepare_git_job(
         * Clones the repository, and
             * if access_level != "test": check the desired commit is on 'main'
             * check out the specific commit
+
+    :param get_deploy_token: If True, get the deploy token from secret manager.
+        This requires cpg-utils, which you might want to disable if you're running
+        this method outside of a CPG project.
     """
 
     job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
@@ -156,11 +161,44 @@ def prepare_git_job(
     )
 
     # Note: for private GitHub repos we'd need to use a token to clone.
+    #   - store the token on secret manager
+    #   - The git_credentials_secret_{name,project} values are set by cpg-infrastructure
+    #   - check at runtime whether we can get the token
+    #   - if so, set up the git credentials store with that value
+    if get_deploy_token:
+        job.command(
+            """
+# get secret names from config if they exist
+secret_name=$(python3 -c '
+try:
+    from cpg_utils.config import get_config
+    print(get_config(print_config=False).get("infrastructure", {}).get("git_credentials_secret_name", ""))
+except:
+    pass
+' || echo '')
+
+secret_project=$(python3 -c '
+try:
+    from cpg_utils.config import get_config
+    print(get_config(print_config=False).get("infrastructure", {}).get("git_credentials_secret_project", ""))
+except:
+    pass
+' || echo '')
+
+if [ ! -z "$secret_name" ] && [ ! -z "$secret_project" ]; then
+    # configure git credentials store if credentials are set
+    gcloud --project $secret_project secrets versions access --secret $secret_name latest > ~/.git-credentials
+    git config --global credential.helper "store"
+else
+    echo 'No git credentials secret found, unable to check out private repositories.'
+fi
+        """
+        )
+
     # Any job commands here are evaluated in a bash shell, so user arguments should
     # be escaped to avoid command injection.
-    job.command(
-        f'git clone --recurse-submodules https://github.com/{GITHUB_ORG}/{quote(repo_name)}.git'
-    )
+    repo_path = f'https://github.com/{GITHUB_ORG}/{repo_name}.git'
+    job.command(f'git clone --recurse-submodules {quote(repo_path)}')
     job.command(f'cd {quote(repo_name)}')
     # Except for the "test" access level, we check whether commits have been
     # reviewed by verifying that the given commit is in the main branch.
