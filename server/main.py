@@ -161,6 +161,7 @@ async def index(request):
     batch = hb.Batch(backend=backend, name=batch_name, **extra_batch_params)
 
     job = batch.new_job(name='driver')
+    job.command('cat /gsa-key/key.json')
     job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
     job.image(image)
     if cpu:
