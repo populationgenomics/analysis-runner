@@ -118,8 +118,8 @@ async def index(request):
     # Prepare the job's configuration and write it to a blob.
 
     run_config = get_baseline_run_config(
-        environment=cloud_environment,
-        gcp_project_id=environment_config.get('projectId'),
+        environment='gcp',
+        gcp_project_id=dataset_config.get('gcp', {}).get('projectId'),
         dataset=dataset,
         access_level=access_level,
         output_prefix=output_prefix,

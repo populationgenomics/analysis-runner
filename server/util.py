@@ -9,8 +9,9 @@ import toml
 import distutils
 
 from aiohttp import web, ClientSession
-from cloudpathlib import AnyPath
+from cloudpathlib import AzureBlobClient, AnyPath
 from hailtop.config import get_deploy_config
+from azure.identity import DefaultAzureCredential, EnvironmentCredential
 from google.cloud import secretmanager, pubsub_v1
 from cpg_utils.config import update_dict
 from cpg_utils.cloud import (
@@ -40,14 +41,22 @@ DEFAULT_CLOUD_ENVIRONMENT = 'gcp'
 USE_LOCAL_SERVER = distutils.util.strtobool(os.getenv('ANALYSIS_RUNNER_LOCAL', 'False'))
 PREFIX = os.path.dirname(os.path.abspath(__file__)) if USE_LOCAL_SERVER else '/deploy-config/'
 DEPLOY_CONFIG_PATHS = {
-    'gcp': f'{PREFIX}deploy-config-gcp.json',
-    'azure': f'{PREFIX}deploy-config-azure.json'
+    'gcp': os.path.join(PREFIX, 'deploy-config-gcp.json'),
+    'azure': os.path.join(PREFIX, 'deploy-config-azure.json')
 }
 
+AZURE_STORAGE_ACCOUNT = 'cpgcommon'
 CONFIG_PATH_PREFIXES = {
     'gcp': 'gs://cpg-config',
-    'azure': 'az://cpgcommon/cpg-config'
+    'azure': f'az://cpg-config'
 }
+
+# Set Azure AnyPath client
+client = AzureBlobClient(
+    account_url=f'https://{AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/',
+    credential=EnvironmentCredential()
+)
+client.set_as_default_client()
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
@@ -133,9 +142,7 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
                 reason=f'The analysis-runner does not support checking group members for the {environment} environment'
             )
     elif environment == 'azure':
-        azure_resource_group = dataset_config.get('azure', {}).get('resourceGroup')
-
-        if not azure_resource_group:
+        if not environment in dataset_config:
             raise web.HTTPBadRequest(
                 reason=f'The analysis-runner does not support checking group members for the {environment} environment'
             )
@@ -171,12 +178,14 @@ def get_analysis_runner_metadata(
     Get well-formed analysis-runner metadata, requiring the core listed keys
     with some flexibility to provide your own keys (as **kwargs)
     """
+    output_dir = None
     if environment == 'gcp':
         output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
     elif environment == 'azure':
-        # TODO: need a way for analysis runner to know where to save metadata
-        prefix = CONFIG_PATH_PREFIXES.get(environment)
-        # output_dir = AnyPath(prefix) / 
+        config = toml.load(config_path)
+        key = '.test' if cpg_namespace(access_level) == 'test' else ''
+        output_path = config.get(f'storage.{dataset}{key}', {}).get('default')
+        output_dir = f'{output_path}/{output_prefix}'
 
     return {
         'timestamp': timestamp,
@@ -198,7 +207,7 @@ def get_analysis_runner_metadata(
 
 def run_batch_job_and_print_url(batch, wait, environment):
     """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
-    if not environment == 'gcp':
+    if environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
             reason=f'Unsupported Hail Batch deploy config environment: {environment}'
         )

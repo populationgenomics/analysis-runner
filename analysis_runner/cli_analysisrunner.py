@@ -9,7 +9,7 @@ from typing import List
 
 import requests
 from cpg_utils.config import read_configs
-from cpg_utils.cloud import get_google_identity_token
+from cpg_utils.cloud import get_google_identity_token, get_azure_identity_token
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     get_git_default_remote,
@@ -237,7 +237,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'config': _config,
         },
         headers={'Authorization': f'Bearer {_token}'},
-        timeout=60,
+        # timeout=60,
     )
     try:
         response.raise_for_status()
