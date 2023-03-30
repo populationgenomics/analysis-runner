@@ -226,13 +226,20 @@ def validate_image(container: str, is_test: bool):
 
 def write_config(config: dict, environment: str) -> str:
     """Writes the given config dictionary to a blob and returns its unique path."""
+
     prefix = CONFIG_PATH_PREFIXES.get(environment)
     if not prefix:
         raise web.HTTPBadRequest(reason=f'Bad environment for config: {environment}')
 
+    # Uses the default AzureBlobClient defined at the top of utils
+    # to connect to AZURE_STORAGE_ACCOUNT where it will always write out to
     config_path = AnyPath(prefix) / (str(uuid.uuid4()) + '.toml')
     with config_path.open('w') as f:
         toml.dump(config, f)
+
+    if environment == 'azure':
+        return os.path.join(f'hail-az://{AZURE_STORAGE_ACCOUNT}', str(config_path).removeprefix('az://'))
+
     return str(config_path)
 
 
