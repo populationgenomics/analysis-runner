@@ -15,8 +15,10 @@ jobs:
       DOCKER_BUILDKIT: 1
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
-      DRIVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/driver
-      SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/server
+      AZURE_CONTAINER_REGISTRY: cpgcommonimages.azurecr.io
+      GCP_CONTAINER_REGSITRY: australia-southeast1-docker.pkg.dev
+      DRIVER_IMAGE: analysis-runner/images/driver
+      SERVER_IMAGE: $GCP_CONTAINER_REGSITRY/analysis-runner/images/server
 
     steps:
     - name: "checkout analysis-runner repo"
@@ -48,21 +50,37 @@ jobs:
       run: |
         gcloud auth configure-docker marketplace.gcr.io,australia-southeast1-docker.pkg.dev
 
+    - name: "azure setup"
+      uses: azure/login@v1
+      with:
+        creds: $${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: "azure docker auth"
+      uses: azure/docker-login@v1
+      with:
+        login-server: $AZURE_CONTAINER_REGISTRY
+        username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
+        password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
+
     - name: "build driver image"
       run: |
         docker build -f driver/Dockerfile.hail --build-arg HAIL_SHA=$HAIL_SHA --tag $DRIVER_IMAGE:$IMAGE_TAG driver
 
-    - name: "push driver image"
+    - name: "tag and push gcp image [driver]"
       run: |
-        docker push $DRIVER_IMAGE:$IMAGE_TAG
-        docker tag $DRIVER_IMAGE:$IMAGE_TAG $DRIVER_IMAGE:latest
-        docker push $DRIVER_IMAGE:latest
+        docker image tag $DRIVER_IMAGE:$IMAGE_TAG $GCP_CONTAINER_REGISTRY/$DRIVER_IMAGE:latest &&
+        docker push $GCP_CONTAINER_REGISTRY/$DRIVER_IMAGE:latest
+
+    - name: "tag and push azure image [driver]"
+      run: |
+        docker image tag $DRIVER_IMAGE:$IMAGE_TAG $AZURE_CONTAINER_REGISTRY/$DRIVER_IMAGE:latest &&
+        $AZURE_CONTAINER_REGISTRY/$DRIVER_IMAGE:latest
 
     - name: "build server image"
       run: |
         docker build --build-arg DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG --tag $SERVER_IMAGE:$IMAGE_TAG server
 
-    - name: "push server image"
+    - name: "push server image to gcp"
       run: |
         docker push $SERVER_IMAGE:$IMAGE_TAG
         docker tag $SERVER_IMAGE:$IMAGE_TAG $SERVER_IMAGE:latest

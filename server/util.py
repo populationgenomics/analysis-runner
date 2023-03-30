@@ -167,26 +167,17 @@ def get_analysis_runner_metadata(
     commit,
     script,
     description,
-    output_prefix,
     driver_image,
     config_path,
     cwd,
     environment,
+    output_dir,
     **kwargs,
 ):
     """
     Get well-formed analysis-runner metadata, requiring the core listed keys
     with some flexibility to provide your own keys (as **kwargs)
     """
-    output_dir = None
-    if environment == 'gcp':
-        output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
-    elif environment == 'azure':
-        config = toml.load(config_path)
-        key = '.test' if cpg_namespace(access_level) == 'test' else ''
-        output_path = config.get(f'storage.{dataset}{key}', {}).get('default')
-        output_dir = f'{output_path}/{output_prefix}'
-
     return {
         'timestamp': timestamp,
         'dataset': dataset,

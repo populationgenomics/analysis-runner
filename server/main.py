@@ -129,6 +129,10 @@ async def index(request):
         update_dict(run_config, user_config)
     config_path = write_config(run_config, environment=cloud_environment)
 
+    output_dir = os.path.join(
+        run_config.get('storage', {}).get('default', {}).get('default'),
+        output_prefix
+    )
     metadata = get_analysis_runner_metadata(
         timestamp=timestamp,
         dataset=dataset,
@@ -138,12 +142,12 @@ async def index(request):
         commit=commit,
         script=' '.join(script),
         description=params['description'],
-        output_prefix=output_prefix,
         hailVersion=hail_version,
         driver_image=image,
         config_path=config_path,
         cwd=cwd,
         environment=cloud_environment,
+        output_dir=output_dir
     )
 
     user_name = email.split('@')[0]
