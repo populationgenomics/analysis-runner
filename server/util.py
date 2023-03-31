@@ -48,7 +48,7 @@ DEPLOY_CONFIG_PATHS = {
 AZURE_STORAGE_ACCOUNT = 'cpgcommon'
 CONFIG_PATH_PREFIXES = {
     'gcp': 'gs://cpg-config',
-    'azure': f'az://cpg-config'
+    'azure': 'az://cpg-config'
 }
 
 # Set Azure AnyPath client
