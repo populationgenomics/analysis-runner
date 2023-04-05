@@ -63,6 +63,7 @@ def main(delete_path: str, somaliers: bool, samples):
     ----------
     delete_path :   a gcp path containing the crams to delete.
                         e.g. gs://cpg-project-main/exome/cram
+    somaliers   :   flag if .cram.somalier files should be deleted too
     samples     :   a list of sample ids to copy to the release bucket
     """
 
