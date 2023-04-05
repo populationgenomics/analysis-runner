@@ -11,6 +11,7 @@ import sys
 import subprocess
 import click
 
+
 def check_paths_exist(paths: list[str]):
     """
     Checks a list of gs:// paths to see if they point to an existing blob
@@ -47,8 +48,15 @@ def delete_from_bucket(paths: list[str]):
 
 @click.command()
 @click.option('--delete-path', '-d', help='GCP path to CRAMs to delete', required=True)
+@click.option(
+    '--somaliers',
+    '-s',
+    help='Also delete cram.somalier files',
+    is_flag=True,
+    default=False,
+)
 @click.argument('samples', nargs=-1)
-def main(delete_path: str, samples):
+def main(delete_path: str, somaliers: bool, samples):
     """
 
     Parameters
@@ -65,6 +73,8 @@ def main(delete_path: str, samples):
     for sample in sample_ids:
         cram_paths.append(f'{delete_path}/{sample}.cram')
         cram_paths.append(f'{delete_path}/{sample}.cram.crai')
+        if somaliers:
+            cram_paths.append(f'{delete_path}/{sample}.cram.somalier')
 
     # Check if all paths are valid and execute the rm commands if they are
     if check_paths_exist(cram_paths):
