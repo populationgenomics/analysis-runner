@@ -13,7 +13,6 @@ from typing import List, Dict, Optional, Any
 from cpg_utils.config import get_config
 from hailtop.batch import Resource
 from hailtop.batch.job import Job
-from analysis_runner.cli_cromwell import _check_cromwell_status
 from analysis_runner.constants import (
     CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
@@ -321,6 +320,7 @@ def watch_workflow(
     import json
     from datetime import datetime
     from cloudpathlib.anypath import to_anypath
+    from analysis_runner.cli_cromwell import _check_cromwell_status
     from analysis_runner.util import logger
     from analysis_runner.constants import (
         CROMWELL_AUDIENCE,
