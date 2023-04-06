@@ -393,8 +393,8 @@ def watch_workflow(
             if status.lower() in terminal_statuses and not status_reported:
                 logger.info('Cromwell workflow has concluded - fetching log')
                 # don't report multiple times if we fail fetching output
-                status_reported = True
                 _check_cromwell_status(workflow_id, json_output=None)
+                status_reported = True
 
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
