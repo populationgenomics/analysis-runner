@@ -362,6 +362,7 @@ def watch_workflow(
 
     failed_statuses = {'failed', 'aborted'}
     terminal_statuses = {'succeeded'} | failed_statuses
+    status_reported = False
     subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
     url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
     _remaining_exceptions = max_sequential_exception_count
@@ -387,15 +388,17 @@ def watch_workflow(
                 time.sleep(wait_time)
                 continue
             status = r.json().get('status')
-            _remaining_exceptions = max_sequential_exception_count
 
             # if workflow has concluded print logging to hail batch log
-            if status.lower() in terminal_statuses:
+            if status.lower() in terminal_statuses and not status_reported:
                 logger.info('Cromwell workflow has concluded - fetching log')
+                # don't report multiple times if we fail fetching output
+                status_reported = True
                 _check_cromwell_status(workflow_id, json_output=None)
 
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
+                _remaining_exceptions = max_sequential_exception_count
                 # process outputs here
                 outputs_url = (
                     f'https://cromwell.populationgenomics.org.au/api/workflows'
