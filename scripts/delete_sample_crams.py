@@ -9,29 +9,33 @@ the path for each sample listed.
 import logging
 import sys
 import subprocess
+from os.path import basename
 import click
 
 
-def check_paths_exist(paths: list[str]):
+def get_cram_paths(samples: list[str], search_path: str) -> list[str]:
     """
-    Checks a list of gs:// paths to see if they point to an existing blob
-    Logs the invalid paths if any are found
+    Return all paths to CRAMs and related files (e.g. cram.crai, cram.md5)
+    found in the search path for the list of samples.
     """
-    invalid_paths = False
-    for path in paths:
-        # gsutil ls <path> returns '<path>\n' if path exists
-        result = subprocess.run(
-            ['gsutil', 'ls', path], check=True, capture_output=True, text=True
-        ).stdout.strip('\n')
-        if result == path:
-            continue
-        # If path does not exist, log the path and set invalid_paths to True
-        logging.info(f'Invalid path: {path}')
-        invalid_paths = True
+    cram_paths = []
+    for sample_id in samples:
+        result = (
+            subprocess.run(
+                ['gsutil', 'ls', f'{search_path}/{sample_id}*'],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            .stdout.strip('\n')
+            .split('\n')
+        )
+        cram_paths.extend(result)
+        logging.info(
+            f'{sample_id}: found {[basename(path) for path in result]} in {search_path}'
+        )
 
-    if invalid_paths:
-        return False
-    return True
+    return cram_paths
 
 
 def delete_from_bucket(paths: list[str]):
@@ -48,38 +52,23 @@ def delete_from_bucket(paths: list[str]):
 
 @click.command()
 @click.option('--delete-path', '-d', help='GCP path to CRAMs to delete', required=True)
-@click.option(
-    '--somaliers',
-    '-s',
-    help='Also delete cram.somalier files',
-    is_flag=True,
-    default=False,
-)
 @click.argument('samples', nargs=-1)
-def main(delete_path: str, somaliers: bool, samples):
+def main(delete_path: str, samples):
     """
 
     Parameters
     ----------
     delete_path :   a gcp path containing the crams to delete.
                         e.g. gs://cpg-project-main/exome/cram
-    somaliers   :   flag if .cram.somalier files should be deleted too
     samples     :   a list of sample ids to copy to the release bucket
     """
 
-    sample_ids = list(samples)
+    samples = list(samples)
 
-    # Generate the paths to the crams and crais to be deleted
-    cram_paths = []
-    for sample in sample_ids:
-        cram_paths.append(f'{delete_path}/{sample}.cram')
-        cram_paths.append(f'{delete_path}/{sample}.cram.crai')
-        if somaliers:
-            cram_paths.append(f'{delete_path}/{sample}.cram.somalier')
+    # Get the paths to all the CRAMs and related files for the samples
+    cram_paths = get_cram_paths(samples, delete_path)
 
-    # Check if all paths are valid and execute the rm commands if they are
-    if check_paths_exist(cram_paths):
-        delete_from_bucket(cram_paths)
+    delete_from_bucket(cram_paths)
 
 
 if __name__ == '__main__':
