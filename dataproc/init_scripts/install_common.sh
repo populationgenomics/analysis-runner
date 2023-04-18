@@ -26,6 +26,7 @@ pip3 install /home/hail/hail*.whl
 pip3 install \
     analysis-runner \
     bokeh \
+    botocore \
     cpg-utils \
     cpg-workflows \
     gcsfs \
