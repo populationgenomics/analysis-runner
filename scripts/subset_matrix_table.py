@@ -273,5 +273,5 @@ if __name__ == '__main__':
         all_ref=args.keep_all_ref,
         sample_ref=args.keep_sample_ref,
         biallelic=args.biallelic,
-        clean=args.clean
+        clean=args.clean,
     )
