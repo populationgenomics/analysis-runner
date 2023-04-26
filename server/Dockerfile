@@ -21,4 +21,4 @@ COPY main.py cromwell.py util.py ./
 # Prepare the Hail deploy config to point to the CPG domain.
 COPY deploy-config.json /deploy-config/deploy-config.json
 
-CMD gunicorn --bind :$PORT --workers 1 --worker-class aiohttp.GunicornWebWorker main:init_func
+CMD gunicorn --bind :$PORT --worker-class aiohttp.GunicornWebWorker main:init_func
