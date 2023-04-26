@@ -5,8 +5,9 @@ import json
 import logging
 import traceback
 from shlex import quote
-import hailtop.batch as hb
 from aiohttp import web
+import nest_asyncio
+import hailtop.batch as hb
 from cpg_utils.config import update_dict
 from cpg_utils.hail_batch import remote_tmpdir
 
@@ -329,4 +330,6 @@ async def init_func():
 
 
 if __name__ == '__main__':
+    # Patching is necessary to avoid the "Cannot enter into task" error.
+    nest_asyncio.apply()
     web.run_app(init_func())
