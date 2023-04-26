@@ -3,6 +3,7 @@
 Exports 'add_cromwell_routes', to add the following route to a flask API:
     POST /cromwell: Posts a workflow to a cromwell_url
 """
+import os
 import json
 from datetime import datetime
 
@@ -100,11 +101,6 @@ def add_cromwell_routes(
         input_jsons = params.get('input_json_paths') or []
         input_dict = params.get('inputs_dict')
 
-        if access_level == 'test':
-            workflow_output_dir = f'gs://cpg-{dataset}-test/{output_dir}'
-        else:
-            workflow_output_dir = f'gs://cpg-{dataset}-main/{output_dir}'
-
         timestamp = datetime.now().astimezone().isoformat()
 
         # Prepare the job's configuration and write it to a blob.
@@ -121,6 +117,10 @@ def add_cromwell_routes(
         config_path = write_config(config, cloud_environment)
 
         # This metadata dictionary gets stored at the output_dir location.
+        workflow_output_dir = os.path.join(
+            config.get('storage', {}).get('default', {}).get('default'),
+            output_dir
+        )
         metadata = get_analysis_runner_metadata(
             timestamp=timestamp,
             dataset=dataset,

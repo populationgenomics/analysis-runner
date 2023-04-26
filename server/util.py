@@ -6,10 +6,12 @@ import os
 import json
 import uuid
 import toml
+import distutils
 
 from aiohttp import web, ClientSession
-from cloudpathlib import AnyPath
+from cloudpathlib import AzureBlobClient, AnyPath
 from hailtop.config import get_deploy_config
+from azure.identity import DefaultAzureCredential, EnvironmentCredential
 from google.cloud import secretmanager, pubsub_v1
 from cpg_utils.config import update_dict
 from cpg_utils.cloud import (
@@ -33,7 +35,28 @@ assert DRIVER_IMAGE
 MEMBERS_CACHE_LOCATION = os.getenv('MEMBERS_CACHE_LOCATION')
 assert MEMBERS_CACHE_LOCATION
 
-CONFIG_PATH_PREFIXES = {'gcp': 'gs://cpg-config'}
+SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp', 'azure'}
+DEFAULT_CLOUD_ENVIRONMENT = 'gcp'
+
+USE_LOCAL_SERVER = distutils.util.strtobool(os.getenv('ANALYSIS_RUNNER_LOCAL', 'False'))
+PREFIX = os.path.dirname(os.path.abspath(__file__)) if USE_LOCAL_SERVER else '/deploy-config/'
+DEPLOY_CONFIG_PATHS = {
+    'gcp': os.path.join(PREFIX, 'deploy-config-gcp.json'),
+    'azure': os.path.join(PREFIX, 'deploy-config-azure.json')
+}
+
+AZURE_STORAGE_ACCOUNT = 'cpgcommon'
+CONFIG_PATH_PREFIXES = {
+    'gcp': 'gs://cpg-config',
+    'azure': 'az://cpg-config'
+}
+
+# Set Azure AnyPath client
+client = AzureBlobClient(
+    account_url=f'https://{AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/',
+    credential=EnvironmentCredential()
+)
+client.set_as_default_client()
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
@@ -46,7 +69,7 @@ def get_server_config() -> dict:
 
 async def _get_hail_version(environment: str) -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
-    if not environment == 'gcp':
+    if environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
             reason=f'Unsupported Hail Batch deploy config environment: {environment}'
         )
@@ -110,13 +133,20 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
             reason=f'Dataset {dataset} does not support the {environment} environment'
         )
 
-    # do this to check access-members cache
-    gcp_project = dataset_config.get('gcp', {}).get('projectId')
+    if environment == 'gcp':
+        # do this to check access-members cache
+        gcp_project = dataset_config.get('gcp', {}).get('projectId')
 
-    if not gcp_project:
-        raise web.HTTPBadRequest(
-            reason=f'The analysis-runner does not support checking group members for the {environment} environment'
-        )
+        if not gcp_project:
+            raise web.HTTPBadRequest(
+                reason=f'The analysis-runner does not support checking group members for the {environment} environment'
+            )
+    elif environment == 'azure':
+        if not environment in dataset_config:
+            raise web.HTTPBadRequest(
+                reason=f'The analysis-runner does not support checking group members for the {environment} environment'
+            )
+
     if not is_member_in_cached_group(
         f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION
     ):
@@ -137,19 +167,17 @@ def get_analysis_runner_metadata(
     commit,
     script,
     description,
-    output_prefix,
     driver_image,
     config_path,
     cwd,
     environment,
+    output_dir,
     **kwargs,
 ):
     """
     Get well-formed analysis-runner metadata, requiring the core listed keys
     with some flexibility to provide your own keys (as **kwargs)
     """
-    output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
-
     return {
         'timestamp': timestamp,
         'dataset': dataset,
@@ -170,7 +198,7 @@ def get_analysis_runner_metadata(
 
 def run_batch_job_and_print_url(batch, wait, environment):
     """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
-    if not environment == 'gcp':
+    if environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
             reason=f'Unsupported Hail Batch deploy config environment: {environment}'
         )
@@ -198,13 +226,20 @@ def validate_image(container: str, is_test: bool):
 
 def write_config(config: dict, environment: str) -> str:
     """Writes the given config dictionary to a blob and returns its unique path."""
+
     prefix = CONFIG_PATH_PREFIXES.get(environment)
     if not prefix:
         raise web.HTTPBadRequest(reason=f'Bad environment for config: {environment}')
 
+    # Uses the default AzureBlobClient defined at the top of utils
+    # to connect to AZURE_STORAGE_ACCOUNT where it will always write out to
     config_path = AnyPath(prefix) / (str(uuid.uuid4()) + '.toml')
     with config_path.open('w') as f:
         toml.dump(config, f)
+
+    if environment == 'azure':
+        return os.path.join(f'hail-az://{AZURE_STORAGE_ACCOUNT}', str(config_path).removeprefix('az://'))
+
     return str(config_path)
 
 
@@ -228,8 +263,6 @@ def get_baseline_run_config(
     baseline_config = {
         'hail': {
             'billing_project': dataset,
-            # TODO: how would this work for Azure
-            'bucket': f'cpg-{dataset}-hail',
         },
         'workflow': {
             'access_level': access_level,

@@ -9,7 +9,7 @@ from typing import List
 
 import requests
 from cpg_utils.config import read_configs
-from cpg_utils.cloud import get_google_identity_token
+from cpg_utils.cloud import get_google_identity_token, get_azure_identity_token
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     get_git_default_remote,
@@ -25,6 +25,8 @@ from analysis_runner.util import (
     logger,
 )
 
+SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp', 'azure'}
+DEFAULT_CLOUD_ENVIRONMENT = 'gcp'
 
 def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     """
@@ -34,6 +36,15 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser('analysis-runner subparser')
 
     add_general_args(parser)
+
+    parser.add_argument(
+        '-c',
+        '--cloud',
+        required=False,
+        default=DEFAULT_CLOUD_ENVIRONMENT,
+        choices=SUPPORTED_CLOUD_ENVIRONMENTS,
+        help=f'Backend cloud environment to use. Supported options are ({", ".join(SUPPORTED_CLOUD_ENVIRONMENTS)})',
+    )
 
     parser.add_argument(
         '--image',
@@ -104,6 +115,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     commit=None,
     repository=None,
     cwd=None,
+    cloud=DEFAULT_CLOUD_ENVIRONMENT,
     image=None,
     cpu=None,
     memory=None,
@@ -216,6 +228,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'script': _script,
             'description': description,
             'cwd': _cwd,
+            'cloud': cloud,
             'image': image,
             'cpu': cpu,
             'memory': memory,
@@ -224,7 +237,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'config': _config,
         },
         headers={'Authorization': f'Bearer {_token}'},
-        timeout=60,
+        # timeout=60,
     )
     try:
         response.raise_for_status()

@@ -1,0 +1,19 @@
+[buckets]
+web_suffix = "web"
+tmp_suffix = "tmp"
+analysis_suffix = "analysis"
+
+[workflow]
+dataset = "thousand-genomes"
+access_level = "test"
+dataset_path = "cpgthousandgenomes/test"
+output_prefix = "output"
+path_scheme = "az"
+image_registry_prefix = "cpgcommonimages.azurecr.io"
+
+[hail]
+billing_project = "fewgenomes"
+bucket = "az://cpgthousandgenomes/test"
+
+[images]
+hail = "hailgenetics/hail:0.2.93"
