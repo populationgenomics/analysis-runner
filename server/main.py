@@ -3,11 +3,11 @@
 import datetime
 import json
 import logging
+import nest_asyncio
 import traceback
 from shlex import quote
-from aiohttp import web
-import nest_asyncio
 import hailtop.batch as hb
+from aiohttp import web
 from cpg_utils.config import update_dict
 from cpg_utils.hail_batch import remote_tmpdir
 
