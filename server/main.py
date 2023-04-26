@@ -4,6 +4,10 @@ import datetime
 import json
 import logging
 import nest_asyncio
+
+# Patching is necessary to avoid the "Cannot enter into task" error.
+nest_asyncio.apply()
+
 import traceback
 from shlex import quote
 import hailtop.batch as hb
@@ -330,6 +334,4 @@ async def init_func():
 
 
 if __name__ == '__main__':
-    # Patching is necessary to avoid the "Cannot enter into task" error.
-    nest_asyncio.apply()
     web.run_app(init_func())
