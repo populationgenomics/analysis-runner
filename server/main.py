@@ -1,16 +1,13 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
-# pylint: disable=wrong-import-order
+# flake8: noqa=E402
+# pylint: disable=wrong-import-position
 import datetime
 import json
 import logging
 import traceback
 from shlex import quote
-import hailtop.batch as hb
-from aiohttp import web
-from cpg_utils.config import update_dict
-from cpg_utils.hail_batch import remote_tmpdir
+import nest_asyncio
 
-from analysis_runner.git import prepare_git_job
 from cromwell import add_cromwell_routes
 from util import (
     DRIVER_IMAGE,
@@ -28,6 +25,17 @@ from util import (
     validate_output_dir,
     write_config,
 )
+
+# Patching asyncio *before* importing the Hail Batch module is necessary to avoid a
+# "Cannot enter into task" error.
+nest_asyncio.apply()
+
+import hailtop.batch as hb
+from aiohttp import web
+from cpg_utils.config import update_dict
+from cpg_utils.hail_batch import remote_tmpdir
+
+from analysis_runner.git import prepare_git_job
 
 logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable

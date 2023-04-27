@@ -88,6 +88,7 @@ def main(
     all_ref: bool,
     sample_ref: bool,
     biallelic: bool = False,
+    clean: bool = False,
 ):
     """
 
@@ -101,6 +102,7 @@ def main(
     all_ref : if true, retain sites without alt calls in the subset
     sample_ref : if true, retain called reference sites
     biallelic : if True, filter the output MT to biallelic sites only
+    clean: if True, remove any variants with filters assigned
     """
 
     mt = hl.read_matrix_table(mt_path)
@@ -110,6 +112,10 @@ def main(
 
     if isinstance(locus, hl.IntervalExpression):
         mt = subset_to_locus(mt, locus=locus)
+
+    # if clean, remove any variants with filters assigned
+    if clean:
+        mt = mt.filter_rows(hl.len(mt.filters) == 0)
 
     # biallelic flag reduces to [ref, alt] rows
     if biallelic:
@@ -241,6 +247,11 @@ if __name__ == '__main__':
         help='Remove non-biallelic sites. This argument conflicts with --keep_all_ref',
         action='store_true',
     )
+    parser.add_argument(
+        '--clean',
+        help='Remove any sites with Variant Caller assigned filters',
+        action='store_true',
+    )
     args, unknown = parser.parse_known_args()
 
     if unknown:
@@ -262,4 +273,5 @@ if __name__ == '__main__':
         all_ref=args.keep_all_ref,
         sample_ref=args.keep_sample_ref,
         biallelic=args.biallelic,
+        clean=args.clean,
     )
