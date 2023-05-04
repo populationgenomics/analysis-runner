@@ -100,9 +100,7 @@ def handler(dataset=None, filename=None):
     if blob is None:
         return abort(404, 'File was not found')
 
-    response = Response(
-        stream_with_context(blob.download_as_text()), content_type='text/plain'
-    )
+    response = Response(stream_with_context(blob.download_as_text()))
     response.headers['Content-Type'] = (
         mimetypes.guess_type(filename)[0] or 'application/octet-stream'
     )
