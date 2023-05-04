@@ -5,7 +5,7 @@ import json
 import logging
 import mimetypes
 import os
-from flask import Flask, abort, request, Response
+from flask import Flask, abort, request, Response, stream_with_context
 
 from cpg_utils.cloud import read_secret, is_member_in_cached_group
 import google.cloud.storage
@@ -100,7 +100,9 @@ def handler(dataset=None, filename=None):
     if blob is None:
         return abort(404, 'File was not found')
 
-    response = Response(blob.download_as_string())
+    response = Response(
+        stream_with_context(blob.download_as_text()), content_type='text/plain'
+    )
     response.headers['Content-Type'] = (
         mimetypes.guess_type(filename)[0] or 'application/octet-stream'
     )
