@@ -44,11 +44,17 @@ def main(bucket: str, subdir: str, blob_name: str, outdir: str):
         os.makedirs(f'./{subdir}')
         os.makedirs(f'./{subdir}/extracted')
 
+    # Define the extraction options based on .tar or .tar.gz extension
+    if blob_name.endswith('.tar'):
+        options = '-xvf'
+    else:
+        options = '-xzvf'
+
     # Download and extract the tarball
     input_bucket.get_blob(blob_name).download_to_filename(blob_name)
     logging.info(f'Untaring {blob_name}')
     subprocess.run(
-        ['tar', '-xzf', f'{blob_name}', '-C', f'./{subdir}/extracted'],
+        ['tar', f'{options}', f'{blob_name}', '-C', f'./{subdir}/extracted'],
         check=True,
     )
     logging.info(f'Untared {blob_name}')
