@@ -44,15 +44,15 @@ def get_path_components_from_path(path):
 
 def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int]]:
     """
-    Checks a gs://bucket/subdir/ path for .tar.gz files
+    Checks a gs://bucket/subdir/ path for .tar and .tar.gz files
     Returns a list of:
-        - .tar.gz blob paths found in the subdirectory
+        - .tar and .tar.gz blob paths found in the subdirectory
         - the size of image to use when unpacking the tarball
     """
 
     blob_details = []
     for blob in CLIENT.list_blobs(bucket_name, prefix=(subdir + '/'), delimiter='/'):
-        if not blob.name.endswith('.tar.gz'):
+        if not blob.name.endswith(('.tar', '.tar.gz', '.tar.bz2')):
             continue
 
         # image size is double and a half the tar size in GB, or 30GB
@@ -61,9 +61,7 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
 
         blob_details.append((blob.name, job_gb))
 
-    logging.info(
-        f'{len(blob_details)} .tar.gz files found in {subdir} of {bucket_name}'
-    )
+    logging.info(f'{len(blob_details)} tar files found in {subdir} of {bucket_name}')
 
     return blob_details
 

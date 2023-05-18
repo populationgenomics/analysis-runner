@@ -48,7 +48,7 @@ def main(bucket: str, subdir: str, blob_name: str, outdir: str):
     input_bucket.get_blob(blob_name).download_to_filename(blob_name)
     logging.info(f'Untaring {blob_name}')
     subprocess.run(
-        ['tar', '-xzf', f'{blob_name}', '-C', f'./{subdir}/extracted'],
+        ['tar', '-xf', f'{blob_name}', '-C', f'./{subdir}/extracted'],
         check=True,
     )
     logging.info(f'Untared {blob_name}')
