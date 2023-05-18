@@ -52,7 +52,7 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
 
     blob_details = []
     for blob in CLIENT.list_blobs(bucket_name, prefix=(subdir + '/'), delimiter='/'):
-        if not blob.name.endswith(('.tar', '.tar.gz')):
+        if not blob.name.endswith(('.tar', '.tar.gz', '.tar.bz2')):
             continue
 
         # image size is double and a half the tar size in GB, or 30GB
