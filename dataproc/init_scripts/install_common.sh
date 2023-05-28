@@ -32,11 +32,11 @@ pip3 install \
     gcsfs \
     pyarrow \
     sample-metadata \
-    selenium>=3.8.0 \
+    'selenium>=3.8.0' \
     statsmodels \
-    cloudpathlib[all] \
+    'cloudpathlib[all]' \
     gnomad \
-    cryptography==38.0.4
+    'cryptography==38.0.4'
 
 # Install phantomjs with a workaround for the libssl_conf.so on Debian Buster:
 # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326

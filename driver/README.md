@@ -13,7 +13,7 @@ docker build -f Dockerfile.base --tag=$DOCKER_IMAGE . && docker push $DOCKER_IMA
 
 ## `hail`
 
-The [`hail`](Dockerfile.hail) image adds Hail support and is used by default in the analysis-runner and gets built and pushed automatically as part of the [Hail update workflow](../.github/workflows/hail_update.yaml).  It also contains the cpg-utils, analysis-runner and sample-metadata packages.
+The [`hail`](Dockerfile.hail) image adds Hail support and is used by default in the analysis-runner and gets built and pushed automatically as part of the [Hail update workflow](../.github/workflows/deploy_server.yaml).  It also contains the cpg-utils, analysis-runner and sample-metadata packages.
 
 ## `r`
 

@@ -25,7 +25,7 @@ for details.
 Download a JSON key for the `analysis-runner-server` service account. Store the file name in the `$GSA_KEY_FILE` environment variable. Then run:
 
 ```bash
-docker build -t analysis-runner-server .
+docker build -t analysis-runner-server --build-arg DRIVER_IMAGE[=...] .
 
 docker run -it -p 8080:8080 -v $GSA_KEY_FILE:/gsa-key/key.json -e GOOGLE_APPLICATION_CREDENTIALS=/gsa-key/key.json -e DRIVER_IMAGE=$DRIVER_IMAGE analysis-runner-server
 ```
