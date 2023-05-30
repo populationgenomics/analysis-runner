@@ -89,7 +89,7 @@ def main(project: str, billing_project: str, bucket: str, url_file: str):
     if not url_file.startswith(f'gs://{bucket}/'):
         raise ValueError('url_file must be a fully qualified GS path')
 
-    url_file.removeprefix(f'gs://{bucket}/')
+    url_file = url_file.removeprefix(f'gs://{bucket}/')
 
     input_bucket = client.get_bucket(bucket)
     blob = input_bucket.get_blob(url_file)
