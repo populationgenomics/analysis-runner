@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 """
-Given a project, billing-project ID, bucket, and path to a
-file containing urls, copies all the urls from the file into
+Given a project, billing-project ID, and path to a file
+containing urls, copies all the urls from the file into
 the project's release bucket.
 """
 
 import logging
+import os
 import sys
 import subprocess
 import time
@@ -16,6 +17,7 @@ from google.cloud import storage
 
 # pylint: disable=E0401,E0611
 from cpg_utils.config import get_config
+from cpg_utils.cloud import get_path_components_from_gcp_path
 
 client = storage.Client()
 
@@ -67,9 +69,8 @@ def copy_to_release(project: str, billing_project: str, paths: list[str]):
 @click.command()
 @click.option('--project', '-p', help='Metamist name of the project', default='')
 @click.option('--billing-project', '-b', help='The GCP billing project to use')
-@click.option('--bucket', help='e.g.: cpg-dataset-main-upload')
 @click.argument('url_file')
-def main(project: str, billing_project: str, bucket: str, url_file: str):
+def main(project: str, billing_project: str, url_file: str):
     """
 
     Parameters
@@ -86,18 +87,21 @@ def main(project: str, billing_project: str, bucket: str, url_file: str):
     if not billing_project:
         billing_project = project
 
-    if not url_file.startswith(f'gs://{bucket}/'):
+    if not url_file.startswith(f'gs://'):
         raise ValueError('url_file must be a fully qualified GS path')
 
-    url_file = url_file.removeprefix(f'gs://{bucket}/')
+    path_components = get_path_components_from_gcp_path(url_file)
 
-    input_bucket = client.get_bucket(bucket)
-    blob = input_bucket.get_blob(url_file)
+    bucket_name = path_components['bucket_name']
+    file_name = os.path.join(path_components['subdir'], path_components['file'])
+
+    input_bucket = client.get_bucket(bucket_name)
+    blob = input_bucket.get_blob(file_name)
     if not blob:
         raise RuntimeError(f'No file found at url_file path {url_file}')
-    blob.download_to_filename(url_file)
+    blob.download_to_filename(file_name)
 
-    with open(url_file, 'r', encoding='ascii') as f:
+    with open(file_name, 'r', encoding='ascii') as f:
         paths = [line.rstrip() for line in f]
 
     # Check if all paths are valid and execute the copy commands if they are
