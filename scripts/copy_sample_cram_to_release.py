@@ -40,7 +40,7 @@ def check_paths_exist(paths: list[str]):
     return True
 
 
-def copy_to_release(project: str, paths: list[str]):
+def copy_to_release(project: str, billing_project: str, paths: list[str]):
     """
     Copy many files from main bucket paths to the release bucket with todays date as directory
     """
@@ -48,7 +48,15 @@ def copy_to_release(project: str, paths: list[str]):
     release_path = f'gs://cpg-{project}-release/{today}/'
 
     subprocess.run(
-        ['gcloud', 'storage', '--billing-project', project, 'cp', *paths, release_path],
+        [
+            'gcloud',
+            'storage',
+            '--billing-project',
+            billing_project,
+            'cp',
+            *paths,
+            release_path,
+        ],
         check=True,
     )
     logging.info(f'Copied {paths} into {release_path}')
@@ -56,8 +64,9 @@ def copy_to_release(project: str, paths: list[str]):
 
 @click.command()
 @click.option('--project', '-p', help='Metamist name of the project', default='')
+@click.option('--billing-project', '-b', help='The GCP billing project to use')
 @click.argument('samples', nargs=-1)
-def main(project: str, samples):
+def main(project: str, billing_project: str, samples):
     """
 
     Parameters
@@ -68,6 +77,9 @@ def main(project: str, samples):
     if not project:
         config = get_config()
         project = config['workflow']['dataset']
+
+    if not billing_project:
+        billing_project = project
 
     sample_ids = list(samples)
 
@@ -84,7 +96,7 @@ def main(project: str, samples):
 
     # Check if all paths are valid and execute the copy commands if they are
     if check_paths_exist(cram_paths):
-        copy_to_release(project, cram_paths)
+        copy_to_release(project, billing_project, cram_paths)
 
 
 if __name__ == '__main__':
