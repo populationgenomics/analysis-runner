@@ -68,9 +68,7 @@ def copy_to_release(project: str, billing_project: str, paths: list[str]):
 @click.option('--project', '-p', help='Metamist name of the project', default='')
 @click.option('--billing-project', '-b', help='The GCP billing project to use')
 @click.option('--bucket', help='e.g.: cpg-dataset-main-upload')
-@click.argument(
-    'url_file', help='Full GSPath to a text file containing one URL per line'
-)
+@click.argument('url_file')
 def main(project: str, billing_project: str, bucket: str, url_file: str):
     """
 
@@ -79,7 +77,7 @@ def main(project: str, billing_project: str, bucket: str, url_file: str):
     project :   a metamist project name, optional as it can be pulled from the AR config
     billing_project :    a GCP project ID to bill to
     bucket :    the GCP bucket containing the data to copy
-    urls :   a path to a file containing the links to move into the release bucket
+    urls :   a full GS path to a file containing the links to move into the release bucket
     """
     if not project:
         config = get_config()
