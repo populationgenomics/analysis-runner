@@ -69,16 +69,15 @@ def copy_to_release(project: str, billing_project: str, paths: list[str]):
 @click.command()
 @click.option('--project', '-p', help='Metamist name of the project', default='')
 @click.option('--billing-project', '-b', help='The GCP billing project to use')
-@click.argument('url_file')
-def main(project: str, billing_project: str, url_file: str):
+@click.argument('urls_file_path')
+def main(project: str, billing_project: str, urls_file_path: str):
     """
 
     Parameters
     ----------
-    project :   a metamist project name, optional as it can be pulled from the AR config
+    project :   a metamist dataset name, optional as it can be pulled from the AR config
     billing_project :    a GCP project ID to bill to
-    bucket :    the GCP bucket containing the data to copy
-    url_file :   a full GS path to a file containing the links to move into the release bucket
+    urls_file_path :   a full GS path to a file containing the links to move into the release bucket
     """
     if not project:
         config = get_config()
@@ -87,10 +86,10 @@ def main(project: str, billing_project: str, url_file: str):
     if not billing_project:
         billing_project = project
 
-    if not url_file.startswith(f'gs://'):
+    if not urls_file_path.startswith(f'gs://'):
         raise ValueError('url_file must be a fully qualified GS path')
 
-    path_components = get_path_components_from_gcp_path(url_file)
+    path_components = get_path_components_from_gcp_path(urls_file_path)
 
     bucket = path_components['bucket']
     file_name = path_components['file']
@@ -100,9 +99,10 @@ def main(project: str, billing_project: str, url_file: str):
     input_bucket = client.get_bucket(bucket)
     blob = input_bucket.get_blob(file_name)
     if not blob:
-        raise RuntimeError(f'No file found at url_file path {url_file}')
-    blob.download_to_filename(file_name)
+        raise RuntimeError(f'No file found at url_file path {urls_file_path}')
 
+    # Download and read the file containing the links to copy into release
+    blob.download_to_filename(file_name)
     with open(file_name, 'r', encoding='ascii') as f:
         paths = [line.rstrip() for line in f]
 
