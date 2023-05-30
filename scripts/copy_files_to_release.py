@@ -93,7 +93,7 @@ def main(project: str, billing_project: str, url_file: str):
     path_components = get_path_components_from_gcp_path(url_file)
 
     bucket = path_components['bucket']
-    file_name = os.path.join(path_components['subdir'], path_components['file'])
+    file_name = os.path.join(path_components['suffix'], path_components['file'])
 
     input_bucket = client.get_bucket(bucket)
     blob = input_bucket.get_blob(file_name)
