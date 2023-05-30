@@ -92,10 +92,10 @@ def main(project: str, billing_project: str, url_file: str):
 
     path_components = get_path_components_from_gcp_path(url_file)
 
-    bucket_name = path_components['bucket_name']
+    bucket = path_components['bucket']
     file_name = os.path.join(path_components['subdir'], path_components['file'])
 
-    input_bucket = client.get_bucket(bucket_name)
+    input_bucket = client.get_bucket(bucket)
     blob = input_bucket.get_blob(file_name)
     if not blob:
         raise RuntimeError(f'No file found at url_file path {url_file}')
