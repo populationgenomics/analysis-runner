@@ -77,7 +77,7 @@ def main(project: str, billing_project: str, bucket: str, url_file: str):
     project :   a metamist project name, optional as it can be pulled from the AR config
     billing_project :    a GCP project ID to bill to
     bucket :    the GCP bucket containing the data to copy
-    urls :   a full GS path to a file containing the links to move into the release bucket
+    url_file :   a full GS path to a file containing the links to move into the release bucket
     """
     if not project:
         config = get_config()
@@ -92,7 +92,10 @@ def main(project: str, billing_project: str, bucket: str, url_file: str):
     url_file.removeprefix(f'gs://{bucket}/')
 
     input_bucket = client.get_bucket(bucket)
-    input_bucket.get_blob(url_file).download_to_filename(url_file)
+    blob = input_bucket.get_blob(url_file)
+    if not blob:
+        raise RuntimeError(f'No file found at url_file path {url_file}')
+    blob.download_to_filename(url_file)
 
     with open(url_file, 'r', encoding='ascii') as f:
         paths = f.readlines()
