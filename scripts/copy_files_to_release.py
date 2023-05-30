@@ -98,7 +98,7 @@ def main(project: str, billing_project: str, bucket: str, url_file: str):
     blob.download_to_filename(url_file)
 
     with open(url_file, 'r', encoding='ascii') as f:
-        paths = f.readlines()
+        paths = [line.rstrip() for line in f]
 
     # Check if all paths are valid and execute the copy commands if they are
     if check_paths_exist(paths):
