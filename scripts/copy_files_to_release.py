@@ -7,7 +7,6 @@ the project's release bucket.
 """
 
 import logging
-import os
 import sys
 import subprocess
 import time
@@ -17,7 +16,7 @@ from google.cloud import storage
 
 # pylint: disable=E0401,E0611
 from cpg_utils.config import get_config
-from cpg_utils.cloud import get_path_components_from_gcp_path
+from cpg_utils import to_path
 
 client = storage.Client()
 
@@ -86,24 +85,7 @@ def main(project: str, billing_project: str, urls_file_path: str):
     if not billing_project:
         billing_project = project
 
-    if not urls_file_path.startswith(f'gs://'):
-        raise ValueError('url_file must be a fully qualified GS path')
-
-    path_components = get_path_components_from_gcp_path(urls_file_path)
-
-    bucket = path_components['bucket']
-    file_name = path_components['file']
-    if path_components['suffix']:
-        file_name = os.path.join(path_components['suffix'], path_components['file'])
-
-    input_bucket = client.get_bucket(bucket)
-    blob = input_bucket.get_blob(file_name)
-    if not blob:
-        raise RuntimeError(f'No file found at url_file path {urls_file_path}')
-
-    # Download and read the file containing the links to copy into release
-    blob.download_to_filename(file_name)
-    with open(file_name, 'r', encoding='ascii') as f:
+    with to_path(urls_file_path).open(encoding='utf-8') as f:
         paths = [line.rstrip() for line in f]
 
     # Check if all paths are valid and execute the copy commands if they are
