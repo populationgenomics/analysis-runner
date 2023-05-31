@@ -341,8 +341,7 @@ def watch_workflow(
             'print-identity-token',
             f'--audiences={CROMWELL_AUDIENCE}',
         ]
-        token = subprocess.check_output(token_command).decode().strip()
-        return token
+        return subprocess.check_output(token_command).decode().strip()
 
     def _get_wait_interval(
         start, max_poll_interval, exponential_decrease_seconds
@@ -364,9 +363,10 @@ def watch_workflow(
     terminal_statuses = {'succeeded'} | failed_statuses
     status_reported = False
     subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
-    cromwell_api = 'https://cromwell.populationgenomics.org.au/api/workflows/v1'
-    url = f'{cromwell_api}/{workflow_id}/status'
-    metadata_url = f'{cromwell_api}/{workflow_id}/metadata'
+    cromwell_workflow_root = f'{CROMWELL_URL}/api/workflows/v1/{workflow_id}'
+    metadata_url = f'{cromwell_workflow_root}/metadata'
+    outputs_url = f'{cromwell_workflow_root}/outputs'
+    status_url = f'{cromwell_workflow_root}/status'
     _remaining_exceptions = max_sequential_exception_count
     start = datetime.now()
 
@@ -377,10 +377,8 @@ def watch_workflow(
             start, max_poll_interval, exponential_decrease_seconds
         )
         try:
-            token = _get_cromwell_oauth_token()
-            r = requests.get(
-                url, headers={'Authorization': f'Bearer {token}'}, timeout=60
-            )
+            auth_header = {'Authorization': f'Bearer {_get_cromwell_oauth_token()}'}
+            r = requests.get(status_url, headers=auth_header, timeout=60)
             if not r.ok:
                 _remaining_exceptions -= 1
                 logger.warning(
@@ -397,11 +395,7 @@ def watch_workflow(
                 # don't report multiple times if we fail fetching output
                 # also don't fail the whole run if we can't fetch metadata
                 status_reported = True
-                response = requests.get(
-                    metadata_url,
-                    headers={'Authorization': f'Bearer {token}'},
-                    timeout=60,
-                )
+                response = requests.get(metadata_url, headers=auth_header, timeout=60)
                 if response.ok:
                     meta_json = response.json()
                     print(WorkflowMetadataModel.parse(meta_json).display())
@@ -412,15 +406,7 @@ def watch_workflow(
                 logger.info(f'Cromwell workflow moved to succeeded state')
                 _remaining_exceptions = max_sequential_exception_count
                 # process outputs here
-                outputs_url = (
-                    f'https://cromwell.populationgenomics.org.au/api/workflows'
-                    f'/v1/{workflow_id}/outputs'
-                )
-                r_outputs = requests.get(
-                    outputs_url,
-                    headers={'Authorization': f'Bearer {token}'},
-                    timeout=60,
-                )
+                r_outputs = requests.get(outputs_url, headers=auth_header, timeout=60)
                 if not r_outputs.ok:
                     logger.warning(
                         'Received error when fetching cromwell outputs, '
@@ -479,6 +465,13 @@ def watch_workflow_and_get_output(
     otherwise write the value into a file which will be a batch resource.
 
     :param driver_image: If specified, must contain python3 (w/ requests), gcloud, jq
+    :param b: Batch object
+    :param job_prefix: Prefix for the job name
+    :param workflow_id_file: File containing the workflow ID
+    :param outputs_to_collect: Dict of output name -> CromwellOutputType
+    :param max_poll_interval: Maximum time to wait between polls
+    :param exponential_decrease_seconds: Exponential decrease in wait time
+    :param max_sequential_exception_count: Maximum number of exceptions before giving up
     """
 
     _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
