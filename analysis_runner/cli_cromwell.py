@@ -9,7 +9,8 @@ from typing import List, Dict, Optional
 import requests
 
 from cpg_utils.cloud import get_google_identity_token
-from analysis_runner.constants import get_server_endpoint, SERVER_ENDPOINT
+from analysis_runner.constants import get_server_endpoint, CROMWELL_URL
+from analysis_runner.cromwell import get_cromwell_oauth_token
 from analysis_runner.cromwell_model import WorkflowMetadataModel
 from analysis_runner.git import (
     get_git_default_remote,
@@ -265,13 +266,11 @@ curl --location --request POST \\
 def _check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwargs):
     """Check cromwell status with workflow_id"""
 
-    url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
+    url = f'{CROMWELL_URL}/api/workflows/v1/{workflow_id}/metadata'
 
     response = requests.get(
         url,
-        headers={
-            'Authorization': f'Bearer {get_google_identity_token(SERVER_ENDPOINT)}'
-        },
+        headers={'Authorization': f'Bearer {get_cromwell_oauth_token()}'},
         timeout=60,
     )
     response.raise_for_status()
