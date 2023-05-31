@@ -320,12 +320,12 @@ def watch_workflow(
     import json
     from datetime import datetime
     from cloudpathlib.anypath import to_anypath
-    from analysis_runner.cli_cromwell import _check_cromwell_status
     from analysis_runner.util import logger
     from analysis_runner.constants import (
         CROMWELL_AUDIENCE,
         GCLOUD_ACTIVATE_AUTH,
     )
+    from analysis_runner.cromwell_model import WorkflowMetadataModel
 
     # pylint: enable=redefined-outer-name,reimported,import-outside-toplevel
 
@@ -364,7 +364,9 @@ def watch_workflow(
     terminal_statuses = {'succeeded'} | failed_statuses
     status_reported = False
     subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
-    url = f'https://cromwell.populationgenomics.org.au/api/workflows/v1/{workflow_id}/status'
+    cromwell_api = 'https://cromwell.populationgenomics.org.au/api/workflows/v1'
+    url = f'{cromwell_api}/{workflow_id}/status'
+    metadata_url = f'{cromwell_api}/{workflow_id}/metadata'
     _remaining_exceptions = max_sequential_exception_count
     start = datetime.now()
 
@@ -395,7 +397,16 @@ def watch_workflow(
                 # don't report multiple times if we fail fetching output
                 # also don't fail the whole run if we can't fetch metadata
                 status_reported = True
-                _check_cromwell_status(workflow_id, json_output=None)
+                response = requests.get(
+                    metadata_url,
+                    headers={'Authorization': f'Bearer {token}'},
+                    timeout=60,
+                )
+                if response.ok:
+                    meta_json = response.json()
+                    print(WorkflowMetadataModel.parse(meta_json).display())
+                else:
+                    print('Failed to collect run Metadata')
 
             if status.lower() == 'succeeded':
                 logger.info(f'Cromwell workflow moved to succeeded state')
