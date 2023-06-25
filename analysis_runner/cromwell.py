@@ -177,12 +177,11 @@ def run_cromwell_workflow(
     if not service_account_email:
         raise ValueError("The service_account didn't contain an entry for client_email")
 
-    if access_level == 'test':
-        intermediate_dir = f'gs://cpg-{dataset}-test-tmp/cromwell'
-        workflow_output_dir = f'gs://cpg-{dataset}-test/{output_prefix}'
-    else:
-        intermediate_dir = f'gs://cpg-{dataset}-main-tmp/cromwell'
-        workflow_output_dir = f'gs://cpg-{dataset}-main/{output_prefix}'
+    # test/main should be implicit from the config
+    storage_config = get_config()['storage'][dataset]
+    intermediate_dir = f'{storage_config["tmp"]}/cromwell'
+    workflow_output_dir = f'{storage_config["default"]}/{output_prefix}'
+    logging_output_dir = f'{storage_config["analysis"]}/cromwell_logs/{output_prefix}'
 
     workflow_options = {
         'user_service_account_json': service_account_json,
@@ -191,6 +190,8 @@ def run_cromwell_workflow(
         'jes_gcs_root': intermediate_dir,
         'final_workflow_outputs_dir': workflow_output_dir,
         'google_labels': google_labels,
+        'final_call_logs_dir': logging_output_dir,
+        'final_workflow_log_dir': logging_output_dir,
     }
 
     input_paths = input_paths or []
