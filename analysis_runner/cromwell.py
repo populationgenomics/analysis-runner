@@ -334,6 +334,7 @@ def watch_workflow(
     from cloudpathlib.anypath import to_anypath
     from analysis_runner.util import logger
     from analysis_runner.constants import (
+        CROMWELL_URL,
         CROMWELL_AUDIENCE,
         GCLOUD_ACTIVATE_AUTH,
     )
