@@ -503,7 +503,7 @@ def watch_workflow_and_get_output(
             max_sequential_exception_count,
             max_poll_interval,
             exponential_decrease_seconds,
-            f'{watch_job.output_json_path}',
+            str(watch_job.output_json_path),
             setup_gcp=True,
             setup_hail=False,
         )
