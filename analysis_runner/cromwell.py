@@ -132,6 +132,7 @@ def run_cromwell_workflow(
     input_dict: Optional[Dict[str, Any]] = None,
     input_paths: List[str] = None,
     project: Optional[str] = None,
+    copy_outputs_to_gcp: bool = True,
 ):
     """
     Run a cromwell workflow, and return a Batch.ResourceFile
@@ -179,20 +180,23 @@ def run_cromwell_workflow(
 
     # test/main should be implicit from the config
     storage_config = get_config()['storage'][dataset]
-    intermediate_dir = f'{storage_config["tmp"]}/cromwell'
-    workflow_output_dir = f'{storage_config["default"]}/{output_prefix}'
-    logging_output_dir = f'{storage_config["analysis"]}/cromwell_logs/{output_prefix}'
+    intermediate_dir = os.path.join(storage_config['tmp'], 'cromwell')
+    workflow_output_dir = os.path.join(storage_config['default'], output_prefix)
+    logging_output_dir = os.path.join(storage_config['analysis'], 'cromwell_logs', output_prefix)
 
     workflow_options = {
         'user_service_account_json': service_account_json,
         'google_compute_service_account': service_account_email,
         'google_project': _project,
         'jes_gcs_root': intermediate_dir,
-        'final_workflow_outputs_dir': workflow_output_dir,
         'google_labels': google_labels,
         'final_call_logs_dir': logging_output_dir,
         'final_workflow_log_dir': logging_output_dir,
     }
+
+    # if required, export the workflow outputs to GCS
+    if copy_outputs_to_gcp:
+        workflow_options['final_workflow_outputs_dir'] = workflow_output_dir
 
     input_paths = input_paths or []
     if input_dict:
@@ -247,6 +251,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     cwd: Optional[str] = None,
     driver_image: Optional[str] = None,
     project: Optional[str] = None,
+    copy_outputs_to_gcp: bool = True,
 ) -> tuple[Job, dict[str, Resource]]:
     """
     This function needs to know the structure of the outputs you
@@ -261,6 +266,9 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
 
     If the starts with "gs://", we'll copy it as a resource file,
     otherwise write the value into a file which will be a batch resource.
+
+    If copy_outputs_to_gcp is True, the outputs will be copied to GCS.
+    Workflows may then choose to copy these outputs to a final destination.
 
     Returns a submit Job object, and a dict of output Resource objects.
     """
@@ -287,6 +295,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         input_paths=input_paths,
         labels=labels,
         project=project,
+        copy_outputs_to_gcp=copy_outputs_to_gcp
     )
 
     outputs_dict = watch_workflow_and_get_output(
