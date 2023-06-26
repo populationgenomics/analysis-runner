@@ -6,11 +6,10 @@ jobs from within Hail batch.
 import json
 import os
 import subprocess
-import textwrap
-import inspect
 from shlex import quote
 from typing import List, Dict, Optional, Any
 from cpg_utils.config import get_config
+from cpg_utils.hail_batch import query_command
 from hailtop.batch import Resource
 from hailtop.batch.job import Job
 from analysis_runner.constants import (
@@ -324,7 +323,7 @@ def watch_workflow(
     """
     # Re-importing dependencies here so the function is self-contained
     # and can be run in a Hail bash job.
-    # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
+    # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel,too-many-locals
     import subprocess
     import requests
     import time
@@ -487,39 +486,30 @@ def watch_workflow_and_get_output(
     :param max_sequential_exception_count: Maximum number of exceptions before giving up
     """
 
-    _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
+    driver_image = driver_image or get_config()['workflow']['driver_image']
 
     watch_job = b.new_job(job_prefix + '_watch')
     watch_job.cpu(0.25)
 
     watch_job.env('GOOGLE_APPLICATION_CREDENTIALS', '/gsa-key/key.json')
     watch_job.env('PYTHONUNBUFFERED', '1')  # makes the logs go quicker
-    watch_job.image(_driver_image)  # need an image with python3 + requests
+    watch_job.image(driver_image)  # need an image with python3 + requests
 
-    python_cmd = f"""
-{textwrap.dedent(inspect.getsource(watch_workflow))}
-{watch_workflow.__name__}(
-    "{workflow_id_file}",
-    {max_sequential_exception_count},
-    {max_poll_interval},
-    {exponential_decrease_seconds},
-    "{watch_job.output_json_path}",
-)
-    """
-    cmd = f"""
-set -o pipefail
-set -ex
-{GCLOUD_ACTIVATE_AUTH}
+    watch_job.command(
+        query_command(
+            watch_workflow,
+            watch_workflow.__name__,
+            workflow_id_file,
+            max_sequential_exception_count,
+            max_poll_interval,
+            exponential_decrease_seconds,
+            str(watch_job.output_json_path),
+            setup_gcp=True,
+            setup_hail=False,
+        )
+    )
 
-pip3 install analysis-runner requests 'cloudpathlib[all]'
-
-cat << EOT >> script.py
-{python_cmd}
-EOT
-python3 script.py
-    """
     rdict = watch_job.output_json_path
-    watch_job.command(cmd)
 
     out_file_map = {}
     for oname, output in outputs_to_collect.items():
