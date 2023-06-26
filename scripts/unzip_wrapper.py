@@ -104,12 +104,15 @@ def main(search_path: str):
             repo_name='analysis-runner',
             commit=COMMIT_HASH,
         )
+        job.command('cd /io')
         job.command(
-            f'python3 {UNZIP_SCRIPT} '
-            f'--bucket {bucket_name} '
-            f'--subdir {subdir} '
-            f'--blob_name {blobname} '
-            f'--outdir {output_dir}'
+            f"""
+            python3 {UNZIP_SCRIPT}
+                --bucket {bucket_name}
+                --subdir {subdir}
+                --blob_name {blobname}
+                --outdir {output_dir}
+        """
         )
 
     get_batch().run(wait=False)
