@@ -6,8 +6,6 @@ jobs from within Hail batch.
 import json
 import os
 import subprocess
-import textwrap
-import inspect
 from shlex import quote
 from typing import List, Dict, Optional, Any
 from cpg_utils.config import get_config
@@ -325,7 +323,7 @@ def watch_workflow(
     """
     # Re-importing dependencies here so the function is self-contained
     # and can be run in a Hail bash job.
-    # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
+    # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel,too-many-locals
     import subprocess
     import requests
     import time
@@ -505,9 +503,9 @@ def watch_workflow_and_get_output(
             max_sequential_exception_count,
             max_poll_interval,
             exponential_decrease_seconds,
-            f"{watch_job.output_json_path}",
+            f'{watch_job.output_json_path}',
             setup_gcp=True,
-            setup_hail=False
+            setup_hail=False,
         )
     )
 
