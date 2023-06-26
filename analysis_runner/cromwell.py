@@ -182,7 +182,9 @@ def run_cromwell_workflow(
     storage_config = get_config()['storage'][dataset]
     intermediate_dir = os.path.join(storage_config['tmp'], 'cromwell')
     workflow_output_dir = os.path.join(storage_config['default'], output_prefix)
-    logging_output_dir = os.path.join(storage_config['analysis'], 'cromwell_logs', output_prefix)
+    logging_output_dir = os.path.join(
+        storage_config['analysis'], 'cromwell_logs', output_prefix
+    )
 
     workflow_options = {
         'user_service_account_json': service_account_json,
@@ -295,7 +297,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         input_paths=input_paths,
         labels=labels,
         project=project,
-        copy_outputs_to_gcp=copy_outputs_to_gcp
+        copy_outputs_to_gcp=copy_outputs_to_gcp,
     )
 
     outputs_dict = watch_workflow_and_get_output(
