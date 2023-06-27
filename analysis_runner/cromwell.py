@@ -499,7 +499,7 @@ def watch_workflow_and_get_output(
         query_command(
             watch_workflow,
             watch_workflow.__name__,
-            workflow_id_file,
+            str(workflow_id_file),
             max_sequential_exception_count,
             max_poll_interval,
             exponential_decrease_seconds,
