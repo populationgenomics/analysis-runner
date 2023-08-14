@@ -95,6 +95,18 @@ analysis-runner \
 For more examples (including for running an R script and dataproc), see the
 [examples](examples) directory.
 
+### GitHub Authorisation
+
+If you are submitting an analysis-runner job that needs to clone a private repository owned by populationgenomics on GitHub (eg submitting a script to analysis-runner from a private repository), please make sure that your configuration file contains the following section:
+
+```toml
+[infrastructure]
+git_credentials_secret_name = '<ask_software_team_for_secret_name>'
+git_credentials_secret_project = '<ask_software_team_for_secret_project>'
+```
+
+If you are specifying multiple configuration files, please make sure that this section appears in the final right-most config to avoid these settings being overwritten.
+
 ## Custom Docker images
 
 The default driver image that's used to run scripts comes with Hail and some statistics libraries preinstalled (see the corresponding [Hail Dockerfile](driver/Dockerfile.hail)). It's possible to use any custom Docker image instead, using the `--image` parameter. Note that any such image needs to contain the critical dependencies as specified in the [`base` image](driver/Dockerfile.base).
