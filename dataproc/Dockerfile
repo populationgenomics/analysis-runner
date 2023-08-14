@@ -43,28 +43,28 @@ RUN cd hail/hail && \
     rm -rf hail
 
 # Install additional Python packages into the driver image. We need cpg-utils to
-# read config files during cluster initialization. These are separate from the 
+# read config files during cluster initialization. These are separate from the
 # Python packages installed to the dataproc cluster via the init scripts.
 RUN pip3 install cpg-utils
 
-# This strips all pinned versions from the 'deploy.yaml' file, which is created 
-# during the hail build step. This file is used by the hailctl command line 
-# program to set the 'metadata' argument of the dataproc cluster create command. 
-# The metadata argument is by used the cluster to install specific versions of 
-# Python packages on the cluster. Strip  versions if you are having issues with 
+# This strips all pinned versions from the 'deploy.yaml' file, which is created
+# during the hail build step. This file is used by the hailctl command line
+# program to set the 'metadata' argument of the dataproc cluster create command.
+# The metadata argument is by used the cluster to install specific versions of
+# Python packages on the cluster. Strip  versions if you are having issues with
 # pip dependency resolution during cluster creation.
-# 
-# This may surface as the error below when the `./init_scripts/install_common.sh` 
+#
+# This may surface as the error below when the `./init_scripts/install_common.sh`
 # script is being executed during cluster initialisation:
 #
 #   pip3 install --no-dependencies '/home/hail/hail*.whl'
 #   WARNING: Requirement '/home/hail/hail*.whl' looks like a filename, but the file does not exist
 #   ERROR: hail*.whl is not a valid wheel filename.
 #
-# This may be due to a failure at a previous step which uses the `deploy.yaml` 
-# file. This file contains info on pip dependencies and the location of the hail 
-# wheel file. So, if one part of this step fails, for example the pip intall from 
-# the `pip_dependencies` section of this yaml file, then the hail wheel won't be 
-# copied over to the cluster resulting in the above error. However, remember to 
+# This may be due to a failure at a previous step which uses the `deploy.yaml`
+# file. This file contains info on pip dependencies and the location of the hail
+# wheel file. So, if one part of this step fails, for example the pip intall from
+# the `pip_dependencies` section of this yaml file, then the hail wheel won't be
+# copied over to the cluster resulting in the above error. However, remember to
 # check your error logs for the exact error message.
 RUN if [ "$STRIP_PIP_VERSIONS" == "true" ]; then sed -i 's/[<>=~!][^|]*//g' /usr/local/lib/python3.10/dist-packages/hailtop/hailctl/deploy.yaml; fi
