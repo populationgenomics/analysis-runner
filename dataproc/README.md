@@ -21,7 +21,7 @@ The scripts in [`init_scripts`](init_scripts) are used to install dependencies o
 
 ## Known Issues
 
-You may see the following error when the `./init_scripts/install_common.sh` script is being executed during cluster initialisation:
+You may see the following error when the `./init_scripts/install_common.sh` script is being executed during cluster initialization:
 
 ```log
 pip3 install --no-dependencies '/home/hail/hail*.whl'
