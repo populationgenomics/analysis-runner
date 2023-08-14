@@ -43,7 +43,9 @@ RUN cd hail/hail && \
     rm -rf hail
 
 # Install additional Python packages into the driver image. We need cpg-utils to
-# read config files during cluster initialization. These are separate from the
+# read secrets from the config file for GitHub authentication to clone private 
+# repositories. Files/scripts from the cloned repository are sent to the dataproc 
+# cluster created by this driver image. These pip packages are separate from the 
 # Python packages installed to the dataproc cluster via the init scripts.
 RUN pip3 install cpg-utils
 
