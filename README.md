@@ -95,7 +95,7 @@ analysis-runner \
 For more examples (including for running an R script and dataproc), see the
 [examples](examples) directory.
 
-### GitHub Authorisation
+### GitHub Authentication
 
 If you are submitting an analysis-runner job that needs to clone a private repository owned by populationgenomics on GitHub (eg submitting a script to analysis-runner from a private repository), please make sure that your configuration file contains the following section:
 
