@@ -216,6 +216,7 @@ def run_cromwell_workflow(
     output_workflow_id = job.out_workflow_id
     job.command(
         f"""
+    set +x
     echo '{json.dumps(workflow_options)}' > workflow-options.json
     access_token=$(gcloud auth print-identity-token --audiences={CROMWELL_AUDIENCE})
     wid=$(curl -X POST "{cromwell_post_url}" \\
@@ -273,7 +274,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
 
     Returns a submit Job object, and a dict of output Resource objects.
     """
-    _driver_image = driver_image or os.getenv('DRIVER_IMAGE')
+    _driver_image = driver_image or get_config()['workflow']['driver_image']
 
     submit_job = b.new_job(f'{job_prefix}_submit')
     submit_job.image(_driver_image)
