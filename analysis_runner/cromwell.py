@@ -227,7 +227,7 @@ def run_cromwell_workflow(
     {' '.join(inputs_cli)} \\
     -F "workflowOptions=@workflow-options.json;type=application/json" \\
     {f'-F "workflowDependencies=@{deps_path}"' if deps_path else ''})
-    
+
     echo "Submitted workflow with ID $wid"
     echo $wid | jq -r .id >> {output_workflow_id}
     """
