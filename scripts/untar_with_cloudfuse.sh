@@ -5,7 +5,7 @@ echo "deb https://packages.cloud.google.com/apt $GCSFUSE_REPO main" | tee /etc/a
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
 apt-get update
-apt-get install gcsfuse
+apt-get install -y gcsfuse
 
 gcsfuse -v
 
