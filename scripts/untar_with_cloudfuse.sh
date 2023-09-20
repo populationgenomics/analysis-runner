@@ -11,4 +11,4 @@ mkdir $HOME/mounted
 
 gcsfuse --only-dir 2023-09-20 cpg-schr-neuro-test-upload $HOME/mounted
 
-tar -xvf $HOME/mounted/2023-09-20/test.tar -C $HOME/mounted/extracted
+tar -xvf $HOME/mounted/2023-09-20/test.tar -C $HOME/mounted/2023-09-20/extracted
