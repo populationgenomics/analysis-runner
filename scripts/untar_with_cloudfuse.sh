@@ -14,7 +14,7 @@ mkdir $HOME/mounted
 ls -l $HOME
 
 echo "Mounting bucket gs://cpg-schr-neuro-test-upload/2023-09-20/ to $HOME/mounted"
-gcsfuse --only-dir 2023-09-20 cpg-schr-neuro-test-upload $HOME/mounted
+gcsfuse --foreground --debug_fuse --debug_fs --debug_gcs --debug_http --only-dir 2023-09-20 cpg-schr-neuro-test-upload $HOME/mounted
 ls -l $HOME/mounted
 
 echo "Extracting tar file"
