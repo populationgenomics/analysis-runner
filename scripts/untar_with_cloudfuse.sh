@@ -9,8 +9,13 @@ apt-get install -y gcsfuse
 
 gcsfuse -v
 
+echo "Making dir $HOME/mounted"
 mkdir $HOME/mounted
+ls -l $HOME
 
+echo "Mounting bucket gs://cpg-schr-neuro-test-upload/2023-09-20/ to $HOME/mounted"
 gcsfuse --only-dir 2023-09-20 cpg-schr-neuro-test-upload $HOME/mounted
+ls -l $HOME/mounted
 
+echo "Extracting tar file"
 tar -xvf $HOME/mounted/2023-09-20/test.tar -C $HOME/mounted/2023-09-20/extracted
