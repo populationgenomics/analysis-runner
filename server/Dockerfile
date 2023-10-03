@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED 1
 ENV PORT 8080
 EXPOSE $PORT
 
-ADD requirements.txt requirements.txt
+COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
 COPY main.py cromwell.py util.py ./
