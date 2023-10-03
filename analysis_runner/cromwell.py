@@ -7,26 +7,26 @@ import json
 import os
 import subprocess
 from shlex import quote
-from typing import List, Dict, Optional, Any
-from cpg_utils.config import get_config
+from typing import Any, Dict, List, Optional
+
+from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
 from cpg_utils.hail_batch import query_command
 from hailtop.batch import Resource
 from hailtop.batch.job import Job
+
 from analysis_runner.constants import (
-    CROMWELL_URL,
     ANALYSIS_RUNNER_PROJECT_ID,
     CROMWELL_AUDIENCE,
+    CROMWELL_URL,
     GCLOUD_ACTIVATE_AUTH,
 )
 from analysis_runner.git import (
-    get_git_default_remote,
     get_git_commit_ref_of_current_repository,
+    get_git_default_remote,
     get_repo_name_from_remote,
     prepare_git_job,
 )
-from analysis_runner.util import (
-    get_project_id_from_service_account_email,
-)
+from analysis_runner.util import get_project_id_from_service_account_email
 
 
 class CromwellOutputType:
@@ -132,6 +132,7 @@ def run_cromwell_workflow(
     input_paths: List[str] = None,
     project: Optional[str] = None,
     copy_outputs_to_gcp: bool = True,
+    ar_guid_override: str = None,
 ):
     """
     Run a cromwell workflow, and return a Batch.ResourceFile
@@ -162,6 +163,13 @@ def run_cromwell_workflow(
         google_labels.update(labels)
 
     google_labels.update({'compute-category': 'cromwell'})
+
+    if ar_guid_override:
+        google_labels[AR_GUID_NAME] = ar_guid_override
+    else:
+        ar_guid = try_get_ar_guid()
+        if ar_guid:
+            google_labels[AR_GUID_NAME] = ar_guid
 
     service_account_json = get_cromwell_key(dataset=dataset, access_level=access_level)
     # use the email specified by the service_account_json again
@@ -325,20 +333,22 @@ def watch_workflow(
     # Re-importing dependencies here so the function is self-contained
     # and can be run in a Hail bash job.
     # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel,too-many-locals
-    import subprocess
-    import requests
-    import time
-    import math
     import json
+    import math
+    import subprocess
+    import time
     from datetime import datetime
+
+    import requests
     from cloudpathlib.anypath import to_anypath
-    from analysis_runner.util import logger
+
     from analysis_runner.constants import (
-        CROMWELL_URL,
         CROMWELL_AUDIENCE,
+        CROMWELL_URL,
         GCLOUD_ACTIVATE_AUTH,
     )
     from analysis_runner.cromwell_model import WorkflowMetadataModel
+    from analysis_runner.util import logger
 
     # pylint: enable=redefined-outer-name,reimported,import-outside-toplevel
 
@@ -416,7 +426,7 @@ def watch_workflow(
                     print('Failed to collect run Metadata')
 
             if status.lower() == 'succeeded':
-                logger.info(f'Cromwell workflow moved to succeeded state')
+                logger.info('Cromwell workflow moved to succeeded state')
                 _remaining_exceptions = max_sequential_exception_count
                 # process outputs here
                 r_outputs = requests.get(outputs_url, headers=auth_header, timeout=60)
