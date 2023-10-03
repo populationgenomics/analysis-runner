@@ -9,7 +9,7 @@ ENV PORT 8080
 EXPOSE $PORT
 
 ADD requirements.txt requirements.txt
-RUN pip install -r requirements.txt    
+RUN pip install -r requirements.txt
 
 COPY main.py cromwell.py util.py ./
 

@@ -2,22 +2,19 @@
 """
 Utility methods for analysis-runner server
 """
-import os
 import json
+import os
 import uuid
-import toml
 
-from aiohttp import web, ClientSession
+import toml
+from aiohttp import ClientSession, web
 from cloudpathlib import AnyPath
-from hailtop.config import get_deploy_config
-from google.cloud import secretmanager, pubsub_v1
+from cpg_utils.cloud import email_from_id_token, is_member_in_cached_group, read_secret
 from cpg_utils.config import update_dict
-from cpg_utils.cloud import (
-    email_from_id_token,
-    read_secret,
-    is_member_in_cached_group,
-)
 from cpg_utils.hail_batch import cpg_namespace
+from google.cloud import pubsub_v1, secretmanager
+from hailtop.config import get_deploy_config
+
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
 GITHUB_ORG = 'populationgenomics'
@@ -52,7 +49,7 @@ async def _get_hail_version(environment: str) -> str:
         )
 
     deploy_config = get_deploy_config()
-    url = deploy_config.url('batch', f'/api/v1alpha/version')
+    url = deploy_config.url('batch', '/api/v1alpha/version')
     async with ClientSession() as session:
         async with session.get(url) as resp:
             resp.raise_for_status()
@@ -115,7 +112,8 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
 
     if not gcp_project:
         raise web.HTTPBadRequest(
-            reason=f'The analysis-runner does not support checking group members for the {environment} environment'
+            reason='The analysis-runner does not support checking group members for '
+            f'the {environment} environment'
         )
     if not is_member_in_cached_group(
         f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION
