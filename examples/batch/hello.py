@@ -16,7 +16,7 @@ with open('/deploy-config/deploy-config.json') as f:
     dc = json.load(f)
     dc['domain'] = 'popgen.xyz'
 
-with open('/deploy-config/deploy-config.json', 'w+') as f:
+with open('dc.json', 'w+') as f:
     json.dump(dc, f)
 
 
