@@ -10,9 +10,20 @@ Test Hail Batch Workflow
       hello.py \
       --name-to-print $(whoami)
 """
+import json
+
+with open('/deploy-config/deploy-config.json') as f:
+    dc = json.load(f)
+    dc['domain'] = 'popgen.xyz'
+
+with open('/deploy-config/deploy-config.json', 'w+') as f:
+    json.dump(dc, f)
+
+
 from shlex import quote
-import hailtop.batch as hb
+
 import click
+import hailtop.batch as hb
 from cpg_utils.hail_batch import get_config, remote_tmpdir
 
 
