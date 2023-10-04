@@ -2,19 +2,14 @@
 ARG DRIVER_IMAGE
 FROM ${DRIVER_IMAGE}
 
-RUN pip install \
-    google-api-python-client==2.10.0 \
-    google-cloud-secret-manager==2.2.0 \
-    google-cloud-pubsub==2.3.0 \
-    google-cloud-logging==3.1.1 \
-    gunicorn \
-    protobuf==3.20.1
-
 # Allow statements and log messages to immediately appear in the Knative logs.
 ENV PYTHONUNBUFFERED 1
 
 ENV PORT 8080
 EXPOSE $PORT
+
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
 
 COPY main.py cromwell.py util.py ./
 
