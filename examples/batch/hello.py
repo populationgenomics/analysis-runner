@@ -27,7 +27,7 @@ import hailtop.batch as hb
 from cpg_utils.hail_batch import get_config, remote_tmpdir
 from hailtop.config import get_deploy_config
 
-print(get_deploy_config.get_config())
+print(get_deploy_config().get_config())
 
 
 @click.command()
