@@ -16,7 +16,7 @@ with open('/deploy-config/deploy-config.json') as f:
     dc = json.load(f)
     dc['domain'] = 'popgen.xyz'
 
-with open('dc.json', 'w+') as f:
+with open('/analysis-runner/examples/dc.json', 'w+') as f:
     json.dump(dc, f)
 
 
@@ -25,6 +25,9 @@ from shlex import quote
 import click
 import hailtop.batch as hb
 from cpg_utils.hail_batch import get_config, remote_tmpdir
+from hailtop.config import get_deploy_config
+
+print(get_deploy_config.get_config())
 
 
 @click.command()
