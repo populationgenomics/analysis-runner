@@ -2,25 +2,26 @@
 CLI options for standard analysis-runner
 """
 
-import os
 import argparse
+import os
 from shutil import which
 from typing import List
 
 import requests
-from cpg_utils.config import read_configs
 from cpg_utils.cloud import get_google_identity_token
+from cpg_utils.config import read_configs
+
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
-    get_git_default_remote,
-    get_git_commit_ref_of_current_repository,
-    get_repo_name_from_remote,
-    get_relative_path_from_git_root,
     check_if_commit_is_on_remote,
+    get_git_commit_ref_of_current_repository,
+    get_git_default_remote,
+    get_relative_path_from_git_root,
+    get_repo_name_from_remote,
 )
 from analysis_runner.util import (
-    add_general_args,
     _perform_version_check,
+    add_general_args,
     confirm_choice,
     logger,
 )
@@ -111,6 +112,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     config: List[str] = None,
     env: List[str] = None,
     use_test_server=False,
+    server_url=None,
 ):
     """
     Main function that drives the CLI.
@@ -200,7 +202,9 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     if config:
         _config = dict(read_configs(config))
 
-    server_endpoint = get_server_endpoint(is_test=use_test_server)
+    server_endpoint = get_server_endpoint(
+        server_url=server_url, is_test=use_test_server
+    )
     _token = get_google_identity_token(server_endpoint)
 
     logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')

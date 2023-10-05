@@ -12,7 +12,7 @@ GCLOUD_ACTIVATE_AUTH = (
 )
 
 
-def get_server_endpoint(is_test: bool = False):
+def get_server_endpoint(server_url: str = SERVER_ENDPOINT, is_test: bool = False):
     """
     Get the server endpoint {production / test}
     Do it in a function so it's easy to fix if the logic changes
@@ -20,4 +20,7 @@ def get_server_endpoint(is_test: bool = False):
     if is_test:
         return SERVER_TEST_ENDPOINT
 
-    return SERVER_ENDPOINT
+    if not server_url:
+        return SERVER_ENDPOINT
+
+    return server_url

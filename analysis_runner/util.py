@@ -7,6 +7,7 @@ import re
 import requests
 
 from analysis_runner._version import __version__
+from analysis_runner.constants import SERVER_ENDPOINT
 
 BRANCH = 'main'
 
@@ -90,6 +91,13 @@ def add_general_args(parser):
         help='Use the test analysis-runner server',
     )
 
+    parser.add_argument(
+        '--server-url',
+        required=False,
+        default=SERVER_ENDPOINT,
+        help='Supply a server URL to use, this will override the "--use-test-server"',
+    )
+
 
 def confirm_choice(choice: str):
     """
@@ -130,7 +138,7 @@ def _perform_version_check():
         if not line.startswith('__version__ = '):
             continue
 
-        latest_version = re.match(f"__version__ = '(.+)'$", line).groups()[0]
+        latest_version = re.match("__version__ = '(.+)'$", line).groups()[0]
         if current_version != latest_version:
             message = (
                 f'Your version of analysis-runner is out of date: '
