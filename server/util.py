@@ -117,7 +117,8 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
 
     if not gcp_project:
         raise web.HTTPBadRequest(
-            reason=f'The analysis-runner does not support checking group members for the {environment} environment'
+            reason='The analysis-runner does not support checking group members for '
+            f'the {environment} environment'
         )
     if not is_member_in_cached_group(
         f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION

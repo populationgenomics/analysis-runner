@@ -1,0 +1,10 @@
+google-api-python-client==2.101.0
+google-auth==2.23.2
+google-cloud-appengine-logging==1.3.2
+google-cloud-audit-log==0.2.5
+google-cloud-logging==3.7.0
+google-cloud-pubsub==2.18.4
+google-cloud-secret-manager==2.16.4
+grpcio-status==1.48.2
+gunicorn
+protobuf==3.20.2
