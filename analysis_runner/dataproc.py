@@ -11,13 +11,10 @@ from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
 from cpg_utils.hail_batch import cpg_namespace
 
 from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
-from analysis_runner.git import (
-    get_git_commit_ref_of_current_repository,
-    get_git_default_remote,
-    get_relative_path_from_git_root,
-    get_repo_name_from_remote,
-    prepare_git_job,
-)
+from analysis_runner.git import (get_git_commit_ref_of_current_repository,
+                                 get_git_default_remote,
+                                 get_relative_path_from_git_root,
+                                 get_repo_name_from_remote, prepare_git_job)
 
 HAIL_VERSION = '0.2.105'
 DATAPROC_IMAGE = (
@@ -199,7 +196,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         labels = {}
     labels['compute-category'] = 'dataproc'
 
-    ar_guid = try_get_ar_guid
+    ar_guid = try_get_ar_guid()
     if ar_guid:
         labels[AR_GUID_NAME] = ar_guid
 
