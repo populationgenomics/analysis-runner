@@ -4,25 +4,26 @@ Cromwell CLI
 # pylint: disable=too-many-arguments,too-many-return-statements,broad-except
 import argparse
 import json
-from typing import List, Dict, Optional
+import os.path
+from typing import Dict, List, Optional
 
 import requests
-
 from cpg_utils.cloud import get_google_identity_token
-from analysis_runner.constants import get_server_endpoint, SERVER_ENDPOINT
+
+from analysis_runner.constants import get_server_endpoint
 from analysis_runner.cromwell_model import WorkflowMetadataModel
 from analysis_runner.git import (
-    get_git_default_remote,
-    get_git_commit_ref_of_current_repository,
-    get_repo_name_from_remote,
-    get_relative_path_from_git_root,
     check_if_commit_is_on_remote,
+    get_git_commit_ref_of_current_repository,
+    get_git_default_remote,
+    get_relative_path_from_git_root,
+    get_repo_name_from_remote,
 )
 from analysis_runner.util import (
-    logger,
-    add_general_args,
     _perform_version_check,
+    add_general_args,
     confirm_choice,
+    logger,
 )
 
 
@@ -162,6 +163,7 @@ def _run_cromwell(
     labels=None,
     dry_run=False,
     use_test_server=False,
+    server_url=None,
 ):
     """
     Prepare parameters for cromwell analysis-runner job
@@ -229,8 +231,10 @@ def _run_cromwell(
         'labels': _labels,
     }
 
-    server_endpoint = get_server_endpoint(is_test=use_test_server)
-    endpoint = server_endpoint + '/cromwell'
+    server_endpoint = get_server_endpoint(
+        server_url=server_url, is_test=use_test_server
+    )
+    endpoint = os.path.join(server_endpoint, '/cromwell')
 
     if dry_run:
         logger.warning('Dry-run, printing curl and exiting')
@@ -262,15 +266,25 @@ curl --location --request POST \\
         )
 
 
-def _check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwargs):
+def _check_cromwell_status(
+    workflow_id,
+    json_output: Optional[str],
+    server_url: str = None,
+    is_test: bool = False,
+    **kwargs,
+):
     """Check cromwell status with workflow_id"""
 
-    url = SERVER_ENDPOINT + f'/cromwell/{workflow_id}/metadata'
+    server_endpoint = get_server_endpoint(server_url, is_test)
+    url = os.path.join(
+        server_endpoint,
+        f'/cromwell/{workflow_id}/metadata',
+    )
 
     response = requests.get(
         url,
         headers={
-            'Authorization': f'Bearer {get_google_identity_token(SERVER_ENDPOINT)}'
+            'Authorization': f'Bearer {get_google_identity_token(server_endpoint)}'
         },
         timeout=60,
     )
@@ -283,15 +297,15 @@ def _check_cromwell_status(workflow_id, json_output: Optional[str], *args, **kwa
             json.dump(d, f)
 
     model = WorkflowMetadataModel.parse(d)
-    print(model.display(*args, **kwargs))
+    print(model.display(**kwargs))
 
 
-def _visualise_cromwell_metadata_from_file(metadata_file: str, *args, **kwargs):
+def _visualise_cromwell_metadata_from_file(metadata_file: str, **kwargs):
     """Visualise cromwell metadata progress from a json file"""
     with open(metadata_file, encoding='utf-8') as f:
         model = WorkflowMetadataModel.parse(json.load(f))
 
-    visualise_cromwell_metadata(model, *args, **kwargs)
+    visualise_cromwell_metadata(model, **kwargs)
 
 
 def visualise_cromwell_metadata(

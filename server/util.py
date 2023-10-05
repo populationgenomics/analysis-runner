@@ -10,7 +10,7 @@ import toml
 from aiohttp import ClientSession, web
 from cloudpathlib import AnyPath
 from cpg_utils.cloud import email_from_id_token, is_member_in_cached_group, read_secret
-from cpg_utils.config import update_dict
+from cpg_utils.config import AR_GUID_NAME, update_dict
 from cpg_utils.hail_batch import cpg_namespace
 from google.cloud import pubsub_v1, secretmanager
 from hailtop.config import get_deploy_config
@@ -34,6 +34,11 @@ CONFIG_PATH_PREFIXES = {'gcp': 'gs://cpg-config'}
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
+
+
+def generate_ar_guid():
+    """Generate guid for tracking analysis-runner jobs"""
+    return str(uuid.uuid4())
 
 
 def get_server_config() -> dict:
@@ -127,6 +132,7 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
 
 # pylint: disable=too-many-arguments
 def get_analysis_runner_metadata(
+    ar_guid: str,
     timestamp,
     dataset,
     user,
@@ -149,6 +155,7 @@ def get_analysis_runner_metadata(
     output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
 
     return {
+        AR_GUID_NAME: ar_guid,
         'timestamp': timestamp,
         'dataset': dataset,
         'user': user,
@@ -194,19 +201,20 @@ def validate_image(container: str, is_test: bool):
     )
 
 
-def write_config(config: dict, environment: str) -> str:
+def write_config(ar_guid: str, config: dict, environment: str) -> str:
     """Writes the given config dictionary to a blob and returns its unique path."""
     prefix = CONFIG_PATH_PREFIXES.get(environment)
     if not prefix:
         raise web.HTTPBadRequest(reason=f'Bad environment for config: {environment}')
 
-    config_path = AnyPath(prefix) / (str(uuid.uuid4()) + '.toml')
+    config_path = AnyPath(prefix) / (ar_guid + '.toml')
     with config_path.open('w') as f:
         toml.dump(config, f)
     return str(config_path)
 
 
 def get_baseline_run_config(
+    ar_guid: str,
     environment: str,
     gcp_project_id,
     dataset,
@@ -230,6 +238,7 @@ def get_baseline_run_config(
             'bucket': f'cpg-{dataset}-hail',
         },
         'workflow': {
+            AR_GUID_NAME: ar_guid,
             'access_level': access_level,
             'dataset': dataset,
             'dataset_gcp_project': gcp_project_id,
