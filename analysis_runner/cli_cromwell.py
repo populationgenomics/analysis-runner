@@ -271,7 +271,6 @@ def _check_cromwell_status(
     json_output: Optional[str],
     server_url: str = None,
     is_test: bool = False,
-    *args,
     **kwargs,
 ):
     """Check cromwell status with workflow_id"""
@@ -298,15 +297,15 @@ def _check_cromwell_status(
             json.dump(d, f)
 
     model = WorkflowMetadataModel.parse(d)
-    print(model.display(*args, **kwargs))
+    print(model.display(**kwargs))
 
 
-def _visualise_cromwell_metadata_from_file(metadata_file: str, *args, **kwargs):
+def _visualise_cromwell_metadata_from_file(metadata_file: str, **kwargs):
     """Visualise cromwell metadata progress from a json file"""
     with open(metadata_file, encoding='utf-8') as f:
         model = WorkflowMetadataModel.parse(json.load(f))
 
-    visualise_cromwell_metadata(model, *args, **kwargs)
+    visualise_cromwell_metadata(model, **kwargs)
 
 
 def visualise_cromwell_metadata(
