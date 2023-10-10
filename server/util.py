@@ -22,7 +22,7 @@ METADATA_PREFIX = '/tmp/metadata'
 PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
 ALLOWED_CONTAINER_IMAGE_PREFIXES = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/',
-    'australia-southeast1-docker.pkg.dev/cpg-common/',
+    'australia-southeast1-docker.pkg.dev/cpg-common/images/',
 )
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
