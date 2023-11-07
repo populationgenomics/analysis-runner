@@ -4,6 +4,7 @@ Utility methods for analysis-runner server
 """
 import json
 import os
+import random
 import uuid
 
 import toml
@@ -38,7 +39,10 @@ publisher = pubsub_v1.PublisherClient()
 
 def generate_ar_guid():
     """Generate guid for tracking analysis-runner jobs"""
-    return str(uuid.uuid4())
+    guid = str(uuid.uuid4())
+    if guid[0].isdigit():
+        guid = random.choice('abcdef') + guid[1:]
+    return guid.lower()
 
 
 def get_server_config() -> dict:
