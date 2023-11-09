@@ -47,6 +47,10 @@ def generate_ar_guid():
 
 def get_server_config() -> dict:
     """Get the server-config from the secret manager"""
+    server_config = os.getenv('SERVER_CONFIG')
+    if server_config:
+        return json.loads(server_config)
+
     return json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
 
 

@@ -50,7 +50,11 @@ jobs:
 
     - name: "build driver image"
       run: |
-        docker build -f driver/Dockerfile.hail --build-arg HAIL_SHA=$HAIL_SHA --tag $DRIVER_IMAGE:$IMAGE_TAG driver
+        docker build \
+          -f driver/Dockerfile.hail \
+          --build-arg HAIL_SHA=$HAIL_SHA \
+          --tag $DRIVER_IMAGE:$IMAGE_TAG \
+          driver
 
     - name: "push driver image"
       run: |
@@ -60,7 +64,10 @@ jobs:
 
     - name: "build server image"
       run: |
-        docker build --build-arg DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG --tag $SERVER_IMAGE:$IMAGE_TAG server
+        docker build \
+          --build-arg DRIVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:latest \
+          --tag australia-southeast1-docker.pkg.dev/analysis-runner/images/server:latest \
+          server
 
     - name: "push server image"
       run: |
@@ -73,6 +80,7 @@ jobs:
         gcloud run deploy server-test --region australia-southeast1 \
           --no-allow-unauthenticated --platform managed \
           --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG,MEMBERS_CACHE_LOCATION=gs://cpg-members-group-cache \
+          --set-secrets=SERVER_CONFIG=server-config:latest \
           --image $SERVER_IMAGE:$IMAGE_TAG
 
     - name: "submit test batch"
@@ -90,4 +98,5 @@ jobs:
         gcloud run deploy server --region australia-southeast1 \
           --no-allow-unauthenticated --platform managed \
           --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG,MEMBERS_CACHE_LOCATION=gs://cpg-members-group-cache \
+          --set-secrets=SERVER_CONFIG=server-config:latest \
           --image $SERVER_IMAGE:$IMAGE_TAG
