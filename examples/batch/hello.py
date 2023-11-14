@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Test Hail Batch Workflow
 
@@ -11,8 +12,9 @@ Test Hail Batch Workflow
       --name-to-print $(whoami)
 """
 from shlex import quote
-import hailtop.batch as hb
+
 import click
+import hailtop.batch as hb
 from cpg_utils.hail_batch import get_config, remote_tmpdir
 
 

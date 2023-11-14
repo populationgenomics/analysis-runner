@@ -9,13 +9,8 @@ from datetime import datetime
 import hailtop.batch as hb
 import requests
 from aiohttp import web
-
-from cpg_utils.config import update_dict
+from cpg_utils.config import AR_GUID_NAME, update_dict
 from cpg_utils.hail_batch import remote_tmpdir
-
-from analysis_runner.constants import CROMWELL_URL
-from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
-from analysis_runner.git import prepare_git_job
 
 # pylint: disable=wrong-import-order
 from util import (
@@ -23,6 +18,7 @@ from util import (
     PUBSUB_TOPIC,
     check_allowed_repos,
     check_dataset_and_group,
+    generate_ar_guid,
     get_analysis_runner_metadata,
     get_baseline_run_config,
     get_email_from_request,
@@ -32,6 +28,10 @@ from util import (
     validate_output_dir,
     write_config,
 )
+
+from analysis_runner.constants import CROMWELL_URL
+from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
+from analysis_runner.git import prepare_git_job
 
 
 def add_cromwell_routes(
@@ -62,6 +62,7 @@ def add_cromwell_routes(
         # exception gets translated to a Bad Request error in the try block below.
         params = await request.json()
 
+        ar_guid = generate_ar_guid()
         dataset = params['dataset']
         access_level = params['accessLevel']
         cloud_environment = 'gcp'
@@ -110,6 +111,7 @@ def add_cromwell_routes(
         # Prepare the job's configuration and write it to a blob.
 
         config = get_baseline_run_config(
+            ar_guid=ar_guid,
             environment=cloud_environment,
             gcp_project_id=project,
             dataset=dataset,
@@ -118,10 +120,11 @@ def add_cromwell_routes(
         )
         if user_config := params.get('config'):  # Update with user-specified configs.
             update_dict(config, user_config)
-        config_path = write_config(config, cloud_environment)
+        config_path = write_config(ar_guid, config, cloud_environment)
 
         # This metadata dictionary gets stored at the output_dir location.
         metadata = get_analysis_runner_metadata(
+            ar_guid=ar_guid,
             timestamp=timestamp,
             dataset=dataset,
             user=email,
@@ -150,7 +153,10 @@ def add_cromwell_routes(
         )
 
         batch = hb.Batch(
-            backend=backend, name=batch_name, requester_pays_project=project
+            backend=backend,
+            name=batch_name,
+            requester_pays_project=project,
+            attributes={AR_GUID_NAME: ar_guid},
         )
 
         job = batch.new_job(name='driver')
@@ -178,6 +184,7 @@ def add_cromwell_routes(
             input_dict=input_dict,
             input_paths=input_jsons,
             project=project,
+            ar_guid_override=ar_guid,
         )
 
         url = run_batch_job_and_print_url(

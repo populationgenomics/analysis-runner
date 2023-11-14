@@ -6,8 +6,12 @@ import json
 import logging
 import traceback
 from shlex import quote
-import nest_asyncio
 
+import hailtop.batch as hb
+import nest_asyncio
+from aiohttp import web
+from cpg_utils.config import AR_GUID_NAME, update_dict
+from cpg_utils.hail_batch import remote_tmpdir
 from cromwell import add_cromwell_routes
 from util import (
     DRIVER_IMAGE,
@@ -15,6 +19,7 @@ from util import (
     _get_hail_version,
     check_allowed_repos,
     check_dataset_and_group,
+    generate_ar_guid,
     get_analysis_runner_metadata,
     get_baseline_run_config,
     get_email_from_request,
@@ -26,16 +31,12 @@ from util import (
     write_config,
 )
 
+from analysis_runner.git import prepare_git_job
+
 # Patching asyncio *before* importing the Hail Batch module is necessary to avoid a
 # "Cannot enter into task" error.
 nest_asyncio.apply()
 
-import hailtop.batch as hb
-from aiohttp import web
-from cpg_utils.config import update_dict
-from cpg_utils.hail_batch import remote_tmpdir
-
-from analysis_runner.git import prepare_git_job
 
 logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
@@ -80,6 +81,7 @@ async def index(request):
     repo = params['repo']
     check_allowed_repos(dataset_config=dataset_config, repo=repo)
 
+    ar_guid = generate_ar_guid()
     image = params.get('image') or DRIVER_IMAGE
     cpu = params.get('cpu', 1)
     memory = params.get('memory', '1G')
@@ -122,6 +124,7 @@ async def index(request):
     # Prepare the job's configuration and write it to a blob.
 
     run_config = get_baseline_run_config(
+        ar_guid=ar_guid,
         environment=cloud_environment,
         gcp_project_id=environment_config.get('projectId'),
         dataset=dataset,
@@ -131,9 +134,13 @@ async def index(request):
     )
     if user_config := params.get('config'):  # Update with user-specified configs.
         update_dict(run_config, user_config)
-    config_path = write_config(run_config, environment=cloud_environment)
+
+    config_path = write_config(
+        ar_guid=ar_guid, config=run_config, environment=cloud_environment
+    )
 
     metadata = get_analysis_runner_metadata(
+        ar_guid=ar_guid,
         timestamp=timestamp,
         dataset=dataset,
         user=email,
@@ -158,8 +165,12 @@ async def index(request):
     if cloud_environment == 'gcp':
         extra_batch_params['requester_pays_project'] = environment_config['projectId']
 
-    batch = hb.Batch(backend=backend, name=batch_name, **extra_batch_params)
-
+    batch = hb.Batch(
+        backend=backend,
+        name=batch_name,
+        **extra_batch_params,
+        attributes={AR_GUID_NAME: ar_guid},
+    )
     job = batch.new_job(name='driver')
     job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
     job.image(image)
@@ -249,6 +260,7 @@ async def config(request):
     # Prepare the job's configuration to return
 
     run_config = get_baseline_run_config(
+        ar_guid='<generated-at-runtime>',
         environment=cloud_environment,
         gcp_project_id=environment_config.get('projectId'),
         dataset=dataset,

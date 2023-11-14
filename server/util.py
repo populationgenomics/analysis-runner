@@ -2,22 +2,20 @@
 """
 Utility methods for analysis-runner server
 """
-import os
 import json
+import os
+import random
 import uuid
-import toml
 
-from aiohttp import web, ClientSession
+import toml
+from aiohttp import ClientSession, web
 from cloudpathlib import AnyPath
-from hailtop.config import get_deploy_config
-from google.cloud import secretmanager, pubsub_v1
-from cpg_utils.config import update_dict
-from cpg_utils.cloud import (
-    email_from_id_token,
-    read_secret,
-    is_member_in_cached_group,
-)
+from cpg_utils.cloud import email_from_id_token, is_member_in_cached_group, read_secret
+from cpg_utils.config import AR_GUID_NAME, update_dict
 from cpg_utils.hail_batch import cpg_namespace
+from google.cloud import pubsub_v1, secretmanager
+from hailtop.config import get_deploy_config
+
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
 
 GITHUB_ORG = 'populationgenomics'
@@ -25,7 +23,7 @@ METADATA_PREFIX = '/tmp/metadata'
 PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
 ALLOWED_CONTAINER_IMAGE_PREFIXES = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/',
-    'australia-southeast1-docker.pkg.dev/cpg-common/',
+    'australia-southeast1-docker.pkg.dev/cpg-common/images/',
 )
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
 assert DRIVER_IMAGE
@@ -39,8 +37,20 @@ secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
 
 
+def generate_ar_guid():
+    """Generate guid for tracking analysis-runner jobs"""
+    guid = str(uuid.uuid4())
+    if guid[0].isdigit():
+        guid = random.choice('abcdef') + guid[1:]
+    return guid.lower()
+
+
 def get_server_config() -> dict:
     """Get the server-config from the secret manager"""
+    server_config = os.getenv('SERVER_CONFIG')
+    if server_config:
+        return json.loads(server_config)
+
     return json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
 
 
@@ -52,7 +62,7 @@ async def _get_hail_version(environment: str) -> str:
         )
 
     deploy_config = get_deploy_config()
-    url = deploy_config.url('batch', f'/api/v1alpha/version')
+    url = deploy_config.url('batch', '/api/v1alpha/version')
     async with ClientSession() as session:
         async with session.get(url) as resp:
             resp.raise_for_status()
@@ -115,7 +125,8 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
 
     if not gcp_project:
         raise web.HTTPBadRequest(
-            reason=f'The analysis-runner does not support checking group members for the {environment} environment'
+            reason='The analysis-runner does not support checking group members for '
+            f'the {environment} environment'
         )
     if not is_member_in_cached_group(
         f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION
@@ -129,6 +140,7 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
 
 # pylint: disable=too-many-arguments
 def get_analysis_runner_metadata(
+    ar_guid: str,
     timestamp,
     dataset,
     user,
@@ -151,6 +163,7 @@ def get_analysis_runner_metadata(
     output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
 
     return {
+        AR_GUID_NAME: ar_guid,
         'timestamp': timestamp,
         'dataset': dataset,
         'user': user,
@@ -196,19 +209,20 @@ def validate_image(container: str, is_test: bool):
     )
 
 
-def write_config(config: dict, environment: str) -> str:
+def write_config(ar_guid: str, config: dict, environment: str) -> str:
     """Writes the given config dictionary to a blob and returns its unique path."""
     prefix = CONFIG_PATH_PREFIXES.get(environment)
     if not prefix:
         raise web.HTTPBadRequest(reason=f'Bad environment for config: {environment}')
 
-    config_path = AnyPath(prefix) / (str(uuid.uuid4()) + '.toml')
+    config_path = AnyPath(prefix) / (ar_guid + '.toml')
     with config_path.open('w') as f:
         toml.dump(config, f)
     return str(config_path)
 
 
 def get_baseline_run_config(
+    ar_guid: str,
     environment: str,
     gcp_project_id,
     dataset,
@@ -232,6 +246,7 @@ def get_baseline_run_config(
             'bucket': f'cpg-{dataset}-hail',
         },
         'workflow': {
+            AR_GUID_NAME: ar_guid,
             'access_level': access_level,
             'dataset': dataset,
             'dataset_gcp_project': gcp_project_id,
