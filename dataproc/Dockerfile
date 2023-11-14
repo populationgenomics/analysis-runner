@@ -1,12 +1,9 @@
 FROM ubuntu:22.04
 
-# Give this Dockerfile the ability to checkout a specific commit hash. This is
-# useful if you want to build a specific Hail version inside the image instead
-# of the latest commit on master.
-ARG COMMIT_HASH
+# Build from a specific commit of Hail, otherwise default to main.
+ARG HAIL_COMMIT
 
-# Give this Dockerfile the ability to strip all pinned versions from the
-# 'deploy.yaml' file. This is useful if you are having issues with pip
+# Strip all pinned versions from the 'deploy.yaml' file. This is useful if you are having issues with pip
 # dependency resolution during cluster creation.
 ARG STRIP_PIP_VERSIONS=false
 
@@ -30,24 +27,14 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y google-cloud-sdk && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Checkout a specific commit if supplied, to install a specific Hail version.
-RUN git clone https://github.com/populationgenomics/hail.git
-RUN if [ -n "$COMMIT_HASH" ]; then cd hail && git reset --hard ${COMMIT_HASH} && cd ..; fi
-
-# Build Hail from source, this might take some time.
-RUN cd hail/hail && \
+    rm -rf /var/lib/apt/lists/* && \
+    git clone https://github.com/populationgenomics/hail.git && \
+    if [ -n "$HAIL_COMMIT" ]; then cd hail && git checkout ${HAIL_COMMIT} && cd ..; fi && \
+    cd hail/hail && \
     make install DEPLOY_REMOTE=1 && \
     cd ../.. && \
-    rm -rf hail
-
-# Install additional Python packages into the driver image. We need cpg-utils to
-# read secrets from the config file for GitHub authentication to clone private 
-# repositories. Files/scripts from the cloned repository are sent to the dataproc 
-# cluster created by this driver image. These pip packages are separate from the 
-# Python packages installed to the dataproc cluster via the init scripts.
-RUN pip3 install cpg-utils
+    rm -rf hail && \
+    pip3 install --no-cache-dir cpg-utils
 
 # This strips all pinned versions from the 'deploy.yaml' file, which is created
 # during the hail build step. This file is used by the hailctl command line

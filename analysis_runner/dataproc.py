@@ -4,22 +4,22 @@ import os
 import re
 import uuid
 from shlex import quote
-from typing import Optional, List, Dict, Tuple
-from cpg_utils.config import get_config
-from cpg_utils.hail_batch import cpg_namespace
+from typing import Dict, List, Optional, Tuple
+
 import hailtop.batch as hb
+from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
+from cpg_utils.hail_batch import cpg_namespace
 
 from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
 from analysis_runner.git import (
-    get_git_default_remote,
     get_git_commit_ref_of_current_repository,
+    get_git_default_remote,
+    get_relative_path_from_git_root,
     get_repo_name_from_remote,
     prepare_git_job,
-    get_relative_path_from_git_root,
 )
 
-
-HAIL_VERSION = '0.2.105'
+HAIL_VERSION = '0.2.126'
 DATAPROC_IMAGE = (
     f'australia-southeast1-docker.pkg.dev/analysis-runner/images/'
     f'dataproc:hail-{HAIL_VERSION}'
@@ -198,6 +198,11 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     if labels is None:
         labels = {}
     labels['compute-category'] = 'dataproc'
+
+    ar_guid = try_get_ar_guid()
+    if ar_guid:
+        labels[AR_GUID_NAME] = ar_guid
+
     labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
 
     start_job = batch.new_job(name=job_name, attributes=attributes)
@@ -245,7 +250,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     if vep:
         start_job_command.append(f'--vep={vep}')
     if requester_pays_allow_all:
-        start_job_command.append(f'--requester-pays-allow-all')
+        start_job_command.append('--requester-pays-allow-all')
     if scopes:
         start_job_command.append(f'--scopes={",".join(scopes)}')
     if autoscaling_policy:

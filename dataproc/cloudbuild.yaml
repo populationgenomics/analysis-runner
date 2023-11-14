@@ -1,0 +1,9 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    script: |
+      # You could specify --build-arg=HAIL_COMMIT=<commit-sha> to build a different version of Hail
+      docker build -t australia-southeast1-docker.pkg.dev/$PROJECT_ID/images/dataproc:hail-0.2.126 .
+    automapSubstitutions: true
+
+images:
+  - "australia-southeast1-docker.pkg.dev/$PROJECT_ID/images/dataproc:hail-0.2.126"
