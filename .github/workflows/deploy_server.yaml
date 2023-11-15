@@ -53,26 +53,26 @@ jobs:
         docker build \
           -f driver/Dockerfile.hail \
           --build-arg HAIL_SHA=$HAIL_SHA \
+          --tag $DRIVER_IMAGE:latest \
           --tag $DRIVER_IMAGE:$IMAGE_TAG \
           driver
 
     - name: "push driver image"
       run: |
         docker push $DRIVER_IMAGE:$IMAGE_TAG
-        docker tag $DRIVER_IMAGE:$IMAGE_TAG $DRIVER_IMAGE:latest
         docker push $DRIVER_IMAGE:latest
 
     - name: "build server image"
       run: |
         docker build \
-          --build-arg DRIVER_IMAGE=australia-southeast1-docker.pkg.dev/analysis-runner/images/driver:latest \
-          --tag australia-southeast1-docker.pkg.dev/analysis-runner/images/server:latest \
+          --build-arg DRIVER_IMAGE=$DRIVER_IMAGE:latest \
+          --tag $SERVER_IMAGE:latest \
+          --tag $SERVER_IMAGE:$IMAGE_TAG \
           server
 
     - name: "push server image"
       run: |
         docker push $SERVER_IMAGE:$IMAGE_TAG
-        docker tag $SERVER_IMAGE:$IMAGE_TAG $SERVER_IMAGE:latest
         docker push $SERVER_IMAGE:latest
 
     - name: "deploy server-test"
