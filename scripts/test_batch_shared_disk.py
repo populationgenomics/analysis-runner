@@ -17,7 +17,7 @@ def main():
 
         job = get_batch().new_job(name=f'Job {job_id}')
 
-        job.command(f'cp {j.ofile} $HOME')
+        job.command(f'cp {j.ofile} $HOME/test_file.txt')
 
         job.command('cat $HOME/test_file.txt')
 
