@@ -8,7 +8,7 @@ def main():
     output_dir = config['workflow']['output_prefix']
     
     b = get_batch()
-    j = b.new_bash_job()
+    j = b.new_bash_job(name='Test shared disk')
     j.command('gcloud storage cp gs://cpg-common-test-upload/test_file.txt ./test_file.txt')
     b.run(wait=True)
     
