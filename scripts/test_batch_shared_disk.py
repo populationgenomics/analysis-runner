@@ -9,6 +9,7 @@ def main():
     
     b = get_batch()
     j = b.new_bash_job(name='Test shared disk')
+    j.image(get_config()['workflow']['driver_image'])
     j.command(f'gcloud storage cp gs://cpg-common-test-upload/test_file.txt {j.ofile}')
 
     for job_id in ['1', '2', '3']:
