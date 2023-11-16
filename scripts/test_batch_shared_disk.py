@@ -9,16 +9,13 @@ def main():
     
     b = get_batch()
     j = b.new_bash_job(name='Test shared disk')
-    j.command('gcloud storage cp gs://cpg-common-test-upload/test_file.txt ./test_file.txt')
-    b.run(wait=True)
-    
-    secret_file = get_batch().read_input('./test_file.txt')
+    j.command(f'gcloud storage cp gs://cpg-common-test-upload/test_file.txt {j.ofile}')
 
     for job_id in ['1', '2', '3']:
 
         job = get_batch().new_job(name=f'Job {job_id}')
 
-        job.command('cp {secret_file} $HOME')
+        job.command(f'cp {j.ofile} $HOME')
 
         job.command('cat $HOME/test_file.txt')
 
