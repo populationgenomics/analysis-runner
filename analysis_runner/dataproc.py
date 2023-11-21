@@ -50,7 +50,7 @@ DEFAULT_PACKAGES = [
     'statsmodels',
     'cloudpathlib[all]',
     'gnomad',
-    'cryptography==38.0.4',
+    # 'cryptography==38.0.4',
 ]
 
 
