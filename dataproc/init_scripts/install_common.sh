@@ -15,28 +15,12 @@ conda install -c conda-forge mamba
 # Can't update Python 3.10 without removing pinned versions first.
 rm /opt/conda/miniconda3/conda-meta/pinned
 # Remove a few packages that prevent installing Python 3.10.
-mamba remove bcolz fiona pyqt spyder
+# mamba remove bcolz fiona pyqt spyder
 # Finally, update Python.
 mamba install python=3.10
 
 # Reinstall the Hail wheel.
 pip3 install /home/hail/hail*.whl
-
-# Install some generally useful libraries.
-pip3 install \
-    analysis-runner \
-    bokeh \
-    botocore \
-    cpg-utils \
-    cpg-workflows \
-    gcsfs \
-    pyarrow \
-    sample-metadata \
-    'selenium>=3.8.0' \
-    statsmodels \
-    'cloudpathlib[all]' \
-    gnomad \
-    'cryptography==38.0.4'
 
 # Install phantomjs with a workaround for the libssl_conf.so on Debian Buster:
 # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326

@@ -37,6 +37,22 @@ GCLOUD_CONFIG_SET_PROJECT = f'gcloud config set project {DATASET_GCP_PROJECT}'
 PYFILES_DIR = '/tmp/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
 
+DEFAULT_PACKAGES = [
+    'analysis-runner',
+    'bokeh',
+    'botocore',
+    'cpg-utils',
+    'cpg-workflows',
+    'gcsfs',
+    'pyarrow',
+    'sample-metadata',
+    'selenium>=3.8.0',
+    'statsmodels',
+    'cloudpathlib[all]',
+    'gnomad',
+    'cryptography==38.0.4',
+]
+
 
 class DataprocCluster:
     """
@@ -241,8 +257,10 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         start_job_command.append(
             f'--secondary-worker-boot-disk-size={secondary_worker_boot_disk_size}'
         )
+    _packages = [*DEFAULT_PACKAGES]
     if packages:
-        start_job_command.append(f'--packages={quote(",".join(packages))}')
+        _packages.extend(packages)
+    start_job_command.append(f'--packages={quote(",".join(_packages))}')
     if init:
         start_job_command.append(f'--init={",".join(init)}')
     if init_timeout:
@@ -258,7 +276,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
 
     start_job_command.append(cluster_id)
 
-    start_job.command(' '.join(start_job_command))
+    start_job.command(' \\\n'.join(start_job_command))
     return start_job, cluster_id
 
 
