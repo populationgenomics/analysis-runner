@@ -4,6 +4,7 @@
 
 import hailtop.batch as hb
 from cpg_utils.hail_batch import get_config, remote_tmpdir
+
 from analysis_runner import dataproc
 
 config = get_config()
@@ -19,8 +20,10 @@ cluster = dataproc.setup_dataproc(
     batch,
     max_age='1h',
     packages=['click', 'selenium'],
-    init=['gs://cpg-common-main/hail_dataproc/install_common.sh'],
-    cluster_name='My Cluster with max-age=1h',
+    init=[
+        'gs://cpg-common-main/hail_dataproc/2023-11-22-mfranklin-dev/install_common.sh'
+    ],
+    cluster_name='mfranklin-dataproc-test',
 )
 cluster.add_job('query.py', job_name='example')
 
