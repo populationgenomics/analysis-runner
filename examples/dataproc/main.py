@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 """Demonstrates the use of the dataproc module."""
+import os
 
 import hailtop.batch as hb
 from cpg_utils.hail_batch import get_config, remote_tmpdir
 
 from analysis_runner import dataproc
+
+QUERY_FILE_LOCATION = os.path.join(os.path.dirname(__file__), 'query.py')
 
 config = get_config()
 
@@ -25,7 +28,7 @@ cluster = dataproc.setup_dataproc(
     ],
     cluster_name='mfranklin-dataproc-test',
 )
-cluster.add_job('query.py', job_name='example')
+cluster.add_job(QUERY_FILE_LOCATION, job_name='example')
 
 
 # Don't wait, which avoids resubmissions if this job gets preempted.
