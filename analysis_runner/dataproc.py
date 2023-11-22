@@ -4,7 +4,7 @@ import os
 import re
 import uuid
 from shlex import quote
-from typing import Dict, List, Optional, Tuple
+from typing import Collection, Dict, List, Optional, Tuple
 
 import hailtop.batch as hb
 from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
@@ -19,15 +19,7 @@ from analysis_runner.git import (
     prepare_git_job,
 )
 
-HAIL_VERSION = '0.2.126'
-DATAPROC_IMAGE = (
-    f'australia-southeast1-docker.pkg.dev/analysis-runner/images/'
-    f'dataproc:hail-{HAIL_VERSION}'
-)
-# Wheel built from https://github.com/populationgenomics/hail
-# The difference from the official build is the version of ElasticSearch:
-# We use 8.x.x, and Hail is built for 7.x.x by default.
-WHEEL = f'gs://cpg-hail-ci/wheels/hail-{HAIL_VERSION}-py3-none-any.whl'
+DEFAULT_HAIL_VERSION = '0.2.126'
 
 _config = get_config()
 ACCESS_LEVEL = _config['workflow']['access_level']
@@ -45,13 +37,40 @@ DEFAULT_PACKAGES = [
     'cpg-workflows',
     'gcsfs',
     'pyarrow',
-    'sample-metadata',
+    'metamist',
     'selenium>=3.8.0',
     'statsmodels',
     'cloudpathlib[all]',
     'gnomad',
-    # 'cryptography==38.0.4',
 ]
+
+
+def get_wheel_from_version(hail_version: str) -> str:
+    """
+    Use the wheel built on deploy of https://github.com/populationgenomics/hail
+    The difference from the official build is the version of ElasticSearch:
+    We use 8.x.x, and Hail is built for 7.x.x by default.
+    """
+    return f'gs://cpg-hail-ci/wheels/hail-{hail_version}-py3-none-any.whl'
+
+
+def get_init_script_from_hail_version(hail_version: str):
+    """
+    Use a versioned init script to ensure that the best startup is used for
+    a dataproc version
+    """
+    return f'gs://cpg-common-main/hail_dataproc/{hail_version}/'
+
+
+def get_dataproc_driver_image_from_hail_version(hail_version: str) -> str:
+    """
+    Use a versioned driver image to ensure that the best startup is used for
+    a dataproc version
+    """
+    return (
+        f'australia-southeast1-docker.pkg.dev/analysis-runner/images/'
+        f'dataproc:hail-{hail_version}'
+    )
 
 
 class DataprocCluster:
@@ -67,6 +86,7 @@ class DataprocCluster:
         self._cluster_id = None
         self._start_job = None
         self._stop_job = None
+        self._hail_version = kwargs.pop('hail_version', DEFAULT_HAIL_VERSION)
         self._startup_params = kwargs
         self._stop_cluster = kwargs.pop('stop_cluster', True)
 
@@ -86,6 +106,7 @@ class DataprocCluster:
                 batch=self._batch,
                 attributes=attributes,
                 region=self._region,
+                hail_version=self._hail_version,
                 **self._startup_params,
             )
             if self._depends_on:
@@ -99,8 +120,12 @@ class DataprocCluster:
                     cluster_name=self._cluster_name,
                     attributes=attributes,
                     region=self._region,
+                    hail_version=self._hail_version,
                 )
                 self._stop_job.depends_on(self._start_job)
+
+        if self._cluster_id is None:
+            raise ValueError('Cluster was not configured with an ID correctly')
 
         job = _add_submit_job(
             batch=self._batch,
@@ -111,6 +136,7 @@ class DataprocCluster:
             cluster_name=self._cluster_name,
             attributes=attributes,
             region=self._region,
+            hail_version=self._hail_version,
         )
         job.depends_on(self._start_job)
         if self._stop_job:
@@ -133,7 +159,7 @@ def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
-    init: Optional[List[str]] = None,
+    init: Optional[Collection[str]] = None,
     init_timeout: Optional[str] = None,
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = False,
@@ -144,6 +170,8 @@ def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
     labels: Optional[Dict[str, str]] = None,
     autoscaling_policy: Optional[str] = None,
     stop_cluster: Optional[bool] = True,
+    install_default_packages: bool = True,
+    hail_version: str = DEFAULT_HAIL_VERSION,
 ) -> DataprocCluster:
     """
     Adds jobs to the Batch that start and stop a Dataproc cluster, and returns
@@ -177,6 +205,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     batch: hb.Batch,
     max_age: str,
     region: str,
+    hail_version: str,
     num_workers: int = 2,
     num_secondary_workers: int = 0,
     autoscaling_policy: Optional[str] = None,
@@ -185,7 +214,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     worker_boot_disk_size: Optional[int] = None,  # in GB
     secondary_worker_boot_disk_size: Optional[int] = None,  # in GB
     packages: Optional[List[str]] = None,
-    init: Optional[List[str]] = None,
+    init: Optional[Collection[str]] = None,
     init_timeout: Optional[str] = None,
     vep: Optional[str] = None,
     requester_pays_allow_all: bool = False,
@@ -194,6 +223,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     scopes: Optional[List[str]] = None,
     labels: Optional[Dict[str, str]] = None,
     attributes: Optional[Dict] = None,
+    install_default_packages: bool = True,
 ) -> Tuple[hb.batch.job.Job, str]:
     """
     Returns a Batch job which starts a Dataproc cluster, and the name of the cluster.
@@ -222,7 +252,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
     labels_formatted = ','.join(f'{key}={value}' for key, value in labels.items())
 
     start_job = batch.new_job(name=job_name, attributes=attributes)
-    start_job.image(DATAPROC_IMAGE)
+    start_job.image(get_dataproc_driver_image_from_hail_version(hail_version))
     start_job.command(GCLOUD_ACTIVATE_AUTH)
     start_job.command(GCLOUD_CONFIG_SET_PROJECT)
 
@@ -243,7 +273,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
         f'--labels={labels_formatted}',
-        f'--wheel={WHEEL}',
+        f'--wheel={get_wheel_from_version(hail_version)}',
         f'--bucket=cpg-{DATASET}-{namespace}-tmp',
         f'--temp-bucket=cpg-{DATASET}-{namespace}-tmp',
     ]
@@ -257,12 +287,20 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         start_job_command.append(
             f'--secondary-worker-boot-disk-size={secondary_worker_boot_disk_size}'
         )
-    _packages = [*DEFAULT_PACKAGES]
+    _packages = []
+    if install_default_packages:
+        _packages.extend(DEFAULT_PACKAGES)
     if packages:
         _packages.extend(packages)
-    start_job_command.append(f'--packages={quote(",".join(_packages))}')
-    if init:
-        start_job_command.append(f'--init={",".join(init)}')
+    if _packages:
+        start_job_command.append(f'--packages={quote(",".join(_packages))}')
+    _init = init
+    if _init is None:
+        # if init is None (by default), use the default init script.
+        # pass an empty list to disable the default init script.
+        _init = [get_init_script_from_hail_version(hail_version)]
+    if _init:
+        start_job_command.append(f'--init={",".join(_init)}')
     if init_timeout:
         start_job_command.append(f'--init_timeout={init_timeout}')
     if vep:
@@ -285,6 +323,7 @@ def _add_submit_job(
     cluster_id: str,
     script: str,
     region: str,
+    hail_version: str,
     pyfiles: Optional[List[str]] = None,
     job_name: Optional[str] = None,
     cluster_name: Optional[str] = None,
@@ -301,7 +340,7 @@ def _add_submit_job(
         job_name += f' "{cluster_name}"'
 
     main_job = batch.new_job(name=job_name, attributes=attributes)
-    main_job.image(DATAPROC_IMAGE)
+    main_job.image(get_dataproc_driver_image_from_hail_version(hail_version))
     main_job.command(GCLOUD_ACTIVATE_AUTH)
     main_job.command(GCLOUD_CONFIG_SET_PROJECT)
 
@@ -328,6 +367,7 @@ def _add_stop_job(
     batch: hb.Batch,
     cluster_id: str,
     region: str,
+    hail_version: str,
     job_name: Optional[str] = None,
     cluster_name: Optional[str] = None,
     attributes: Optional[Dict] = None,
@@ -342,7 +382,7 @@ def _add_stop_job(
 
     stop_job = batch.new_job(name=job_name, attributes=attributes)
     stop_job.always_run()  # Always clean up.
-    stop_job.image(DATAPROC_IMAGE)
+    stop_job.image(get_dataproc_driver_image_from_hail_version(hail_version))
     stop_job.command(GCLOUD_ACTIVATE_AUTH)
     stop_job.command(GCLOUD_CONFIG_SET_PROJECT)
     stop_job.command(f'hailctl dataproc stop --region={region} {cluster_id}')
