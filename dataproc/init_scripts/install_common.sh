@@ -14,8 +14,6 @@ fi
 conda install -c conda-forge mamba
 # Can't update Python 3.10 without removing pinned versions first.
 rm /opt/conda/miniconda3/conda-meta/pinned
-# Remove a few packages that prevent installing Python 3.10.
-# mamba remove bcolz fiona pyqt spyder
 # Finally, update Python.
 mamba install python=3.10
 
