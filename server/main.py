@@ -77,7 +77,7 @@ async def index(request):
         dataset=dataset,
         email=email,
     )
-    environment_config = dataset_config.get(cloud_environment)
+    environment_config = dataset_config.get(cloud_environment) or {}
     repo = params['repo']
     check_allowed_repos(dataset_config=dataset_config, repo=repo)
 
@@ -139,8 +139,12 @@ async def index(request):
         ar_guid=ar_guid, config=run_config, environment=cloud_environment
     )
 
+    user_name = email.split('@')[0]
+    batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
+
     metadata = get_analysis_runner_metadata(
         ar_guid=ar_guid,
+        name=batch_name,
         timestamp=timestamp,
         dataset=dataset,
         user=email,
@@ -156,9 +160,6 @@ async def index(request):
         cwd=cwd,
         environment=cloud_environment,
     )
-
-    user_name = email.split('@')[0]
-    batch_name = f'{user_name} {repo}:{commit}/{" ".join(script)}'
 
     extra_batch_params = {}
 

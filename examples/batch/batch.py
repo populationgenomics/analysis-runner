@@ -6,8 +6,7 @@ Example of running Batch script with analysis-runner.
 import os
 
 import click
-import hailtop.batch as hb
-from cpg_utils.hail_batch import copy_common_env, get_config, output_path, remote_tmpdir
+from cpg_utils.hail_batch import copy_common_env, get_batch, output_path
 
 REF_FASTA = 'gs://cpg-common-main/references/hg38/v0/Homo_sapiens_assembly38.fasta'
 SAMTOOLS_IMAGE = 'australia-southeast1-docker.pkg.dev/cpg-common/images/samtools:v0'
@@ -20,15 +19,8 @@ def main(cram_path: str, region: str):  # pylint: disable=missing-function-docst
     """
     Subset CRAM or BAM file CRAM_PATH to REGION. Example: batch.py sample.cram chr21:1-10000
     """
-    config = get_config()
 
-    # Initializing Batch
-    backend = hb.ServiceBackend(
-        billing_project=config['hail']['billing_project'],
-        remote_tmpdir=remote_tmpdir(),
-    )
-
-    b = hb.Batch(backend=backend, default_image=config['workflow']['driver_image'])
+    b = get_batch()
 
     # Adding a job and giving it a descriptive name.
     j = b.new_job('Subset CRAM')

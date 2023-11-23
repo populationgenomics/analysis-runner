@@ -140,7 +140,9 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
 
 # pylint: disable=too-many-arguments
 def get_analysis_runner_metadata(
+    *,
     ar_guid: str,
+    name: str,
     timestamp,
     dataset,
     user,
@@ -164,6 +166,7 @@ def get_analysis_runner_metadata(
 
     return {
         AR_GUID_NAME: ar_guid,
+        'name': name,
         'timestamp': timestamp,
         'dataset': dataset,
         'user': user,
