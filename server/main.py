@@ -77,7 +77,7 @@ async def index(request):
         dataset=dataset,
         email=email,
     )
-    environment_config = dataset_config.get(cloud_environment)
+    environment_config = dataset_config.get(cloud_environment) or {}
     repo = params['repo']
     check_allowed_repos(dataset_config=dataset_config, repo=repo)
 
