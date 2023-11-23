@@ -122,9 +122,13 @@ def add_cromwell_routes(
             update_dict(config, user_config)
         config_path = write_config(ar_guid, config, cloud_environment)
 
+        user_name = email.split('@')[0]
+        batch_name = f'{user_name} {repo}:{commit}/cromwell/{wf}'
+
         # This metadata dictionary gets stored at the output_dir location.
         metadata = get_analysis_runner_metadata(
             ar_guid=ar_guid,
+            name=batch_name,
             timestamp=timestamp,
             dataset=dataset,
             user=email,
@@ -141,9 +145,6 @@ def add_cromwell_routes(
             # no support for other environments
             environment=cloud_environment,
         )
-
-        user_name = email.split('@')[0]
-        batch_name = f'{user_name} {repo}:{commit}/cromwell/{wf}'
 
         hail_bucket = f'cpg-{dataset}-hail'
         backend = hb.ServiceBackend(
