@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "dataproc/init_scripts/*.sh"
 jobs:
   copy_init_scripts:
     runs-on: ubuntu-latest
@@ -20,4 +22,5 @@ jobs:
 
     - name: "copy scripts"
       run: |
-        gcloud storage cp "dataproc/init_scripts/*.sh" gs://cpg-common-main/hail_dataproc/
+        HAIL_VERSION=$(grep "DEFAULT_HAIL_VERSION = '" analysis_runner/dataproc.py | awk -F\' '{print $2}')
+        gcloud storage cp "dataproc/init_scripts/*.sh" gs://cpg-common-main/hail_dataproc/${HAIL_VERSION}/
