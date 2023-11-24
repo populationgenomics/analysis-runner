@@ -122,14 +122,14 @@ This is installed in the analysis runner driver image, ie: you can access the an
 ### Checking out a git repository at the current commit
 
 ```python
-import hailtop.batch as hb
+from cpg_utils.hail_batch import get_batch
 from analysis_runner.git import (
   prepare_git_job,
   get_repo_name_from_current_directory,
   get_git_commit_ref_of_current_repository,
 )
 
-b = hb.Batch('do-some-analysis')
+b = get_batch(name='do-some-analysis')
 j = b.new_job('checkout_repo')
 prepare_git_job(
   job=j,
@@ -146,10 +146,10 @@ j.command('examples/bash/hello.sh')
 ### Running a dataproc script
 
 ```python
-import hailtop.batch as hb
+from cpg_utils.hail_batch import get_batch
 from analysis_runner.dataproc import setup_dataproc
 
-b = hb.Batch('do-some-analysis')
+b = get_batch(name='do-some-analysis')
 
 # starts up a cluster, and submits a script to the cluster,
 # see the definition for more information about how you can configure the cluster
@@ -158,7 +158,6 @@ cluster = dataproc.setup_dataproc(
     b,
     max_age='1h',
     packages=['click', 'selenium'],
-    init=['gs://cpg-common-main/hail_dataproc/install_common.sh'],
     cluster_name='My Cluster with max-age=1h',
 )
 cluster.add_job('examples/dataproc/query.py', job_name='example')

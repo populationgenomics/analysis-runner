@@ -7,7 +7,7 @@ import json
 import os
 import subprocess
 from shlex import quote
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
 from cpg_utils.hail_batch import query_command
@@ -248,7 +248,6 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     b,
     job_prefix: str,
     dataset: str,
-    access_level,
     workflow: str,
     outputs_to_collect: Dict[str, CromwellOutputType],
     libs: List[str],
@@ -262,7 +261,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     driver_image: Optional[str] = None,
     project: Optional[str] = None,
     copy_outputs_to_gcp: bool = True,
-) -> tuple[Job, dict[str, Resource]]:
+) -> tuple[Job, dict[str, Union[Resource, List[Resource]]]]:
     """
     This function needs to know the structure of the outputs you
     want to collect. It currently only supports:
@@ -282,7 +281,10 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
 
     Returns a submit Job object, and a dict of output Resource objects.
     """
-    _driver_image = driver_image or get_config()['workflow']['driver_image']
+    config = get_config()
+
+    _driver_image = driver_image or config['workflow']['driver_image']
+    access_level = config['workflow']['access_level']
 
     submit_job = b.new_job(f'{job_prefix}_submit')
     submit_job.image(_driver_image)

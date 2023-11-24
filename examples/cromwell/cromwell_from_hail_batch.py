@@ -2,24 +2,19 @@
 Test script, to demonstrate how you can run a cromwell workflow
 from within a batch environment, and operate on the result(s)
 """
-import hailtop.batch as hb
 from cpg_utils.config import get_config
-from cpg_utils.hail_batch import output_path, remote_tmpdir
+from cpg_utils.hail_batch import get_batch, output_path
+
 from analysis_runner.cromwell import (
-    run_cromwell_workflow_from_repo_and_get_outputs,
     CromwellOutputType,
+    run_cromwell_workflow_from_repo_and_get_outputs,
 )
 
-OUTPUT_PREFIX = 'mfranklin/analysis-runner-test/out/'
-OUTPUT_PATH = output_path(OUTPUT_PREFIX)
-
 _config = get_config()
-BILLING_PROJECT = _config['hail']['billing_project']
 DATASET = _config['workflow']['dataset']
-ACCESS_LEVEL = _config['workflow']['access_level']
+OUTPUT_PATH = output_path('outputs')
 
-sb = hb.ServiceBackend(billing_project=BILLING_PROJECT, remote_tmpdir=remote_tmpdir())
-b = hb.Batch(backend=sb, default_image=_config['workflow']['driver_image'])
+b = get_batch()
 
 inputs = ['Hello, analysis-runner ;)', 'Hello, second output!']
 
@@ -41,9 +36,8 @@ submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
         ),
     },
     libs=[],  # hello_all_in_one_file is self-contained, so no dependencies
-    output_prefix=OUTPUT_PREFIX,
+    output_prefix=OUTPUT_PATH,
     dataset=DATASET,
-    access_level=ACCESS_LEVEL,
 )
 print(workflow_outputs)
 # {

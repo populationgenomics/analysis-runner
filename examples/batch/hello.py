@@ -14,22 +14,15 @@ Test Hail Batch Workflow
 from shlex import quote
 
 import click
-import hailtop.batch as hb
-from cpg_utils.hail_batch import get_config, remote_tmpdir
+from cpg_utils.hail_batch import get_batch
 
 
 @click.command()
 @click.option('--name-to-print')
 def main(name_to_print):
     """Runs test hail batch workflow"""
-    config = get_config()
 
-    sb = hb.ServiceBackend(
-        billing_project=config['hail']['billing_project'],
-        remote_tmpdir=remote_tmpdir(),
-    )
-
-    b = hb.Batch(backend=sb)
+    b = get_batch()
 
     j1 = b.new_job('first job')
     # For Hail batch, j.{identifier} will create a Resource (file)

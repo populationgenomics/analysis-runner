@@ -8,13 +8,12 @@ import os
 from shlex import quote
 
 import click
-import hailtop.batch as hb
 from cloudpathlib import AnyPath
 from cpg_utils.config import get_config
 from cpg_utils.hail_batch import (
     authenticate_cloud_credentials_in_job,
     dataset_path,
-    remote_tmpdir,
+    get_batch,
 )
 
 
@@ -39,7 +38,7 @@ def main(presigned_url_file_path: str, filenames: bool):
     dataset = env_config['workflow']['dataset']
     output_prefix = env_config['workflow']['output_prefix']
     assert all({billing_project, cpg_driver_image, dataset, output_prefix})
-
+    names = None
     with AnyPath(presigned_url_file_path).open() as file:
         if filenames:
             names = [
@@ -57,17 +56,13 @@ def main(presigned_url_file_path: str, filenames: bool):
     if incorrect_urls:
         raise ValueError(f'Incorrect URLs: {incorrect_urls}')
 
-    sb = hb.ServiceBackend(
-        billing_project=billing_project,
-        remote_tmpdir=remote_tmpdir(),
-    )
-    batch = hb.Batch(f'transfer {dataset}', backend=sb, default_image=cpg_driver_image)
+    batch = get_batch(name=f'transfer {dataset}')
 
     output_path = dataset_path(output_prefix, 'upload')
 
     # may as well batch them to reduce the number of VMs
     for idx, url in enumerate(presigned_urls):
-        if filenames:
+        if names:
             filename = names[idx]
         else:
             filename = os.path.basename(url).split('?')[0]
