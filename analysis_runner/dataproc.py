@@ -45,7 +45,7 @@ DEFAULT_PACKAGES = [
 ]
 
 
-def get_wheel_from_version(hail_version: str) -> str:
+def get_wheel_from_hail_version(hail_version: str) -> str:
     """
     Use the wheel built on deploy of https://github.com/populationgenomics/hail
     The difference from the official build is the version of ElasticSearch:
@@ -273,7 +273,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         f'--num-secondary-workers={num_secondary_workers}',
         f'--properties="{",".join(spark_env)}"',
         f'--labels={labels_formatted}',
-        f'--wheel={get_wheel_from_version(hail_version)}',
+        f'--wheel={get_wheel_from_hail_version(hail_version)}',
         f'--bucket=cpg-{DATASET}-{namespace}-tmp',
         f'--temp-bucket=cpg-{DATASET}-{namespace}-tmp',
     ]
