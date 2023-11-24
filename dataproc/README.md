@@ -43,7 +43,7 @@ A dataproc cluster is spun up within a specific dataset's GCP project for billin
 
 We call `hailctl dataproc start`, as configured in the `analysis_runner/dataproc` module. We specify a number of default packages in this module as a sensible default. We by default specify the init script (`gs://cpg-common-main/hail_dataproc/${HAIL_VERSION}/`), but you can override this on cluster configuration.
 
-By default, Hail specifies the image to use on Dataproc. The image version comes from the command [`dataproc cluster image version lists`](https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-version-clusters#debian_images), and is specified here: https://github.com/populationgenomics/hail/blob/main/hail/python/hailtop/hailctl/dataproc/start.py#L147.
+By default, Hail specifies the image to use on Dataproc. The image version comes from the command [`dataproc cluster image version lists`](https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-version-clusters#debian_images), and is specified here: [hail:hail/python/hailtop/hailctl/dataproc/start.py#L147](https://github.com/populationgenomics/hail/blob/main/hail/python/hailtop/hailctl/dataproc/start.py#L147).
 
 At the time of writing (2023-11-24), this was using Python 3.10.8.
 
