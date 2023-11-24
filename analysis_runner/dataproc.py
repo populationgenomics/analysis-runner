@@ -54,12 +54,20 @@ def get_wheel_from_hail_version(hail_version: str) -> str:
     return f'gs://cpg-hail-ci/wheels/hail-{hail_version}-py3-none-any.whl'
 
 
-def get_init_script_from_hail_version(hail_version: str) -> str:
+def get_script_directory_from_hail_version(hail_version: str) -> str:
     """
-    Use a versioned init script to ensure that the best startup is used for
-    a dataproc version
+    Use a versioned directory of scripts to improve version support
     """
     return f'gs://cpg-common-main/hail_dataproc/{hail_version}/'
+
+
+def get_init_script_from_hail_version(hail_version: str) -> str:
+    """
+    Use the install_common.sh which reinstalls the Hail wheel and phantomjs
+    """
+    return os.path.join(
+        get_script_directory_from_hail_version(hail_version), 'install_common.sh'
+    )
 
 
 def get_dataproc_driver_image_from_hail_version(hail_version: str) -> str:
