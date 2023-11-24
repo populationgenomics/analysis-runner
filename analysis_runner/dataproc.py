@@ -54,7 +54,7 @@ def get_wheel_from_version(hail_version: str) -> str:
     return f'gs://cpg-hail-ci/wheels/hail-{hail_version}-py3-none-any.whl'
 
 
-def get_init_script_from_hail_version(hail_version: str):
+def get_init_script_from_hail_version(hail_version: str) -> str:
     """
     Use a versioned init script to ensure that the best startup is used for
     a dataproc version

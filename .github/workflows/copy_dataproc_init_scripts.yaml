@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "dataproc/init_scripts/install_common.sh"
-      - "dataproc/init_scripts/install_phantomjs.sh"
+      - "dataproc/init_scripts/*.sh"
 jobs:
   copy_init_scripts:
     runs-on: ubuntu-latest

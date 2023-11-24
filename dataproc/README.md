@@ -64,7 +64,7 @@ Note, we support specifying the hail_version, but only a very select number of v
 ```sh
 gcloud config set project analysis-runner
 # grab the HAIL_VERSION from analysis_runner/dataproc.py
-HAIL_VERSION=$(grep "HAIL_VERSION = '" analysis_runner/dataproc.py | awk -F\' '{print $2}')
+HAIL_VERSION=$(grep "DEFAULT_HAIL_VERSION = '" analysis_runner/dataproc.py | awk -F\' '{print $2}')
 gcloud builds submit --timeout=1h --tag=australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc:hail-$HAIL_VERSION .
 ```
 
