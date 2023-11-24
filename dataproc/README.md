@@ -1,4 +1,4 @@
-# Dataproc Docker image
+# Dataproc at CPG
 
 Dataproc is a managed Spark and Hadoop service provided by Google that we use for running Hail query analyses. For the most part, we want to use Query on Batch, but occasionally we must fallback to Dataproc.
 
@@ -29,7 +29,7 @@ j = dataproc.hail_dataproc_job(
 )
 ```
 
-## Docker image
+## Docker driver image
 
 The dataproc image is effectively a driver image for the _setting up_, _submitting to_, and _spinning down_ the cluster. It doesn't do anything too fancy, but it's useful to keep this disconnected from the regular analysis-runner driver image to avoid any arbitrary changes to pip_dependencies in the deploy_config (`/usr/local/lib/python3.10/dist-packages/hailtop/hailctl/deploy.yaml`).
 
@@ -42,6 +42,10 @@ We manually build our version of Hail in the dataproc container. (Ideally it wou
 A dataproc cluster is spun up within a specific dataset's GCP project for billing reasons.
 
 We call `hailctl dataproc start`, as configured in the `analysis_runner/dataproc` module. We specify a number of default packages in this module as a sensible default. We by default specify the init script (`gs://cpg-common-main/hail_dataproc/${HAIL_VERSION}/`), but you can override this on cluster configuration.
+
+By default, Hail specifies the image to use on Dataproc. The image version comes from the command [`dataproc cluster image version lists`](https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-version-clusters#debian_images), and is specified here: https://github.com/populationgenomics/hail/blob/main/hail/python/hailtop/hailctl/dataproc/start.py#L147.
+
+At the time of writing (2023-11-24), this was using Python 3.10.8.
 
 ### Initialization script
 
