@@ -92,3 +92,13 @@ This is due to the hail wheel not being correctly localised to the image. This c
 1. A failure at a previous step which uses the `deploy.yaml` file. This file contains info on pip dependencies and the location of the hail wheel file. So, if one part of this step fails, for example the pip intall from the `pip_dependencies` section of this yaml file, then the hail wheel won't be copied over to the cluster resulting in the above error. However, remember to check your error logs for the exact error message.
 
 > The `STRIP_PIP_VERSIONS` Docker arg strips all pinned versions from the `deploy.yaml` file, which is created during the hail build step. This file is used by the hailctl command line program to set the `metadata` argument of the dataproc cluster create command. The metadata argument is by used the cluster to install specific versions of Python packages on the cluster. Set this to `true` if you are having issues with pip dependency resolution during cluster creation, which may be helpful for debugging.
+
+### Dataproc cluster fails to start
+
+You might see a log like this in Hail Batch. You'll need to check the output of this log.
+
+```text
+Initialization action failed. Failed action 'gs://cpg-common-main/hail_dataproc/<version>/install_common.sh', see output in: gs://cpg-$DATASET-$NAMESPACE-tmp/google-cloud-dataproc-metainfo/<cluster-id>/<cluster-name>-m/dataproc-initialization-script-1_output.
+```
+
+You may need to check other logs from this google cloud directory.
