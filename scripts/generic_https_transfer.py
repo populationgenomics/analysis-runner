@@ -56,7 +56,7 @@ def main(presigned_url_file_path: str, filenames: bool):
     if incorrect_urls:
         raise ValueError(f'Incorrect URLs: {incorrect_urls}')
 
-    batch = get_batch(name=f'transfer {dataset}')
+    batch = get_batch(name=f'transfer {dataset}', default_image=cpg_driver_image)
 
     output_path = dataset_path(output_prefix, 'upload')
 
