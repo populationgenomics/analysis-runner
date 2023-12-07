@@ -317,7 +317,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         workflow_id_file=workflow_id_file,
         outputs_to_collect=outputs_to_collect,
         driver_image=_driver_image,
-        max_poll_interval=max_watch_poll_interval
+        max_poll_interval=max_watch_poll_interval,
     )
 
     return submit_job, outputs_dict
