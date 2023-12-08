@@ -261,6 +261,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     driver_image: Optional[str] = None,
     project: Optional[str] = None,
     copy_outputs_to_gcp: bool = True,
+    max_watch_poll_interval: int = 60,
 ) -> tuple[Job, dict[str, Union[Resource, List[Resource]]]]:
     """
     This function needs to know the structure of the outputs you
@@ -316,6 +317,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         workflow_id_file=workflow_id_file,
         outputs_to_collect=outputs_to_collect,
         driver_image=_driver_image,
+        max_poll_interval=max_watch_poll_interval,
     )
 
     return submit_job, outputs_dict
