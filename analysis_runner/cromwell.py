@@ -261,7 +261,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     driver_image: Optional[str] = None,
     project: Optional[str] = None,
     copy_outputs_to_gcp: bool = True,
-    min_poll_interval: int = 5,
+    min_watch_poll_interval: int = 5,
     max_watch_poll_interval: int = 60,
 ) -> tuple[Job, dict[str, Union[Resource, List[Resource]]]]:
     """
@@ -282,6 +282,9 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     Workflows may then choose to copy these outputs to a final destination.
 
     Returns a submit Job object, and a dict of output Resource objects.
+
+    Optionally override min/max poll interval for the watch job.
+    This alters how often the Watch job pings Cromwell for Status updates
     """
     config = get_config()
 
@@ -319,7 +322,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         outputs_to_collect=outputs_to_collect,
         driver_image=_driver_image,
         max_poll_interval=max_watch_poll_interval,
-        min_poll_interval=min_poll_interval
+        min_poll_interval=min_watch_poll_interval
     )
 
     return submit_job, outputs_dict
