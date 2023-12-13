@@ -261,6 +261,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     driver_image: Optional[str] = None,
     project: Optional[str] = None,
     copy_outputs_to_gcp: bool = True,
+    min_poll_interval: int = 5,
     max_watch_poll_interval: int = 60,
 ) -> tuple[Job, dict[str, Union[Resource, List[Resource]]]]:
     """
@@ -318,6 +319,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         outputs_to_collect=outputs_to_collect,
         driver_image=_driver_image,
         max_poll_interval=max_watch_poll_interval,
+        min_poll_interval=min_poll_interval
     )
 
     return submit_job, outputs_dict
@@ -326,6 +328,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
 def watch_workflow(
     workflow_id_file,
     max_sequential_exception_count,
+    min_poll_interval,
     max_poll_interval,
     exponential_decrease_seconds,
     output_json_path,
@@ -371,16 +374,16 @@ def watch_workflow(
         return subprocess.check_output(token_command).decode().strip()
 
     def _get_wait_interval(
-        start, max_poll_interval, exponential_decrease_seconds
+        start, min_poll_interval: int = 5, max_poll_interval: int = 60, exponential_decrease_seconds: int = 1200
     ) -> int:
         """
-        Get wait time between 5s and {max_poll_interval},
+        Get wait time between {min_poll_interval} and {max_poll_interval} seconds
         curved between 0s and {exponential_decrease_seconds}.
         """
         factor = (datetime.now() - start).total_seconds() / exponential_decrease_seconds
         if factor > 1:
             return max_poll_interval
-        return max(5, int((1 - math.cos(math.pi * factor)) * max_poll_interval // 2))
+        return max(min_poll_interval, int((1 - math.cos(math.pi * factor)) * max_poll_interval // 2))
 
     with open(workflow_id_file, encoding='utf-8') as f:
         workflow_id = f.read().strip()
@@ -401,7 +404,7 @@ def watch_workflow(
         if _remaining_exceptions <= 0:
             raise CromwellError('Unreachable')
         wait_time = _get_wait_interval(
-            start, max_poll_interval, exponential_decrease_seconds
+            start, min_poll_interval, max_poll_interval, exponential_decrease_seconds
         )
         try:
             auth_header = {'Authorization': f'Bearer {_get_cromwell_oauth_token()}'}
@@ -468,6 +471,7 @@ def watch_workflow_and_get_output(
     workflow_id_file,
     outputs_to_collect: Dict[str, CromwellOutputType],
     driver_image: Optional[str] = None,
+    min_poll_interval=5,  # 5 seconds
     max_poll_interval=60,  # 1 minute
     exponential_decrease_seconds=1200,  # 20 minutes
     max_sequential_exception_count=25,
@@ -516,6 +520,7 @@ def watch_workflow_and_get_output(
             watch_workflow.__name__,
             str(workflow_id_file),
             max_sequential_exception_count,
+            min_poll_interval,
             max_poll_interval,
             exponential_decrease_seconds,
             str(watch_job.output_json_path),
