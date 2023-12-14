@@ -322,7 +322,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
         outputs_to_collect=outputs_to_collect,
         driver_image=_driver_image,
         max_poll_interval=max_watch_poll_interval,
-        min_poll_interval=min_watch_poll_interval
+        min_poll_interval=min_watch_poll_interval,
     )
 
     return submit_job, outputs_dict
@@ -377,7 +377,10 @@ def watch_workflow(
         return subprocess.check_output(token_command).decode().strip()
 
     def _get_wait_interval(
-        start, min_poll_interval: int = 5, max_poll_interval: int = 60, exponential_decrease_seconds: int = 1200
+        start,
+        min_poll_interval: int = 5,
+        max_poll_interval: int = 60,
+        exponential_decrease_seconds: int = 1200,
     ) -> int:
         """
         Get wait time between {min_poll_interval} and {max_poll_interval} seconds
@@ -386,7 +389,10 @@ def watch_workflow(
         factor = (datetime.now() - start).total_seconds() / exponential_decrease_seconds
         if factor > 1:
             return max_poll_interval
-        return max(min_poll_interval, int((1 - math.cos(math.pi * factor)) * max_poll_interval // 2))
+        return max(
+            min_poll_interval,
+            int((1 - math.cos(math.pi * factor)) * max_poll_interval // 2),
+        )
 
     with open(workflow_id_file, encoding='utf-8') as f:
         workflow_id = f.read().strip()
