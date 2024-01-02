@@ -193,7 +193,7 @@ def run_batch_job_and_print_url(batch, wait, environment):
     bc_batch = batch.run(wait=False)
 
     deploy_config = get_deploy_config()
-    url = deploy_config.url('batch', f'/batches/{bc_batch.id}')
+    url = deploy_config.url('batch', f'/batches/{bc_batch.id}/jobs/1')
 
     if wait:
         status = bc_batch.wait()
