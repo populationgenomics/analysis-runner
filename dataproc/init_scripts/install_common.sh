@@ -10,6 +10,7 @@ fi
 
 # Reinstall the Hail wheel.
 pip3 install /home/hail/hail*.whl
+pip3 install --no-deps 'cpg-utils>=4.18.3'
 
 # Install phantomjs with a workaround for the libssl_conf.so on Debian Buster:
 # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
