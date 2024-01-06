@@ -174,10 +174,12 @@ def check_paths_exist(paths: list[str]):
 
 def copy_to_release(project: str, billing_project: str, paths: list[str]):
     """
-    Copy many files from main bucket paths to the release bucket with todays date as directory
+    Copy the input file paths to the release bucket with todays date in the prefix
     """
     release_path = f'gs://cpg-{project}-release/{datetime.now().strftime("%Y-%m-%d")}/'
-
+    logging.info(f'Copying {len(paths)} files to {release_path}:')
+    for path in paths:
+        logging.info(path)
     subprocess.run(
         [
             'gcloud',
@@ -190,7 +192,7 @@ def copy_to_release(project: str, billing_project: str, paths: list[str]):
         ],
         check=True,
     )
-    logging.info(f'{len(paths)} files copied into {release_path}:\n{paths}')
+    logging.info(f'{len(paths)} files copied to {release_path}')
 
 
 @click.command()
