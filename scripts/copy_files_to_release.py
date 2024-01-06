@@ -75,12 +75,13 @@ def get_sg_ids_from_external_ids(
         'project'
     ]['sequencingGroup']
 
-    participant_seq_group_map = {
-        sg['sample']['participant']['externalId']: sg['id'] for sg in sequencing_groups
-    }
-    sample_seq_group_map = {
-        sg['sample']['externalId']: sg['id'] for sg in sequencing_groups
-    }
+    sample_seq_group_map = defaultdict(list)
+    participant_seq_group_map = defaultdict(list)
+    for sg in sequencing_groups:
+        sample_seq_group_map[sg['sample']['externalId']].append(sg['id'])
+        participant_seq_group_map[sg['sample']['participant']['externalId']].append(
+            sg['id']
+        )
 
     sg_ids = set()
     if external_sample_ids:
