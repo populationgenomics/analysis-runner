@@ -18,6 +18,7 @@ from google.cloud import storage
 # pylint: disable=E0401,E0611
 from cpg_utils.config import get_config
 from cpg_utils import to_path
+from metamist.apis import AnalysisApi
 from metamist.graphql import gql, query
 
 client = storage.Client()
@@ -60,6 +61,12 @@ SG_ID_MAPPING_QUERY = gql(
     }
     """
 )
+
+
+def get_analyses_output_paths(analysis_ids: list[int]):
+    """Get the output paths for a list of analysis IDs"""
+    aapi = AnalysisApi()
+    return [aapi.get_analysis_by_id(analysis_id)['output'] for analysis_id in analysis_ids]
 
 
 def get_sg_ids_from_external_ids(
@@ -217,13 +224,15 @@ def main(
     billing_project :    a GCP project ID to bill to
     urls_file_path :   a full GS path to a file containing the links to move into the release bucket
     use_metamist :  use the Metamist GraphQL API to get the urls - note that you must include a list
-                    of external sample IDs, external participant IDs, or sequencing group IDs in the
-                    config file, as well as the analysis types to copy. If this flag is not set, the
-                    urls_file_path option must be set.
+                    of analysis IDs OR external sample IDs, external participant IDs, or sequencing 
+                    group IDs in the config file, as well as the analysis types to copy. 
+                    If this flag is not set, the urls_file_path option must be set.
 
     use_metamist config parameters
     ------------------------------
     [workflow]
+    analysis_ids = <list of analysis IDs>  # takes precedence over the other options
+    
     analysis_types = <list of analysis types>
 
     # One of the following three must be set
@@ -242,29 +251,32 @@ def main(
         billing_project = project
 
     if use_metamist:
-        if not config['workflow']['analysis_types']:
-            raise ValueError('analysis_types must be set in the config file')
-        if (
-            not config['workflow']['sequencing_group_ids']
-            and not config['workflow']['external_sample_ids']
-            and not config['workflow']['external_participant_ids']
-        ):
-            raise ValueError(
-                'One of sequencing_group_ids, external_sample_ids, or external_participant_ids must be set in the config file'
-            )
+        while not paths:
+            if config['workflow']['analysis_ids']:
+                paths = get_analyses_output_paths(config['workflow']['analysis_ids'])
+            elif not config['workflow']['analysis_types']:
+                raise ValueError('analysis_types must be set in the config file if analysis_ids is not set')
+            if (
+                    not config['workflow']['sequencing_group_ids']
+                and not config['workflow']['external_sample_ids']
+                and not config['workflow']['external_participant_ids']
+            ):
+                raise ValueError(
+                    'One of sequencing_group_ids, external_sample_ids, or external_participant_ids must be set in the config file'
+                )
 
-        if sequencing_group_ids := config['workflow']['sequencing_group_ids']:
-            sg_ids = sequencing_group_ids
-        elif external_sample_ids := config['workflow']['external_sample_ids']:
-            sg_ids = get_sg_ids_from_external_ids(project, external_sample_ids, None)
-        elif external_participant_ids := config['workflow']['external_participant_ids']:
-            sg_ids = get_sg_ids_from_external_ids(
-                project, None, external_participant_ids
-            )
+            if sequencing_group_ids := config['workflow']['sequencing_group_ids']:
+                sg_ids = sequencing_group_ids
+            elif external_sample_ids := config['workflow']['external_sample_ids']:
+                sg_ids = get_sg_ids_from_external_ids(project, external_sample_ids, None)
+            elif external_participant_ids := config['workflow']['external_participant_ids']:
+                sg_ids = get_sg_ids_from_external_ids(
+                    project, None, external_participant_ids
+                )
 
-        paths = get_filepaths_from_analyses(
-            get_sg_analyses(project, sg_ids, config['workflow']['analysis_types'])
-        )
+            paths = get_filepaths_from_analyses(
+                get_sg_analyses(project, sg_ids, config['workflow']['analysis_types'])
+            )
 
     else:
         with to_path(urls_file_path).open(encoding='utf-8') as f:
