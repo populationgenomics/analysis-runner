@@ -180,11 +180,11 @@ pip install --editable .
 
 ### Deployment
 
-1. Add a Hail Batch service account for all supported datasets.
-1. [Copy the Hail tokens](tokens) to the Secret Manager.
-1. Deploy the [server](server) by invoking the [`deploy_server` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/deploy_server.yaml) manually.
-1. Deploy the [Airtable](airtable) publisher.
-1. Publish the [CLI tool and library](analysis_runner) to PyPI.
+1. Add a Hail Batch service account for all supported datasets through the infrastructure stack deployment.
+2. [Copy the Hail tokens](https://github.com/populationgenomics/cpg-infrastructure-private/tree/main/tokens) to the Secret Manager through the infrastructure token deployment.
+3. Deploy the [server](server) by invoking the [`deploy_server` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/deploy_server.yaml) manually.
+4. Deploy the [Airtable](airtable) publisher.
+5. Publish the [CLI tool and library](analysis_runner) to PyPI.
 
 The CLI tool is shipped as a pip package. To build a new version,
 we use [bump2version](https://pypi.org/project/bump2version/).
