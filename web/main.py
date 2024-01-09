@@ -5,12 +5,12 @@ import json
 import logging
 import mimetypes
 import os
-from flask import Flask, abort, request, Response, stream_with_context
 
-from cpg_utils.cloud import read_secret, is_member_in_cached_group
-import google.cloud.storage
 import google.auth.transport.requests
+import google.cloud.storage
 import google.oauth2.id_token
+from cpg_utils.cloud import is_member_in_cached_group, read_secret
+from flask import Flask, Response, abort, stream_with_context
 
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 
