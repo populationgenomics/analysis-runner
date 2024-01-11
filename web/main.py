@@ -5,12 +5,12 @@ import json
 import logging
 import mimetypes
 import os
-from flask import Flask, abort, request, Response, stream_with_context
 
-from cpg_utils.cloud import read_secret, is_member_in_cached_group
-import google.cloud.storage
 import google.auth.transport.requests
+import google.cloud.storage
 import google.oauth2.id_token
+from cpg_utils.cloud import is_member_in_cached_group, read_secret
+from flask import Flask, Response, abort, request, stream_with_context
 
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 
@@ -60,7 +60,11 @@ def handler(dataset=None, filename=None):
     if os.path.basename(filename) == '.access':
         return abort(403, 'Unable to read .access files')
 
-    server_config = json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
+    server_config_raw = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config')
+    if not server_config_raw:
+        logger.exception('Failed to read server-config secret')
+        return abort(500, 'Failed to read server-config secret')
+    server_config = json.loads(server_config_raw)
     if dataset not in server_config:
         logger.warning(f'Invalid dataset "{dataset}"')
         return abort(403, 'Invalid dataset')
