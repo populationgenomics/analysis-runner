@@ -11,6 +11,10 @@ fi
 # Reinstall the Hail wheel.
 pip3 install /home/hail/hail*.whl
 
+# 2024-01-12: Although I'm not _exactly_ sure why, cpg-utils is not being correctly installed
+# in the initialisation script, the other dependencies seem fine, so this _hack_ resolves that.
+pip3 install --no-deps 'cpg-utils>=4.18.3'
+
 # Install phantomjs with a workaround for the libssl_conf.so on Debian Buster:
 # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
 cd /opt
