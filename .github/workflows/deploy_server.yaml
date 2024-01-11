@@ -80,7 +80,6 @@ jobs:
         gcloud run deploy server-test --region australia-southeast1 \
           --no-allow-unauthenticated --platform managed \
           --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG,MEMBERS_CACHE_LOCATION=gs://cpg-members-group-cache \
-          --set-secrets=SERVER_CONFIG=server-config:latest \
           --image $SERVER_IMAGE:$IMAGE_TAG
 
     - name: "submit test batch"
@@ -98,5 +97,4 @@ jobs:
         gcloud run deploy server --region australia-southeast1 \
           --no-allow-unauthenticated --platform managed \
           --set-env-vars=DRIVER_IMAGE=$DRIVER_IMAGE:$IMAGE_TAG,MEMBERS_CACHE_LOCATION=gs://cpg-members-group-cache \
-          --set-secrets=SERVER_CONFIG=server-config:latest \
           --image $SERVER_IMAGE:$IMAGE_TAG
