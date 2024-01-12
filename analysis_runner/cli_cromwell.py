@@ -269,7 +269,7 @@ curl --location --request POST \\
 def _check_cromwell_status(
     workflow_id,
     json_output: Optional[str],
-    server_url: str = None,
+    server_url: str | None = None,
     is_test: bool = False,
     **kwargs,
 ):
@@ -278,7 +278,7 @@ def _check_cromwell_status(
     server_endpoint = get_server_endpoint(server_url, is_test)
     url = os.path.join(
         server_endpoint,
-        f'/cromwell/{workflow_id}/metadata',
+        f'cromwell/{workflow_id}/metadata',
     )
 
     response = requests.get(
