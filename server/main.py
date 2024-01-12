@@ -222,7 +222,7 @@ async def index(request):
     metadata['batch_url'] = url
     publisher.publish(PUBSUB_TOPIC, json.dumps(metadata).encode('utf-8')).result()
 
-    return web.Response(text=f'{url}\n')
+    return web.Response(text=f'{url}/jobs/1\n')
 
 
 @routes.post('/config')
