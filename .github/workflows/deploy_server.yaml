@@ -94,7 +94,8 @@ jobs:
     - name: "submit test batch"
       run: |
         URL=$(gcloud run services describe server-test --region australia-southeast1 --platform managed --format "value(status.url)")
-        TOKEN=$(gcloud auth print-identity-token)
+        TOKEN=$(gcloud auth print-identity-token --impersonate-service-account="server-deploy@analysis-runner.iam.gserviceaccount.com" --audiences="$URL" --include-email)
+
         curl --fail --silent --show-error -X POST \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type:application/json" \
