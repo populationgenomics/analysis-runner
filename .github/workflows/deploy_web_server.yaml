@@ -1,5 +1,10 @@
 name: Deploy web server
 on: workflow_dispatch
+
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   deploy_server:
     runs-on: ubuntu-latest
@@ -14,11 +19,16 @@ jobs:
     - name: "checkout repo"
       uses: actions/checkout@v2
 
-    - name: "gcloud setup"
-      uses: google-github-actions/setup-gcloud@v0
+    - id: "google-cloud-auth"
+      name: "Authenticate to Google Cloud"
+      uses: "google-github-actions/auth@v1"
       with:
-        project_id: analysis-runner
-        service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+        workload_identity_provider: "projects/370374240567/locations/global/workloadIdentityPools/gh-pool/providers/gh-provider"
+        service_account: "server-deploy@analysis-runner.iam.gserviceaccount.com"
+
+    - id: "google-cloud-sdk-setup"
+      name: "Set up Cloud SDK"
+      uses: google-github-actions/setup-gcloud@v1
 
     - name: "gcloud docker auth"
       run: |
