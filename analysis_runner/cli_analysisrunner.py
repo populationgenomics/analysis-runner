@@ -57,6 +57,13 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
             'https://hail.is/docs/batch/api/batch/hailtop.batch.job.Job.html#hailtop.batch.job.Job.memory'
         ),
     )
+    parser.add_argument(
+        '--storage',
+        help=(
+            'Amount of storage to request in GB (eg: 4G). This follows the hail batch convention: '
+            'https://hail.is/docs/batch/api/batch/hailtop.batch.job.Job.html#hailtop.batch.job.Job.storage'
+        ),
+    )
 
     parser.add_argument(
         '--preemptible',
@@ -108,6 +115,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     image=None,
     cpu=None,
     memory=None,
+    storage=None,
     preemptible=None,
     config: List[str] = None,
     env: List[str] = None,
@@ -223,6 +231,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'image': image,
             'cpu': cpu,
             'memory': memory,
+            'storage': storage,
             'preemptible': preemptible,
             'environmentVariables': _env,
             'config': _config,
