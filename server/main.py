@@ -87,7 +87,7 @@ async def index(request):
     memory = params.get('memory', '1G')
 
     # defaults to no attached storage in Driver jobs
-    storage = params.get('cpu', None)
+    storage = params.get('storage', None)
 
     preemptible = params.get('preemptible', True)
     environment_variables = params.get('environmentVariables')
@@ -182,7 +182,7 @@ async def index(request):
     if cpu:
         job.cpu(cpu)
     if storage:
-        job.cpu(storage)
+        job.storage(storage)
     if memory:
         job.memory(memory)
     job._preemptible = preemptible  # pylint: disable=protected-access
