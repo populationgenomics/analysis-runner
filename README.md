@@ -1,49 +1,32 @@
 # Analysis runner
 
-This tool helps to [make analysis results reproducible](https://github.com/populationgenomics/team-docs/blob/main/reproducible_analyses.md),
-by automating the following aspects:
+This tool helps to [improve analysis provenance](https://github.com/populationgenomics/team-docs/blob/main/reproducible_analyses.md) and theoretical reproducibility by automating the following aspects:
 
 - Allow quick iteration using an environment that resembles production.
 - Only allow access to production datasets through code that has been reviewed.
-- Link the output data with the exact program invocation of how the data has
-  been generated.
+- Link the output data with the exact program invocation of how the data has been generated.
 
-One of our main workflow pipeline systems at the CPG is
-[Hail Batch](https://hail.is/docs/batch/getting_started.html). By default, its
-pipelines are defined by running a Python program
-_locally_. This tool instead lets you run the "driver" on Hail Batch itself.
+One of our main workflow pipeline systems at the CPG is [Hail Batch](https://hail.is/docs/batch/getting_started.html). By default, its pipelines are defined by running a Python program _locally_ and submitting the resulting DAG to the Hail Batch server. By specifying a repo, commit, and file, this tool will run your script inside a "driver" image on Hail Batch, with the correct permissions.
 
-Furthermore, all invocations are logged together with the output data, as well as [Airtable](https://airtable.com/tblx9NarwtJwGqTPA/viwIomAHV49Stq5zr) and the sample-metadata server.
+All invocations are logged to metamist, in the [analysis-runner page](https://sample-metadata.populationgenomics.org.au/analysis-runner/).
 
-When using the analysis-runner, the batch jobs are not run under your standard
-Hail Batch [service account user](https://hail.is/docs/batch/service.html#sign-up)
-(`<USERNAME>-trial`). Instead, a separate Hail Batch account is
-used to run the batch jobs on your behalf. There's a dedicated Batch service
-account for each dataset (e.g. "tob-wgs", "fewgenomes") and access level
-("test", "standard", or "full", as documented in the team docs
-[storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner)),
-which helps with bucket permission management and billing budgets.
+When using the analysis-runner, the jobs are run as a specific Hail Batch service account to give appropriate permissions based on the dataset, and access level ("test", "standard", or "full", as documented in the team docs [storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner)). This helps with bucket permission management and billing budgets.
 
-Note that you can use the analysis-runner to start arbitrary jobs, e.g. R scripts. They're just launched in the Hail Batch environment, but you can use any Docker image you like.
+By default, we run your script in a driver image, that contains a number of common tools - but you can in fact run any container inside the cpg-common artifact registry (and any container if running using the test access level). Note.
 
 The analysis-runner is also integrated with our Cromwell server to run WDL based workflows.
 
 ## CLI
 
-The analysis-runner CLI can be used to start pipelines based on a GitHub repository,
-commit, and command to run.
+The analysis-runner CLI is used to start pipelines based on a GitHub repository, commit, and command to run.
 
-First, make sure that your environment provides Python 3.10 or newer:
+First, make sure that your environment provides Python 3.10 or newer. We recommend using `pyenv` to manage your python versions
 
 ```sh
+pyenv install 3.10.12
+pyenv global 3.10.12
 > python3 --version
-Python 3.10.7
-```
-
-If the installed version is too old, on a Mac you can use `brew` to update. E.g.:
-
-```sh
-brew install python@3.10
+Python 3.10.12
 ```
 
 Then install the `analysis-runner` Python package using `pip`:
@@ -54,15 +37,13 @@ python3 -m pip install analysis-runner
 
 Run `analysis-runner --help` to see usage information.
 
-Make sure that you're logged into GCP:
+Make sure that you're logged into GCP with _application-default_ credentials:
 
 ```bash
 gcloud auth application-default login
 ```
 
-If you're in the directory of the project you want to run, you can omit the
-`--commit` and `--repository` parameters, which will use your current git remote and
-commit HEAD.
+If you're in the directory of the project you want to run, you can omit the `--commit` and `--repository` parameters, which will use your current git remote and commit HEAD.
 
 For example:
 
@@ -97,7 +78,7 @@ For more examples (including for running an R script and dataproc), see the
 
 ### GitHub Authentication
 
-If you are submitting an analysis-runner job that needs to clone a private repository owned by populationgenomics on GitHub (eg submitting a script to analysis-runner from a private repository), please make sure that your configuration file contains the following section:
+If you are submitting an analysis-runner job that needs to clone a private repository owned by populationgenomics on GitHub (eg submitting a script to analysis-runner from a private repository), the analysis-runner should insert the following items into your `config.toml`:
 
 ```toml
 [infrastructure]
@@ -105,7 +86,7 @@ git_credentials_secret_name = '<ask_software_team_for_secret_name>'
 git_credentials_secret_project = '<ask_software_team_for_secret_project>'
 ```
 
-If you are specifying multiple configuration files, please make sure that this section appears in the final right-most config to avoid these settings being overwritten.
+If you are specifying multiple configuration files, please don't accidentally override these values.
 
 ## Custom Docker images
 
@@ -172,33 +153,11 @@ the following:
 
 ```bash
 pip install -r requirements-dev.txt
-
-pre-commit install --install-hooks
-
 pip install --editable .
 ```
 
 ### Deployment
 
-1. Add a Hail Batch service account for all supported datasets.
-1. [Copy the Hail tokens](tokens) to the Secret Manager.
-1. Deploy the [server](server) by invoking the [`deploy_server` workflow](https://github.com/populationgenomics/analysis-runner/blob/main/.github/workflows/deploy_server.yaml) manually.
-1. Deploy the [Airtable](airtable) publisher.
-1. Publish the [CLI tool and library](analysis_runner) to PyPI.
+The server can be deployed by manually running the [`deploy_server.yaml`](https://github.com/populationgenomics/analysis-runner/actions/workflows/deploy_server.yaml) GitHub action. This will also deploy the driver image.
 
-The CLI tool is shipped as a pip package. To build a new version,
-we use [bump2version](https://pypi.org/project/bump2version/).
-For example, to increment the patch section of the version tag 1.0.0 and make
-it 1.0.1, run:
-
-```bash
-git checkout -b add-new-version
-bump2version patch
-git push --set-upstream origin add-new-version
-# Open pull request
-open "https://github.com/populationgenomics/analysis-runner/pull/new/add-new-version"
-```
-
-It's important the pull request name start with "Bump version:" (which should happen
-by default). Once this is merged into `main`, a GitHub action workflow will build a
-new package that will be uploaded to PyPI, and become available to install with `pip install`.
+The CLI tool is shipped as a pip package, this happens automatically on pushes to `main.py`. To build a new version, you should add a [bump2version](https://pypi.org/project/bump2version/) commit to your branch.
