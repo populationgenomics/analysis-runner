@@ -12,7 +12,7 @@ All invocations are logged to metamist, in the [analysis-runner page](https://sa
 
 When using the analysis-runner, the jobs are run as a specific Hail Batch service account to give appropriate permissions based on the dataset, and access level ("test", "standard", or "full", as documented in the team docs [storage policies](https://github.com/populationgenomics/team-docs/tree/main/storage_policies#analysis-runner)). This helps with bucket permission management and billing budgets.
 
-By default, we run your script in a driver image, that contains a number of common tools - but you can in fact run any container inside the cpg-common artifact registry (and any container if running using the test access level). Note.
+By default, we run your script in a driver image, that contains a number of common tools - but you can in fact run any container inside the cpg-common artifact registry (and any container if running using the test access level).
 
 The analysis-runner is also integrated with our Cromwell server to run WDL based workflows.
 
