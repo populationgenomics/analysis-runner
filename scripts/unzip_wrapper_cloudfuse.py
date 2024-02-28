@@ -93,7 +93,7 @@ def main(search_path: str):
         )
         job.cloudfuse(bucket_name, f'/{bucket_name}').command(
             f"""
-            tar -xzf ~/{blobname.removeprefix('gs://')} -C ~/{bucket_name}/{subdir}/extracted/'
+            tar -xzf ~/{blobname.removeprefix('gs://')} -C ~/{bucket_name}/{subdir}/extracted/
             """
         )
 
