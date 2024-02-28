@@ -91,7 +91,7 @@ def main(search_path: str):
             repo_name='analysis-runner',
             commit=COMMIT_HASH,
         )
-        job = job.cloudfuse(bucket_name, f'/{bucket_name}')
+        job = job.cloudfuse(bucket_name, f'/{bucket_name}', read_only=False)
         job.command(f'mkdir -p /{bucket_name}/{subdir}/extracted/')
         job.command(
             f"""
