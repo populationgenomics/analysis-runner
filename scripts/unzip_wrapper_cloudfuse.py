@@ -91,7 +91,6 @@ def main(search_path: str):
             repo_name='analysis-runner',
             commit=COMMIT_HASH,
         )
-        job.command(f'')
         job.cloudfuse(bucket_name, f'/{bucket_name}').command(
             f"""
             tar -xzf ~/{blobname.removeprefix('gs://')} -C ~/{bucket_name}/{subdir}/extracted/'
