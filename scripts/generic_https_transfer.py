@@ -82,8 +82,9 @@ def main(presigned_url_file_path: str, filenames: bool):
         # download the file and upload it to GCS, removing it if the download fails partway through
         j.command(
             f"""
-            curl -Lf {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}
-            if [ $? -ne 0 ]; then
+            if gsutil cp <(curl -Lf {quoted_url}) {os.path.join(output_path, filename)}; then
+                echo "File transfer successful"
+            else
                 gsutil rm {os.path.join(output_path, filename)}
                 exit 1
             fi
