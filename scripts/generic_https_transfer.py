@@ -71,8 +71,15 @@ def main(presigned_url_file_path: str, filenames: bool):
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
         j.command('set -euxo pipefail')
+        # download the file and upload it to GCS, removing it if the download fails partway through
         j.command(
-            f'curl -L {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}'
+            f"""
+            curl -Lf {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}
+            if [ $? -ne 0 ]; then
+                gsutil rm {os.path.join(output_path, filename)}
+                exit 1
+            fi
+            """
         )
 
     batch.run(wait=False)
