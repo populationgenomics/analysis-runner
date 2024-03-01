@@ -9,6 +9,7 @@ from shlex import quote
 
 import click
 from cloudpathlib import AnyPath
+from cpg_utils import to_path
 from cpg_utils.config import get_config
 from cpg_utils.hail_batch import (
     authenticate_cloud_credentials_in_job,
@@ -59,11 +60,18 @@ def main(presigned_url_file_path: str, filenames: bool):
     batch = get_batch(name=f'transfer {dataset}', default_image=cpg_driver_image)
 
     output_path = dataset_path(output_prefix, 'upload')
+    files_in_output = [f.as_uri() for f in to_path(output_path).iterdir()]
+    if files_in_output:
+        print(f'Files found in {output_path}:')
+        print(files_in_output)
 
     # may as well batch them to reduce the number of VMs
     for idx, url in enumerate(presigned_urls):
         if names:
             filename = names[idx]
+            if to_path(os.path.join(output_path, filename)).as_uri() in files_in_output:
+                print(f'File {filename} already exists in {output_path}')
+                continue 
         else:
             filename = os.path.basename(url).split('?')[0]
         j = batch.new_job(f'URL {idx} ({filename})')
