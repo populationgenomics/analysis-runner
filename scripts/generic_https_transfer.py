@@ -25,6 +25,8 @@ def parse_presigned_url_file(
 ) -> dict[str, str]:
     """
     Parse a presigned URL file to extract the filenames and presigned URLs
+    Returns:
+        dict: a dictionary with presigned URLs as keys and filenames as values
     """
     if garvan_manifest:
         return parse_garvan_manifest(file_path)
@@ -42,13 +44,6 @@ def parse_presigned_url_file(
 def parse_garvan_manifest(file_path: str):
     """
     Parse a Garvan manifest file to extract the filenames and presigned URLs
-
-    Example of a Garvan manifest file:
-
-    ```
-    curl -Lo Sample01.tar.gz 'https://filesender.aarnet.edu.au/download.php?token=abc&files_ids=123456' # Expires 30 Mar 2024
-    curl -Lo SummaryFiles.tar.gz 'https://filesender.aarnet.edu.au/download.php?token=xyz&files_ids=123457' # Expires 30 Mar 2024
-    ```
 
     Args:
         file_path (str): path to the Garvan manifest file
@@ -93,7 +88,7 @@ def main(
 
     --presigned-url-file-path is a file with a list of presigned URLs, one per line.
 
-    **Formats:**
+    ** Allowed formats for the presigned url file **
       - Just URLs, no filenames (default):
         ```
         https://example.com/file1
