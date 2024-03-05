@@ -81,8 +81,8 @@ def get_git_branch_name() -> Optional[str]:
         value = subprocess.check_output(command).decode().strip()
         if value:
             return value
-    except KeyboardInterrupt:
-        raise
+    except Exception:  # pylint: disable=broad-exception-caught
+        return None
 
     return None
 

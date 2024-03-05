@@ -1,7 +1,7 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
 
 # flake8: noqa=E402
-# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position,too-many-locals
 import datetime
 import json
 import logging
