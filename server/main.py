@@ -175,7 +175,7 @@ async def index(request):
         AR_GUID_NAME: ar_guid,
         'commit': commit,
         'repo': repo,
-        'author': email,
+        'author': user_name,
     }
 
     branch = params.get('branch')
