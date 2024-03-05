@@ -153,11 +153,22 @@ def add_cromwell_routes(
             token=hail_token,
         )
 
+        attributes = {
+            AR_GUID_NAME: ar_guid,
+            'commit': commit,
+            'repo': repo,
+            'author': email,
+        }
+
+        branch = params.get('branch')
+        if branch:
+            attributes['branch'] = branch
+
         batch = hb.Batch(
             backend=backend,
             name=batch_name,
             requester_pays_project=project,
-            attributes={AR_GUID_NAME: ar_guid},
+            attributes=attributes,
         )
 
         job = batch.new_job(name='driver')

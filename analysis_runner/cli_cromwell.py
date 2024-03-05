@@ -1,6 +1,7 @@
 """
 Cromwell CLI
 """
+
 # pylint: disable=too-many-arguments,too-many-return-statements,broad-except
 import argparse
 import json
@@ -14,6 +15,7 @@ from analysis_runner.constants import get_server_endpoint
 from analysis_runner.cromwell_model import WorkflowMetadataModel
 from analysis_runner.git import (
     check_if_commit_is_on_remote,
+    get_git_branch_name,
     get_git_commit_ref_of_current_repository,
     get_git_default_remote,
     get_relative_path_from_git_root,
@@ -185,6 +187,7 @@ def _run_cromwell(
     _repository = repository
     _commit_ref = commit
     _cwd = cwd
+    _branch = get_git_branch_name()
 
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
@@ -229,6 +232,7 @@ def _run_cromwell(
         'input_json_paths': inputs or [],
         'dependencies': imports or [],
         'labels': _labels,
+        'branch': _branch,
     }
 
     server_endpoint = get_server_endpoint(

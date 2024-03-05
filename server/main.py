@@ -1,4 +1,5 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
+
 # flake8: noqa=E402
 # pylint: disable=wrong-import-position
 import datetime
@@ -170,11 +171,22 @@ async def index(request):
     if cloud_environment == 'gcp':
         extra_batch_params['requester_pays_project'] = environment_config['projectId']
 
+    attributes = {
+        AR_GUID_NAME: ar_guid,
+        'commit': commit,
+        'repo': repo,
+        'author': email,
+    }
+
+    branch = params.get('branch')
+    if branch:
+        attributes['branch'] = branch
+
     batch = hb.Batch(
         backend=backend,
         name=batch_name,
         **extra_batch_params,
-        attributes={AR_GUID_NAME: ar_guid},
+        attributes=attributes,
     )
     job = batch.new_job(name='driver')
     job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)

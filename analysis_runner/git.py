@@ -1,11 +1,10 @@
 """Helper functions for working with Git repositories."""
 
-from typing import List
-
 import os
 import re
 import subprocess
 from shlex import quote
+from typing import List, Optional
 
 GITHUB_ORG = 'populationgenomics'
 SUPPORTED_ORGANIZATIONS = {GITHUB_ORG}
@@ -73,6 +72,19 @@ def get_git_commit_ref_of_current_repository() -> str:
     """Returns the commit SHA at the current HEAD."""
     command = ['git', 'rev-parse', 'HEAD']
     return get_output_of_command(command, 'get latest Git commit')
+
+
+def get_git_branch_name() -> Optional[str]:
+    """Returns the current branch name."""
+    command = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+    try:
+        value = subprocess.check_output(command).decode().strip()
+        if value:
+            return value
+    except KeyboardInterrupt:
+        raise
+
+    return None
 
 
 def get_repo_name_from_current_directory() -> str:
@@ -157,7 +169,7 @@ def prepare_git_job(
 
     # activate the google service account
     job.command(
-        f'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+        'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
     )
 
     # Note: for private GitHub repos we'd need to use a token to clone.
@@ -209,6 +221,6 @@ fi
             '{ echo "error: commit not merged into main branch"; exit 1; }'
         )
     job.command(f'git checkout {quote(commit)}')
-    job.command(f'git submodule update')
+    job.command('git submodule update')
 
     return job
