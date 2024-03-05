@@ -5,6 +5,7 @@ Exports 'add_cromwell_routes', to add the following route to a flask API:
 """
 import json
 from datetime import datetime
+from shlex import quote
 
 import hailtop.batch as hb
 import requests
@@ -31,7 +32,7 @@ from util import (
 
 from analysis_runner.constants import CROMWELL_URL
 from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
-from analysis_runner.git import prepare_git_job
+from analysis_runner.git import guess_script_github_url_from, prepare_git_job
 
 
 def add_cromwell_routes(
@@ -153,14 +154,40 @@ def add_cromwell_routes(
             token=hail_token,
         )
 
+        attributes = {
+            AR_GUID_NAME: ar_guid,
+            'commit': commit,
+            'repo': repo,
+            'author': user_name,
+        }
+
+        branch = params.get('branch')
+        if branch:
+            attributes['branch'] = branch
+
         batch = hb.Batch(
             backend=backend,
             name=batch_name,
             requester_pays_project=project,
-            attributes={AR_GUID_NAME: ar_guid},
+            attributes=attributes,
         )
+        branch = params.get('branch')
+        comments = []
+        if branch:
+            attributes['branch'] = branch
+            comments.append(f'BRANCH: {branch}')
+
+        script_url = guess_script_github_url_from(
+            repo=repo,
+            commit=commit,
+            script=[wf],
+            cwd=cwd,
+        )
+        if script_url:
+            comments.append(f'URL: {script_url}')
 
         job = batch.new_job(name='driver')
+        job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
         job = prepare_git_job(
             job=job,
             repo_name=repo,

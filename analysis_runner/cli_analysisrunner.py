@@ -5,7 +5,7 @@ CLI options for standard analysis-runner
 import argparse
 import os
 from shutil import which
-from typing import List
+from typing import List, Optional
 
 import requests
 from cpg_utils.cloud import get_google_identity_token
@@ -14,6 +14,7 @@ from cpg_utils.config import read_configs
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     check_if_commit_is_on_remote,
+    get_git_branch_name,
     get_git_commit_ref_of_current_repository,
     get_git_default_remote,
     get_relative_path_from_git_root,
@@ -104,21 +105,22 @@ def run_analysis_runner_from_args(args):
 
 
 def run_analysis_runner(  # pylint: disable=too-many-arguments
-    dataset,
-    output_dir,
-    script,
-    description,
-    access_level,
-    commit=None,
-    repository=None,
-    cwd=None,
-    image=None,
-    cpu=None,
-    memory=None,
-    storage=None,
-    preemptible=None,
-    config: List[str] = None,
-    env: List[str] = None,
+    dataset: str,
+    output_dir: str,
+    script: List[str],
+    description: str,
+    access_level: str,
+    commit: Optional[str] = None,
+    repository: Optional[str] = None,
+    cwd: Optional[str] = None,
+    image: Optional[str] = None,
+    cpu: Optional[str] = None,
+    memory: Optional[str] = None,
+    storage: Optional[str] = None,
+    preemptible: Optional[str] = None,
+    branch: Optional[str] = None,
+    config: Optional[List[str]] = None,
+    env: Optional[List[str]] = None,
     use_test_server=False,
     server_url=None,
 ):
@@ -142,6 +144,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
 
     _repository = repository
     _commit_ref = commit
+    _branch = branch or get_git_branch_name()
     _script = list(script)
     _cwd = cwd
 
@@ -235,6 +238,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'preemptible': preemptible,
             'environmentVariables': _env,
             'config': _config,
+            'branch': _branch,
         },
         headers={'Authorization': f'Bearer {_token}'},
         timeout=60,

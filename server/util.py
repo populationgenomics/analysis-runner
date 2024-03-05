@@ -26,7 +26,7 @@ ALLOWED_CONTAINER_IMAGE_PREFIXES = (
     'australia-southeast1-docker.pkg.dev/cpg-common/images/',
 )
 DRIVER_IMAGE = os.getenv('DRIVER_IMAGE')
-assert DRIVER_IMAGE
+assert DRIVER_IMAGE and isinstance(DRIVER_IMAGE, str)
 
 MEMBERS_CACHE_LOCATION = os.getenv('MEMBERS_CACHE_LOCATION')
 assert MEMBERS_CACHE_LOCATION
@@ -51,7 +51,11 @@ def get_server_config() -> dict:
     if server_config:
         return json.loads(server_config)
 
-    return json.loads(read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config'))
+    server_config_value = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'server-config')
+    if server_config_value:
+        return json.loads(server_config_value)
+
+    raise web.HTTPInternalServerError(reason='Failed to read server-config secret')
 
 
 async def _get_hail_version(environment: str) -> str:

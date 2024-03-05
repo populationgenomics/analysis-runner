@@ -1,11 +1,10 @@
 """Helper functions for working with Git repositories."""
 
-from typing import List
-
 import os
 import re
 import subprocess
 from shlex import quote
+from typing import List, Optional
 
 GITHUB_ORG = 'populationgenomics'
 SUPPORTED_ORGANIZATIONS = {GITHUB_ORG}
@@ -75,6 +74,19 @@ def get_git_commit_ref_of_current_repository() -> str:
     return get_output_of_command(command, 'get latest Git commit')
 
 
+def get_git_branch_name() -> Optional[str]:
+    """Returns the current branch name."""
+    command = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+    try:
+        value = subprocess.check_output(command).decode().strip()
+        if value:
+            return value
+    except Exception:  # pylint: disable=broad-exception-caught
+        return None
+
+    return None
+
+
 def get_repo_name_from_current_directory() -> str:
     """Gets the repo name from the default remote"""
     return get_repo_name_from_remote(get_git_default_remote())
@@ -129,6 +141,60 @@ def check_if_commit_is_on_remote(commit: str) -> bool:
         return False
 
 
+def guess_script_name_from_script_argument(script: List[str]) -> Optional[str]:
+    """
+    Guess the script name from the first argument of the script.
+    If the first argument is an executable, try the second param
+
+    >>> guess_script_name_from_script_argument(['python', 'main.py'])
+    'main.py'
+
+    >>> guess_script_name_from_script_argument(['./main.sh'])
+    'main.sh'
+
+    >>> guess_script_name_from_script_argument(['main.sh'])
+    'main.sh'
+
+    >>> guess_script_name_from_script_argument(['./test/path/main.sh', 'arg1', 'arg2'])
+    'test/path/main.sh'
+
+    >>> guess_script_name_from_script_argument(['gcloud', 'cp' 'test'])
+    None
+
+    """
+    executables = {'python', 'python3', 'bash', 'sh', 'rscript'}
+    _script = script[0]
+    if _script.lower() in executables:
+        _script = script[1]
+
+    if _script.startswith('./'):
+        return _script[2:]
+
+    # a very bad check if it follows format "file.ext"
+    if '.' in _script:
+        return _script
+
+    return None
+
+
+def guess_script_github_url_from(
+    *, repo: Optional[str], commit: Optional[str], cwd: Optional[str], script: List[str]
+) -> Optional[str]:
+    """
+    Guess the GitHub URL of the script from the given arguments.
+    """
+    guessed_script_name = guess_script_name_from_script_argument(script)
+    if not guessed_script_name:
+        return None
+
+    url = f'https://github.com/{GITHUB_ORG}/{repo}/tree/{commit}'
+
+    if cwd == '.' or cwd is None:
+        return f'{url}/{guessed_script_name}'
+
+    return os.path.join(url, cwd, guessed_script_name)
+
+
 def prepare_git_job(
     job,
     repo_name: str,
@@ -157,7 +223,7 @@ def prepare_git_job(
 
     # activate the google service account
     job.command(
-        f'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+        'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
     )
 
     # Note: for private GitHub repos we'd need to use a token to clone.
@@ -209,6 +275,6 @@ fi
             '{ echo "error: commit not merged into main branch"; exit 1; }'
         )
     job.command(f'git checkout {quote(commit)}')
-    job.command(f'git submodule update')
+    job.command('git submodule update')
 
     return job
