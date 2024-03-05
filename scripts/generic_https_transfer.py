@@ -20,6 +20,19 @@ from cpg_utils.hail_batch import (
 import hailtop.batch.job as hb_job
 
 
+def check_output_path(output_path: str):
+    """
+    Check if the output path exists and if it contains any files
+    Args:
+        output_path (str): the output path to check
+    """
+    if found_files := {p.as_uri() for p in to_path(output_path).iterdir()}:
+        print(f'Files found in {output_path}:')
+        print(found_files)
+        return found_files
+    return set()
+
+
 def parse_presigned_url_file(
     file_path: str, filenames: bool, garvan_manifest: bool
 ) -> dict[str, str]:
@@ -28,20 +41,41 @@ def parse_presigned_url_file(
     Returns:
         dict: a dictionary with presigned URLs as keys and filenames as values
     """
+    urls_filenames = {}
     if garvan_manifest:
-        return parse_garvan_manifest(file_path)
+        urls_filenames = parse_garvan_manifest(file_path)
+    else:
+        urls_filenames = parse_generic_manifest(file_path, filenames)
 
+    if not urls_filenames:
+        raise ValueError('No URLs found in the file')
+    if incorrect_urls := [
+        url for url in urls_filenames if not url.startswith('https://')
+    ]:
+        raise ValueError(f'Incorrect URLs: {incorrect_urls}')
+
+    return urls_filenames
+
+
+def parse_generic_manifest(file_path: str, filenames: bool) -> dict[str, str]:
+    """
+    Parse a signed URL file to extract the presigned URLs (and filenames, if present)
+    """
+    urls_filenames = {}
     with AnyPath(file_path).open() as file:
-        if filenames:
-            return {
-                line.strip().split(' ')[1]: line.strip().split(' ')[0]
-                for line in file.readlines()
-                if line.strip()
-            }
-        return {line.strip(): '' for line in file.readlines() if line.strip()}
+        for i, line in enumerate(file.readlines()):
+            if not line.strip():
+                continue
+            line = line.strip()
+            if filenames:
+                parts = line.split(' ')
+                urls_filenames[parts[1]] = parts[0]
+            else:
+                urls_filenames[line] = f'{i}_{line.split("?")[0]}'
+    return urls_filenames
 
 
-def parse_garvan_manifest(file_path: str):
+def parse_garvan_manifest(file_path: str) -> dict[str, str]:
     """
     Parse a Garvan manifest file to extract the filenames and presigned URLs
 
@@ -67,10 +101,21 @@ def parse_garvan_manifest(file_path: str):
     help='Use filenames defined before each url',
 )
 @click.option('--garvan-manifest', '-g', is_flag=True, help='File is a Garvan manifest')
-@click.option('--storage', default=100, help='Storage in GiB for each cURL job')
+@click.option(
+    '--untar',
+    is_flag=True,
+    help=(
+        'Untar tarballs and upload the contents. Note this will mean the repeats of the same tar file that has previously been downloaded will be redownloaded and re-extracted because only the contents are uploaded, and the tar file will not be detected as already existing in the bucket.'
+    ),
+)
+@click.option(
+    '--storage',
+    default=100,
+    help='Storage in GiB for each cURL job. If untar, ensure this is at least 2x the tarball size.',
+)
 @click.option(
     '--concurrent-job-cap',
-    default=5,
+    default=20,
     help=(
         'To limit the number of concurrent jobs, hopefully preventing cURL errors due to too many open connections'
     ),
@@ -80,8 +125,9 @@ def main(
     presigned_url_file_path: str,
     filenames: bool,
     garvan_manifest: bool = False,
+    untar: bool = False,
     storage: int = 100,
-    concurrent_job_cap: int = 5,
+    concurrent_job_cap: int = 20,
 ):
     """
     Given a list of presigned URLs, download the files to disk and then upload them to GCS.
@@ -119,15 +165,12 @@ def main(
     output_prefix = env_config['workflow']['output_prefix']
     assert all({billing_project, cpg_driver_image, dataset, output_prefix})
 
+    output_path = dataset_path(output_prefix, 'upload')
+    existing_files = check_output_path(output_path)
     urls_filenames = parse_presigned_url_file(
         presigned_url_file_path, filenames, garvan_manifest
     )
 
-    incorrect_urls = [url for url in urls_filenames if not url.startswith('https://')]
-    if incorrect_urls:
-        raise ValueError(f'Incorrect URLs: {incorrect_urls}')
-
-    batch = get_batch(name=f'transfer {dataset}', default_image=cpg_driver_image)
     all_jobs: List[hb_job.Job] = []
 
     def manage_concurrency(new_job: hb_job.Job):
@@ -140,37 +183,30 @@ def main(
             new_job.depends_on(all_jobs[-concurrent_job_cap])
         all_jobs.append(new_job)
 
-    output_path = dataset_path(output_prefix, 'upload')
-
-    # Check if any files already exist in the output path
-    files_in_output = [f.as_uri() for f in to_path(output_path).iterdir()]
-    if files_in_output:
-        print(f'Files found in {output_path}:')
-        print(files_in_output)
-
-    used_filenames = []
-    for i, (url, filename) in enumerate(urls_filenames.items()):
-        if filenames or garvan_manifest:
-            if to_path(os.path.join(output_path, filename)).as_uri() in files_in_output:
-                print(f'File {filename} already exists in {output_path}')
-                continue
-
-        if not filename:
-            filename = os.path.basename(url).split('?')[0]
-            if filename in used_filenames:
-                # Add a number to avoid overwriting files
-                filename = f'{i}_{filename}'
-            used_filenames.append(filename)
+    batch = get_batch(name=f'transfer {dataset}', default_image=cpg_driver_image)
+    for url, filename in urls_filenames.items():
+        if to_path(os.path.join(output_path, filename)).as_uri() in existing_files:
+            print(f'File {filename} already exists in {output_path}, skipping...')
+            continue
 
         # Create a new job for each file
         j = batch.new_job(f'cURL ({filename})')
-        j.storage(f'{storage}Gi')
+        if filename == 'SummaryFiles.tar.gz':  # Common to Garvan manifests
+            j.storage(f'30Gi')
+        else:
+            j.storage(f'{storage}Gi')
+
         quoted_url = quote(url)
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
         j.command('set -euxo pipefail')
         j.command(f'curl -C - -Lf {quoted_url} -o {filename}')
-        j.command(f'gsutil -m cp {filename} {output_path}/{filename}')
+        if filename.endswith('.tar.gz') and untar:
+            j.command(f'tar -xf {filename}')
+            j.command(f'rm {filename}')
+            j.command(f'gsutil -m cp -r * {output_path}/')
+        else:
+            j.command(f'gsutil -m cp {filename} {output_path}/{filename}')
         manage_concurrency(j)
 
     batch.run(wait=False)
