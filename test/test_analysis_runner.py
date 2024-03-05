@@ -5,6 +5,7 @@ from unittest.mock import patch, MagicMock
 
 from analysis_runner._version import __version__
 from analysis_runner.cli import main_from_args
+from typing import Optional
 
 IMPORT_AR_IDENTITY_TOKEN_PATH = (
     'analysis_runner.cli_analysisrunner.get_google_identity_token'
@@ -39,7 +40,7 @@ class TestCliBasic(unittest.TestCase):
 
 
 class MockResponse:
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         self.raise_for_status = lambda: None
 
         for k, v in kwargs.items():
@@ -47,7 +48,7 @@ class MockResponse:
 
 
 def apply_mock_behaviour(
-    *, mock_post: MagicMock = None, mock_identity_token: MagicMock = None,
+    *, mock_post: Optional[MagicMock] = None, mock_identity_token: Optional[MagicMock] = None,
 ):
     if mock_post:
         mock_post.return_value = MockResponse(text='<mocked-url>')

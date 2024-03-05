@@ -47,8 +47,7 @@ def get_relative_path_from_git_root() -> str:
     to the current directory. Relpath returns "." if cwd is a git root.
     """
     root = get_git_repo_root()
-    base = os.path.relpath(os.getcwd(), root)
-    return base
+    return os.path.relpath(os.getcwd(), root)
 
 
 def get_git_default_remote() -> str:
@@ -64,8 +63,7 @@ def get_git_repo_root() -> str:
     e.g. /Users/foo/repos/analysis-runner
     """
     command = ['git', 'rev-parse', '--show-toplevel']
-    repo_root = get_output_of_command(command, 'get Git repo directory')
-    return repo_root
+    return get_output_of_command(command, 'get Git repo directory')
 
 
 def get_git_commit_ref_of_current_repository() -> str:

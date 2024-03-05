@@ -67,10 +67,9 @@ async def _get_hail_version(environment: str) -> str:
 
     deploy_config = get_deploy_config()
     url = deploy_config.url('batch', '/api/v1alpha/version')
-    async with ClientSession() as session:
-        async with session.get(url) as resp:
-            resp.raise_for_status()
-            return await resp.text()
+    async with ClientSession() as session, session.get(url) as resp:
+        resp.raise_for_status()
+        return await resp.text()
 
 
 def get_email_from_request(request):

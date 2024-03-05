@@ -114,7 +114,7 @@ def confirm_choice(choice: str):
         print('Unrecognised option, please try again.')
 
 
-def _perform_version_check():
+def _perform_version_check() -> None:
     current_version = __version__
 
     # with this URL, we're looking for a line with format:

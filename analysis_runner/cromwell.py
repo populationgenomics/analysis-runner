@@ -38,7 +38,7 @@ class CromwellOutputType:
         copy_file_into_batch: bool,
         array_length: Optional[int],
         resource_group=None,
-    ):
+    ) -> None:
         self.name = name
         self.copy_file_into_batch = copy_file_into_batch
         self.array_length = array_length
@@ -127,12 +127,12 @@ def run_cromwell_workflow(
     cwd: Optional[str],
     libs: List[str],
     output_prefix: str,
-    labels: Dict[str, str] = None,
+    labels: Optional[Dict[str, str]] = None,
     input_dict: Optional[Dict[str, Any]] = None,
-    input_paths: List[str] = None,
+    input_paths: Optional[List[str]] = None,
     project: Optional[str] = None,
     copy_outputs_to_gcp: bool = True,
-    ar_guid_override: str = None,
+    ar_guid_override: Optional[str] = None,
 ):
     """
     Run a cromwell workflow, and return a Batch.ResourceFile
@@ -252,9 +252,9 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     outputs_to_collect: Dict[str, CromwellOutputType],
     libs: List[str],
     output_prefix: str,
-    labels: Dict[str, str] = None,
+    labels: Optional[Dict[str, str]] = None,
     input_dict: Optional[Dict[str, Any]] = None,
-    input_paths: List[str] = None,
+    input_paths: Optional[List[str]] = None,
     repo: Optional[str] = None,
     commit: Optional[str] = None,
     cwd: Optional[str] = None,
@@ -733,5 +733,4 @@ def get_cromwell_oauth_token():
         'print-identity-token',
         f'--audiences={CROMWELL_AUDIENCE}',
     ]
-    token = subprocess.check_output(token_command).decode().strip()
-    return token
+    return subprocess.check_output(token_command).decode().strip()

@@ -62,10 +62,7 @@ def main(presigned_url_file_path: str, filenames: bool):
 
     # may as well batch them to reduce the number of VMs
     for idx, url in enumerate(presigned_urls):
-        if names:
-            filename = names[idx]
-        else:
-            filename = os.path.basename(url).split('?')[0]
+        filename = names[idx] if names else os.path.basename(url).split('?')[0]
         j = batch.new_job(f'URL {idx} ({filename})')
         quoted_url = quote(url)
         authenticate_cloud_credentials_in_job(job=j)

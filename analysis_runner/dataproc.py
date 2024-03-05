@@ -86,7 +86,7 @@ class DataprocCluster:
     Helper class that represents a Dataproc cluster created within a Batch
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         self._batch = kwargs.pop('batch')
         self._depends_on = kwargs.pop('depends_on', None)
         self._cluster_name = kwargs.get('cluster_name', None)

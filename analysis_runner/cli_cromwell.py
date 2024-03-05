@@ -66,7 +66,7 @@ def run_cromwell_from_args(args):
     return _cromwell_modes[cromwell_mode][1](**kwargs)
 
 
-def _add_generic_cromwell_visualiser_args(parser: argparse.ArgumentParser):
+def _add_generic_cromwell_visualiser_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-l', '--expand-completed', default=False, action='store_true')
     parser.add_argument('--monochrome', default=False, action='store_true')
 
@@ -156,9 +156,9 @@ def _run_cromwell(
     access_level,
     workflow: str,
     inputs: List[str],
-    imports: List[str] = None,
-    workflow_input_prefix: str = None,
-    dynamic_inputs: List[str] = None,
+    imports: Optional[List[str]] = None,
+    workflow_input_prefix: Optional[str] = None,
+    dynamic_inputs: Optional[List[str]] = None,
     commit=None,
     repository=None,
     cwd=None,
@@ -166,7 +166,7 @@ def _run_cromwell(
     dry_run=False,
     use_test_server=False,
     server_url=None,
-):
+) -> None:
     """
     Prepare parameters for cromwell analysis-runner job
     """
@@ -178,11 +178,10 @@ def _run_cromwell(
 
     _perform_version_check()
 
-    if access_level == 'full':
-        if not confirm_choice(
-            'Full access increases the risk of accidental data loss. Continue?',
-        ):
-            raise SystemExit
+    if access_level == 'full' and not confirm_choice(
+        'Full access increases the risk of accidental data loss. Continue?',
+    ):
+        raise SystemExit
 
     _repository = repository
     _commit_ref = commit
@@ -197,12 +196,11 @@ def _run_cromwell(
         if _cwd is None:
             _cwd = get_relative_path_from_git_root()
 
-        if not check_if_commit_is_on_remote(_commit_ref):
-            if not confirm_choice(
-                f'The commit "{_commit_ref}" was not found on the remote (Github). \n'
-                'Please confirm if you want to proceed anyway.',
-            ):
-                raise SystemExit
+        if not check_if_commit_is_on_remote(_commit_ref) and not confirm_choice(
+            f'The commit "{_commit_ref}" was not found on the remote (Github). \n'
+            'Please confirm if you want to proceed anyway.',
+        ):
+            raise SystemExit
 
     if _cwd == '.':
         _cwd = None
@@ -276,7 +274,7 @@ def _check_cromwell_status(
     server_url: str | None = None,
     is_test: bool = False,
     **kwargs,
-):
+) -> None:
     """Check cromwell status with workflow_id"""
 
     server_endpoint = get_server_endpoint(server_url, is_test)
@@ -304,7 +302,7 @@ def _check_cromwell_status(
     print(model.display(**kwargs))
 
 
-def _visualise_cromwell_metadata_from_file(metadata_file: str, **kwargs):
+def _visualise_cromwell_metadata_from_file(metadata_file: str, **kwargs) -> None:
     """Visualise cromwell metadata progress from a json file"""
     with open(metadata_file, encoding='utf-8') as f:
         model = WorkflowMetadataModel.parse(json.load(f))
@@ -397,7 +395,7 @@ def parse_additional_args(args: List[str]) -> Dict[str, any]:
 
     keywords = {}
 
-    def add_keyword_value_to_keywords(keyword, value):
+    def add_keyword_value_to_keywords(keyword, value) -> None:
         if keyword in keywords:
             if value is None:
                 value = [keywords.get(keyword)]

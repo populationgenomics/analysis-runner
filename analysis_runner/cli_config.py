@@ -5,7 +5,7 @@ CLI options for standard analysis-runner
 import os
 import argparse
 import sys
-from typing import List
+from typing import List, Optional
 
 import requests
 import toml
@@ -83,7 +83,7 @@ def run_config(  # pylint: disable=too-many-arguments
     output_dir,
     access_level,
     image=None,
-    config: List[str] = None,
+    config: Optional[List[str]] = None,
     config_output=None,
     use_test_server=False,
 ):

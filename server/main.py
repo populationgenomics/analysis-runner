@@ -346,10 +346,7 @@ def prepare_response_from_exception(ex: Exception):
     if isinstance(ex, ValueError):
         return prepare_exception_json_response(400, ', '.join(ex.args), tb=tb)
 
-    if hasattr(ex, 'message'):
-        m = ex.message
-    else:
-        m = str(ex)
+    m = ex.message if hasattr(ex, 'message') else str(ex)
     return prepare_exception_json_response(500, message=m, tb=tb)
 
 

@@ -136,11 +136,10 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
 
     _perform_version_check()
 
-    if access_level == 'full':
-        if not confirm_choice(
-            'Full access increases the risk of accidental data loss. Continue?',
-        ):
-            raise SystemExit
+    if access_level == 'full' and not confirm_choice(
+        'Full access increases the risk of accidental data loss. Continue?',
+    ):
+        raise SystemExit
 
     _repository = repository
     _commit_ref = commit
@@ -186,13 +185,12 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         if _cwd is None:
             _cwd = get_relative_path_from_git_root()
 
-        if not check_if_commit_is_on_remote(_commit_ref):
-            if not confirm_choice(
-                f'The commit "{_commit_ref}" was not found on GitHub '
-                '(Did you forget to push your latest commit?) \n'
-                'Please confirm if you want to proceed anyway.',
-            ):
-                raise SystemExit
+        if not check_if_commit_is_on_remote(_commit_ref) and not confirm_choice(
+            f'The commit "{_commit_ref}" was not found on GitHub '
+            '(Did you forget to push your latest commit?) \n'
+            'Please confirm if you want to proceed anyway.',
+        ):
+            raise SystemExit
 
     if _cwd == '.':
         _cwd = None
@@ -253,7 +251,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         )
 
 
-def _perform_shebang_check(script):
+def _perform_shebang_check(script) -> None:
     """
     Returns None if script has shebang, otherwise raises Exception
     """
