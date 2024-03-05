@@ -32,7 +32,7 @@ from util import (
     write_config,
 )
 
-from analysis_runner.git import prepare_git_job
+from analysis_runner.git import guess_script_github_url_from, prepare_git_job
 
 # Patching asyncio *before* importing the Hail Batch module is necessary to avoid a
 # "Cannot enter into task" error.
@@ -83,7 +83,7 @@ async def index(request):
     check_allowed_repos(dataset_config=dataset_config, repo=repo)
 
     ar_guid = generate_ar_guid()
-    image = params.get('image') or DRIVER_IMAGE
+    image: str = params.get('image') or DRIVER_IMAGE
     cpu = params.get('cpu', 1)
     memory = params.get('memory', '1G')
 
@@ -179,8 +179,19 @@ async def index(request):
     }
 
     branch = params.get('branch')
+    comments = []
     if branch:
         attributes['branch'] = branch
+        comments.append(f'BRANCH: {branch}')
+
+    script_url = guess_script_github_url_from(
+        repo=repo,
+        commit=commit,
+        script=script,
+        cwd=cwd,
+    )
+    if script_url:
+        comments.append(f'URL: {script_url}')
 
     batch = hb.Batch(
         backend=backend,
@@ -188,7 +199,11 @@ async def index(request):
         **extra_batch_params,
         attributes=attributes,
     )
+
     job = batch.new_job(name='driver')
+    # add comments
+    job.command('\n'.join(f'# {comment}' for comment in comments))
+
     job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
     job.image(image)
     if cpu:

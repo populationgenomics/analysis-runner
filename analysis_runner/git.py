@@ -141,6 +141,59 @@ def check_if_commit_is_on_remote(commit: str) -> bool:
         return False
 
 
+def guess_script_name_from_script_argument(script: list[str]) -> Optional[str]:
+    """
+    Guess the script name from the first argument of the script.
+    If the first argument is an executable, try the second param
+
+    >>> guess_script_name_from_script_argument(['python', 'main.py'])
+    'main.py'
+
+    >>> guess_script_name_from_script_argument(['./main.sh'])
+    'main.sh'
+
+    >>> guess_script_name_from_script_argument(['main.sh'])
+    'main.sh'
+
+    >>> guess_script_name_from_script_argument(['./test/path/main.sh', 'arg1', 'arg2'])
+    'test/path/main.sh'
+
+    >>> guess_script_name_from_script_argument(['gcloud', 'cp' 'test'])
+    None
+
+    """
+    executables = {'python', 'python3', 'bash', 'sh'}
+    _script = script[0]
+    if _script in executables:
+        _script = script[1]
+
+    if _script.startswith('./'):
+        return _script
+
+    if '.' in _script:
+        return _script
+
+    return None
+
+
+def guess_script_github_url_from(
+    *, repo: Optional[str], commit: Optional[str], cwd: Optional[str], script: List[str]
+) -> Optional[str]:
+    """
+    Guess the GitHub URL of the script from the given arguments.
+    """
+    guessed_script_name = guess_script_name_from_script_argument(script)
+    if not guessed_script_name:
+        return None
+
+    url = f'https://github.com/{GITHUB_ORG}/{repo}/tree/{commit}'
+
+    if cwd == '.' or cwd is None:
+        return f'{url}/{guessed_script_name}'
+
+    return os.path.join(url, cwd, guessed_script_name)
+
+
 def prepare_git_job(
     job,
     repo_name: str,

@@ -31,7 +31,7 @@ from util import (
 
 from analysis_runner.constants import CROMWELL_URL
 from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
-from analysis_runner.git import prepare_git_job
+from analysis_runner.git import guess_script_github_url_from, prepare_git_job
 
 
 def add_cromwell_routes(
@@ -170,8 +170,23 @@ def add_cromwell_routes(
             requester_pays_project=project,
             attributes=attributes,
         )
+        branch = params.get('branch')
+        comments = []
+        if branch:
+            attributes['branch'] = branch
+            comments.append(f'BRANCH: {branch}')
+
+        script_url = guess_script_github_url_from(
+            repo=repo,
+            commit=commit,
+            script=[wf],
+            cwd=cwd,
+        )
+        if script_url:
+            comments.append(f'URL: {script_url}')
 
         job = batch.new_job(name='driver')
+        job.command('\n'.join(f'# {comment}' for comment in comments))
         job = prepare_git_job(
             job=job,
             repo_name=repo,
