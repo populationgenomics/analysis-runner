@@ -141,7 +141,7 @@ def check_if_commit_is_on_remote(commit: str) -> bool:
         return False
 
 
-def guess_script_name_from_script_argument(script: list[str]) -> Optional[str]:
+def guess_script_name_from_script_argument(script: List[str]) -> Optional[str]:
     """
     Guess the script name from the first argument of the script.
     If the first argument is an executable, try the second param
@@ -162,14 +162,15 @@ def guess_script_name_from_script_argument(script: list[str]) -> Optional[str]:
     None
 
     """
-    executables = {'python', 'python3', 'bash', 'sh'}
+    executables = {'python', 'python3', 'bash', 'sh', 'rscript'}
     _script = script[0]
-    if _script in executables:
+    if _script.lower() in executables:
         _script = script[1]
 
     if _script.startswith('./'):
-        return _script
+        return _script[2:]
 
+    # a very bad check if it follows format "file.ext"
     if '.' in _script:
         return _script
 
