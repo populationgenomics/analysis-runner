@@ -105,7 +105,10 @@ def parse_garvan_manifest(file_path: str) -> dict[str, str]:
     '--untar',
     is_flag=True,
     help=(
-        'Untar tarballs and upload the contents. Note this will mean the repeats of the same tar file that has previously been downloaded will be redownloaded and re-extracted because only the contents are uploaded, and the tar file will not be detected as already existing in the bucket.'
+        '''Untar tarballs and upload the contents. 
+        Note this will mean that repeats of the same tar file that has previously been downloaded 
+        will be RE-downloaded and it's contents will be RE-uploaded (likely overwriting existing files), 
+        because the tar file will not be detected as already existing in the bucket.'''
     ),
 )
 @click.option(
@@ -117,7 +120,7 @@ def parse_garvan_manifest(file_path: str) -> dict[str, str]:
     '--concurrent-job-cap',
     default=20,
     help=(
-        'To limit the number of concurrent jobs, hopefully preventing cURL errors due to too many open connections'
+        'To limit the number of concurrent jobs, hopefully preventing cURL errors due to too many connections'
     ),
 )
 @click.option('--presigned-url-file-path')
