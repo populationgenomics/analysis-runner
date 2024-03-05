@@ -54,9 +54,9 @@ def parse_garvan_manifest(file_path: str):
 )
 @click.option('--garvan-manifest', '-g', is_flag=True, help='File is a Garvan manifest')
 @click.option('--concurrent-job-cap', default=5, help='To limit the number of concurrent jobs, hopefully preventing cURL errors due to too many open connections')
-@click.option('--memory', default=100, help='Memory in GiB for each cURL job')
+@click.option('--storage', default=100, help='Storage in GiB for each cURL job')
 @click.option('--presigned-url-file-path')
-def main(presigned_url_file_path: str, filenames: bool, garvan_manifest: bool = False, concurrent_job_cap: int = 5, memory: int = 100):
+def main(presigned_url_file_path: str, filenames: bool, garvan_manifest: bool = False, concurrent_job_cap: int = 5, storage: int = 100):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
     If each signed url is prefixed by a filename and a space, use the --filenames flag
@@ -116,7 +116,7 @@ def main(presigned_url_file_path: str, filenames: bool, garvan_manifest: bool = 
                 print(f'File {filename} already exists in {output_path}')
                 continue 
         j = batch.new_job(f'cURL ({filename})')
-        j.storage(f'{memory}Gi')
+        j.storage(f'{storage}Gi')
         quoted_url = quote(url)
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
