@@ -170,7 +170,7 @@ def main(
         # catch errors during the cURL
         j.command('set -euxo pipefail')
         j.command(f'curl -C - -Lf {quoted_url} -o {filename}')
-        j.command(f'gsutil -m cp {filename} {output_path}')
+        j.command(f'gsutil -m cp {filename} {output_path}/{filename}')
         manage_concurrency(j)
 
     batch.run(wait=False)
