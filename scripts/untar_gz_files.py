@@ -61,7 +61,7 @@ def main(bucket: str, subdir: str, blob_name: str, outdir: str):
 
     # Check if the tarball compressed a single directory, if yes then get files inside
     logging.info(
-        f'Extracted {[os.path.basename(path) for path in extracted_file_paths]}'
+        f'Extracted {[os.path.basename(path) for path in extracted_file_paths]}',
     )
 
     # Iterate through extracted files, upload them to bucket, then delete them

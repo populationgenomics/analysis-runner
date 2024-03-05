@@ -62,7 +62,7 @@ async def _get_hail_version(environment: str) -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
     if not environment == 'gcp':
         raise web.HTTPBadRequest(
-            reason=f'Unsupported Hail Batch deploy config environment: {environment}'
+            reason=f'Unsupported Hail Batch deploy config environment: {environment}',
         )
 
     deploy_config = get_deploy_config()
@@ -98,7 +98,7 @@ def check_allowed_repos(dataset_config, repo):
                 f'Repository "{repo}" is not one of the allowed repositories, you may'
                 'need add it to the repository-map: '
                 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/tokens/repository-map.json'
-            )
+            ),
         )
 
 
@@ -118,12 +118,12 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
                 f'The dataset "{dataset}" is not present in the server config, have you'
                 'added it to the repository map: '
                 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/tokens/repository-map.json'
-            )
+            ),
         )
 
     if environment not in dataset_config:
         raise web.HTTPBadRequest(
-            reason=f'Dataset {dataset} does not support the {environment} environment'
+            reason=f'Dataset {dataset} does not support the {environment} environment',
         )
 
     # do this to check access-members cache
@@ -132,13 +132,13 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
     if not gcp_project:
         raise web.HTTPBadRequest(
             reason='The analysis-runner does not support checking group members for '
-            f'the {environment} environment'
+            f'the {environment} environment',
         )
     if not is_member_in_cached_group(
-        f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION
+        f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION,
     ):
         raise web.HTTPForbidden(
-            reason=f'{email} is not a member of the {dataset} analysis group'
+            reason=f'{email} is not a member of the {dataset} analysis group',
         )
 
     return dataset_config
@@ -194,7 +194,7 @@ def run_batch_job_and_print_url(batch, wait, environment):
     """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
     if not environment == 'gcp':
         raise web.HTTPBadRequest(
-            reason=f'Unsupported Hail Batch deploy config environment: {environment}'
+            reason=f'Unsupported Hail Batch deploy config environment: {environment}',
         )
     bc_batch = batch.run(wait=False)
 

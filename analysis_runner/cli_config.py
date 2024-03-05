@@ -97,7 +97,7 @@ def run_config(  # pylint: disable=too-many-arguments
         _config = dict(read_configs(config))
 
     server_endpoint = os.path.join(
-        get_server_endpoint(is_test=use_test_server), 'config'
+        get_server_endpoint(is_test=use_test_server), 'config',
     )
     _token = get_google_identity_token(server_endpoint)
 
@@ -119,7 +119,7 @@ def run_config(  # pylint: disable=too-many-arguments
             if not config_output.endswith('.toml'):
                 logger.warning(
                     'The config is written as a .toml file, but the extension on the '
-                    'file you have provided is not .toml'
+                    'file you have provided is not .toml',
                 )
             with open(config_output, 'w+', encoding='utf-8') as f:
                 toml.dump(response.json(), f)
@@ -129,6 +129,6 @@ def run_config(  # pylint: disable=too-many-arguments
 
     except requests.HTTPError as e:
         logger.critical(
-            f'Request failed with status {response.status_code}: {str(e)}\n'
+            f'Request failed with status {response.status_code}: {e!s}\n'
             f'Full response: {response.text}',
         )

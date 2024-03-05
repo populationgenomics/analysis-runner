@@ -30,7 +30,7 @@ def query(rerun):
     plot_filename = output_path('call_rate_plot.png', 'web')
     if rerun or not hl.hadoop_exists(plot_filename):
         call_rate_plot = hl.plot.histogram(
-            mt_qc.sample_qc.call_rate, range=(0, 1), legend='Call rate'
+            mt_qc.sample_qc.call_rate, range=(0, 1), legend='Call rate',
         )
         with hl.hadoop_open(plot_filename, 'wb') as f:
             get_screenshot_as_png(call_rate_plot).save(f, format='PNG')

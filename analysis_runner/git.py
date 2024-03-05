@@ -20,12 +20,12 @@ def get_output_of_command(command: List[str], description: str) -> str:
     except KeyboardInterrupt:
         raise
     except subprocess.CalledProcessError as e:
-        raise IOError(
-            f"Couldn't call {description} by calling '{' '.join(command)}', {e}"
+        raise OSError(
+            f"Couldn't call {description} by calling '{' '.join(command)}', {e}",
         ) from e
     except Exception as e:
         raise type(e)(
-            f"Couldn't process {description} through calling '{' '.join(command)}', {e}"
+            f"Couldn't process {description} through calling '{' '.join(command)}', {e}",
         ) from e
 
 
@@ -178,7 +178,7 @@ def guess_script_name_from_script_argument(script: List[str]) -> Optional[str]:
 
 
 def guess_script_github_url_from(
-    *, repo: Optional[str], commit: Optional[str], cwd: Optional[str], script: List[str]
+    *, repo: Optional[str], commit: Optional[str], cwd: Optional[str], script: List[str],
 ) -> Optional[str]:
     """
     Guess the GitHub URL of the script from the given arguments.
@@ -223,7 +223,7 @@ def prepare_git_job(
 
     # activate the google service account
     job.command(
-        'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+        'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS',
     )
 
     # Note: for private GitHub repos we'd need to use a token to clone.
@@ -258,7 +258,7 @@ if [ ! -z "$secret_name" ] && [ ! -z "$secret_project" ]; then
 else
     echo 'No git credentials secret found, unable to check out private repositories.'
 fi
-        """
+        """,
         )
 
     # Any job commands here are evaluated in a bash shell, so user arguments should
@@ -272,7 +272,7 @@ fi
         job.command('git checkout main')
         job.command(
             f'git merge-base --is-ancestor {quote(commit)} HEAD || '
-            '{ echo "error: commit not merged into main branch"; exit 1; }'
+            '{ echo "error: commit not merged into main branch"; exit 1; }',
         )
     job.command(f'git checkout {quote(commit)}')
     job.command('git submodule update')

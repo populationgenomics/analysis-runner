@@ -131,7 +131,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     if repository is not None and commit is None:
         raise ValueError(
             "You must supply the '--commit <SHA>' parameter "
-            "when specifying the '--repository'"
+            "when specifying the '--repository'",
         )
 
     _perform_version_check()
@@ -140,7 +140,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         if not confirm_choice(
             'Full access increases the risk of accidental data loss. Continue?',
         ):
-            raise SystemExit()
+            raise SystemExit
 
     _repository = repository
     _commit_ref = commit
@@ -174,9 +174,9 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         if not confirm_choice(
             f"The program '{executable_path}' was not executable \n"
             f'(or a script could not be found) on this computer. \n'
-            f'Please confirm to continue.'
+            f'Please confirm to continue.',
         ):
-            raise SystemExit()
+            raise SystemExit
 
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
@@ -190,9 +190,9 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             if not confirm_choice(
                 f'The commit "{_commit_ref}" was not found on GitHub '
                 '(Did you forget to push your latest commit?) \n'
-                'Please confirm if you want to proceed anyway.'
+                'Please confirm if you want to proceed anyway.',
             ):
-                raise SystemExit()
+                raise SystemExit
 
     if _cwd == '.':
         _cwd = None
@@ -206,7 +206,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
                 _env[pair[0]] = pair[1]
             except IndexError as e:
                 raise IndexError(
-                    env_var_pair + ' does not conform to key=value format.'
+                    env_var_pair + ' does not conform to key=value format.',
                 ) from e
 
     _config = None
@@ -214,7 +214,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         _config = dict(read_configs(config))
 
     server_endpoint = get_server_endpoint(
-        server_url=server_url, is_test=use_test_server
+        server_url=server_url, is_test=use_test_server,
     )
     _token = get_google_identity_token(server_endpoint)
 
@@ -248,7 +248,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         logger.info(f'Request submitted successfully: {response.text}')
     except requests.HTTPError as e:
         logger.critical(
-            f'Request failed with status {response.status_code}: {str(e)}\n'
+            f'Request failed with status {response.status_code}: {e!s}\n'
             f'Full response: {response.text}',
         )
 

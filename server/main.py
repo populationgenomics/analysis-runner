@@ -69,7 +69,7 @@ async def index(request):
     cloud_environment = params.get('cloud_environment', 'gcp')
     if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
-            reason=f'analysis-runner does not yet support the {cloud_environment} environment'
+            reason=f'analysis-runner does not yet support the {cloud_environment} environment',
         )
 
     dataset_config = check_dataset_and_group(
@@ -141,7 +141,7 @@ async def index(request):
         update_dict(run_config, user_config)
 
     config_path = write_config(
-        ar_guid=ar_guid, config=run_config, environment=cloud_environment
+        ar_guid=ar_guid, config=run_config, environment=cloud_environment,
     )
 
     user_name = email.split('@')[0]
@@ -232,7 +232,7 @@ async def index(request):
         if len(invalid_env_vars) > 0:
             raise ValueError(
                 'Some environment_variables values were not strings, got '
-                + ', '.join(invalid_env_vars)
+                + ', '.join(invalid_env_vars),
             )
 
         for k, v in environment_variables.items():
@@ -248,7 +248,7 @@ async def index(request):
     job.command(escaped_script)
 
     url = run_batch_job_and_print_url(
-        batch, wait=params.get('wait', False), environment=cloud_environment
+        batch, wait=params.get('wait', False), environment=cloud_environment,
     )
 
     # Publish the metadata to Pub/Sub.
@@ -273,7 +273,7 @@ async def config(request):
     cloud_environment = params.get('cloud_environment', 'gcp')
     if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
-            reason=f'analysis-runner config does not yet support the {cloud_environment} environment'
+            reason=f'analysis-runner config does not yet support the {cloud_environment} environment',
         )
 
     dataset_config = check_dataset_and_group(
@@ -316,13 +316,13 @@ add_cromwell_routes(routes)
 
 
 def prepare_exception_json_response(
-    status_code: int, message: str, tb: str
+    status_code: int, message: str, tb: str,
 ) -> web.Response:
     """Prepare web.Response for"""
     return web.Response(
         status=status_code,
         body=json.dumps({'message': message, 'success': False, 'traceback': tb}).encode(
-            'utf-8'
+            'utf-8',
         ),
         content_type='application/json',
     )
@@ -336,12 +336,12 @@ def prepare_response_from_exception(ex: Exception):
 
     if isinstance(ex, web.HTTPException):
         return prepare_exception_json_response(
-            status_code=ex.status_code, message=ex.reason, tb=tb
+            status_code=ex.status_code, message=ex.reason, tb=tb,
         )
     if isinstance(ex, KeyError):
         keys = ', '.join(ex.args)
         return prepare_exception_json_response(
-            400, message=f'Missing request parameter: {keys}', tb=tb
+            400, message=f'Missing request parameter: {keys}', tb=tb,
         )
     if isinstance(ex, ValueError):
         return prepare_exception_json_response(400, ', '.join(ex.args), tb=tb)

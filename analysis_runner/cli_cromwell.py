@@ -173,7 +173,7 @@ def _run_cromwell(
     if repository is not None and commit is None:
         raise ValueError(
             "You must supply the '--commit <SHA>' parameter "
-            "when specifying the '--repository'"
+            "when specifying the '--repository'",
         )
 
     _perform_version_check()
@@ -182,7 +182,7 @@ def _run_cromwell(
         if not confirm_choice(
             'Full access increases the risk of accidental data loss. Continue?',
         ):
-            raise SystemExit()
+            raise SystemExit
 
     _repository = repository
     _commit_ref = commit
@@ -200,9 +200,9 @@ def _run_cromwell(
         if not check_if_commit_is_on_remote(_commit_ref):
             if not confirm_choice(
                 f'The commit "{_commit_ref}" was not found on the remote (Github). \n'
-                'Please confirm if you want to proceed anyway.'
+                'Please confirm if you want to proceed anyway.',
             ):
-                raise SystemExit()
+                raise SystemExit
 
     if _cwd == '.':
         _cwd = None
@@ -236,7 +236,7 @@ def _run_cromwell(
     }
 
     server_endpoint = get_server_endpoint(
-        server_url=server_url, is_test=use_test_server
+        server_url=server_url, is_test=use_test_server,
     )
     endpoint = os.path.join(server_endpoint, '/cromwell')
 
@@ -256,7 +256,7 @@ curl --location --request POST \\
         endpoint,
         json=body,
         headers={
-            'Authorization': f'Bearer {get_google_identity_token(server_endpoint)}'
+            'Authorization': f'Bearer {get_google_identity_token(server_endpoint)}',
         },
         timeout=60,
     )
@@ -265,7 +265,7 @@ curl --location --request POST \\
         logger.info(f'Request submitted successfully: {response.text}')
     except requests.HTTPError as e:
         logger.critical(
-            f'Request failed with status {response.status_code}: {str(e)}\n'
+            f'Request failed with status {response.status_code}: {e!s}\n'
             f'Full response: {response.text}',
         )
 
@@ -288,7 +288,7 @@ def _check_cromwell_status(
     response = requests.get(
         url,
         headers={
-            'Authorization': f'Bearer {get_google_identity_token(server_endpoint)}'
+            'Authorization': f'Bearer {get_google_identity_token(server_endpoint)}',
         },
         timeout=60,
     )
@@ -313,7 +313,7 @@ def _visualise_cromwell_metadata_from_file(metadata_file: str, **kwargs):
 
 
 def visualise_cromwell_metadata(
-    model: WorkflowMetadataModel, expand_completed, monochrome
+    model: WorkflowMetadataModel, expand_completed, monochrome,
 ):
     """Print the visualisation of cromwell metadata model"""
     print(model.display(expand_completed=expand_completed, monochrome=monochrome))

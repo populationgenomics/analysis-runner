@@ -79,7 +79,7 @@ for idx, out in enumerate(workflow_outputs['texts']):
     process_j.command(
         f"""\
 cat {out.md5} | awk '{{print toupper($0)}}'
-cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}"""
+cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}""",
     )
     b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx+1}.txt')
 

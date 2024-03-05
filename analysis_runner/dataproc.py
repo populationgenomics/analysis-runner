@@ -66,7 +66,7 @@ def get_init_script_from_hail_version(hail_version: str) -> str:
     Use the install_common.sh which reinstalls the Hail wheel and phantomjs
     """
     return os.path.join(
-        get_script_directory_from_hail_version(hail_version), 'install_common.sh'
+        get_script_directory_from_hail_version(hail_version), 'install_common.sh',
     )
 
 
@@ -293,7 +293,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')
     if secondary_worker_boot_disk_size:
         start_job_command.append(
-            f'--secondary-worker-boot-disk-size={secondary_worker_boot_disk_size}'
+            f'--secondary-worker-boot-disk-size={secondary_worker_boot_disk_size}',
         )
     _packages = []
     if install_default_packages:
@@ -366,7 +366,7 @@ def _add_submit_job(
         f'hailctl dataproc submit '
         f'--region={region} '
         + (f'--pyfiles {",".join(pyfiles)} ' if pyfiles else '')
-        + f'{cluster_id} -- {script} '
+        + f'{cluster_id} -- {script} ',
     )
     return main_job
 

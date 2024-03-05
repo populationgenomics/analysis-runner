@@ -71,7 +71,7 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
 
 @click.command()
 @click.option(
-    '--search-path', '-p', help='GCP bucket/directory to search', required=True
+    '--search-path', '-p', help='GCP bucket/directory to search', required=True,
 )
 def main(search_path: str):
     """
@@ -115,7 +115,7 @@ def main(search_path: str):
                 --subdir {subdir} \
                 --blob_name {blobname} \
                 --outdir {output_dir}
-        """
+        """,
         )
 
     get_batch().run(wait=False)

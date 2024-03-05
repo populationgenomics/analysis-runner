@@ -84,7 +84,7 @@ def add_cromwell_routes(
 
         if not hail_token:
             raise web.HTTPBadRequest(
-                reason=f"Invalid access level '{access_level}', couldn't find corresponding hail token"
+                reason=f"Invalid access level '{access_level}', couldn't find corresponding hail token",
             )
 
         commit = params['commit']
@@ -216,7 +216,7 @@ def add_cromwell_routes(
         )
 
         url = run_batch_job_and_print_url(
-            batch, wait=params.get('wait', False), environment=cloud_environment
+            batch, wait=params.get('wait', False), environment=cloud_environment,
         )
 
         # Publish the metadata to Pub/Sub.
@@ -240,7 +240,7 @@ def add_cromwell_routes(
             req = requests.get(cromwell_metadata_url, headers=headers, timeout=120)
             if not req.ok:
                 raise web.HTTPInternalServerError(
-                    reason=req.content.decode() or req.reason
+                    reason=req.content.decode() or req.reason,
                 )
             return web.json_response(req.json())
         except web.HTTPError:

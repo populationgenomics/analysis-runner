@@ -53,7 +53,7 @@ def main(cram_path: str, region: str):  # pylint: disable=missing-function-docst
     j.command(
         f"""
     samtools view -T {ref.base} {cram['cram']} {region} -Ocram -o {j.output_bam}
-    """
+    """,
     )
 
     # Speciying where to write the result

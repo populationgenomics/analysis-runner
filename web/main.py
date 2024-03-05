@@ -95,7 +95,7 @@ def handler(dataset=None, filename=None):
             access_list = blob.download_as_text().lower().splitlines()
             if email not in access_list:
                 logger.warning(
-                    f'{email} is not in {dataset} access group or {access_list_filename}'
+                    f'{email} is not in {dataset} access group or {access_list_filename}',
                 )
                 return abort(403)
 

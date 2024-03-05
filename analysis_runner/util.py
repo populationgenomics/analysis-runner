@@ -131,7 +131,7 @@ def _perform_version_check():
     except requests.HTTPError as e:
         logger.debug(
             f'An error occurred when fetching version '
-            f'information about the analysis-runner: {e}'
+            f'information about the analysis-runner: {e}',
         )
         return
     for line in data.splitlines(keepends=False):

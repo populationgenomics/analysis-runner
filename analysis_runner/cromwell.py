@@ -48,7 +48,7 @@ class CromwellOutputType:
     def single(name: str):
         """Single file"""
         return CromwellOutputType(
-            name=name, array_length=None, copy_file_into_batch=True
+            name=name, array_length=None, copy_file_into_batch=True,
         )
 
     @staticmethod
@@ -76,7 +76,7 @@ class CromwellOutputType:
     def array(name: str, length: int):
         """Array of simple files"""
         return CromwellOutputType(
-            name=name, array_length=length, copy_file_into_batch=True
+            name=name, array_length=length, copy_file_into_batch=True,
         )
 
     @staticmethod
@@ -108,14 +108,14 @@ class CromwellOutputType:
     def single_path(name: str):
         """Return the file path of the output in a file"""
         return CromwellOutputType(
-            name=name, array_length=None, copy_file_into_batch=False
+            name=name, array_length=None, copy_file_into_batch=False,
         )
 
     @staticmethod
     def array_path(name: str, length: int):
         """Return a list of file paths of the outputs (one path per file)"""
         return CromwellOutputType(
-            name=name, array_length=length, copy_file_into_batch=False
+            name=name, array_length=length, copy_file_into_batch=False,
         )
 
 
@@ -190,7 +190,7 @@ def run_cromwell_workflow(
     intermediate_dir = os.path.join(storage_config['tmp'], 'cromwell')
     workflow_output_dir = os.path.join(storage_config['default'], output_prefix)
     logging_output_dir = os.path.join(
-        storage_config['analysis'], 'cromwell_logs', output_prefix
+        storage_config['analysis'], 'cromwell_logs', output_prefix,
     )
 
     workflow_options = {
@@ -238,7 +238,7 @@ def run_cromwell_workflow(
 
     echo "Submitted workflow with ID $wid"
     echo $wid | jq -r .id >> {output_workflow_id}
-    """
+    """,
     )
 
     return output_workflow_id
@@ -413,7 +413,7 @@ def watch_workflow(
         if _remaining_exceptions <= 0:
             raise CromwellError('Unreachable')
         wait_time = _get_wait_interval(
-            start, min_poll_interval, max_poll_interval, exponential_decrease_seconds
+            start, min_poll_interval, max_poll_interval, exponential_decrease_seconds,
         )
         try:
             auth_header = {'Authorization': f'Bearer {_get_cromwell_oauth_token()}'}
@@ -422,7 +422,7 @@ def watch_workflow(
                 _remaining_exceptions -= 1
                 logger.warning(
                     f'Received "not okay" (status={r.status_code}) from cromwell '
-                    f'(waiting={wait_time}): {r.text}'
+                    f'(waiting={wait_time}): {r.text}',
                 )
                 time.sleep(wait_time)
                 continue
@@ -449,7 +449,7 @@ def watch_workflow(
                 if not r_outputs.ok:
                     logger.warning(
                         'Received error when fetching cromwell outputs, '
-                        f'will retry in {wait_time} seconds'
+                        f'will retry in {wait_time} seconds',
                     )
                     time.sleep(wait_time)
                     continue
@@ -469,7 +469,7 @@ def watch_workflow(
         except Exception as e:
             _remaining_exceptions -= 1
             logger.error(
-                f'Cromwell status watch caught general exception (sleeping={wait_time}): {e}'
+                f'Cromwell status watch caught general exception (sleeping={wait_time}): {e}',
             )
             time.sleep(wait_time)
 
@@ -535,7 +535,7 @@ def watch_workflow_and_get_output(
             str(watch_job.output_json_path),
             setup_gcp=True,
             setup_hail=False,
-        )
+        ),
     )
 
     rdict = watch_job.output_json_path
@@ -578,7 +578,7 @@ def watch_workflow_and_get_output(
                             rdict=rdict,
                             output=output,
                             idx=idx,
-                        )
+                        ),
                     )
                 else:
                     out_file_map[oname].append(
@@ -589,7 +589,7 @@ def watch_workflow_and_get_output(
                             idx=idx,
                             copy_file_into_batch=output.copy_file_into_batch,
                             driver_image=driver_image,
-                        )
+                        ),
                     )
 
     return out_file_map
@@ -644,7 +644,7 @@ if [ $OUTPUT_TYPE != "string" ]; then
     echo "The element {error_description} was not of type string, got $OUTPUT_TYPE";
     # exit 1;
 fi
-"""
+""",
     )
     if copy_file_into_batch:
         j.command(
@@ -657,7 +657,7 @@ else
     # cleaner to directly pipe into file
     cat {rdict} | jq -r '.{jq_el}' > {output_filename}
 fi
-    """
+    """,
         )
     else:
         # directly pipe result into a file
@@ -667,12 +667,12 @@ fi
 
 
 def _copy_resource_group_into_batch(
-    j, *, rdict, output: CromwellOutputType, idx: Optional[int]
+    j, *, rdict, output: CromwellOutputType, idx: Optional[int],
 ):
     rg = output.resource_group
 
     j.declare_resource_group(
-        out={part_name: f'{{root}}.{part_name}' for part_name in rg}
+        out={part_name: f'{{root}}.{part_name}' for part_name in rg},
     )
 
     output_filename = j.out
@@ -701,7 +701,7 @@ def _copy_resource_group_into_batch(
     # in future, add s3://* or AWS handling here
 
     for jq_el, error_description, output_name in zip(
-        jq_els, error_descriptions, rg.keys()
+        jq_els, error_descriptions, rg.keys(),
     ):
         j.command(
             f"""
@@ -719,7 +719,7 @@ def _copy_resource_group_into_batch(
             # cleaner to directly pipe into file
             cat {rdict} | jq -r '.{jq_el}' > {output_filename}.{output_name};
         fi
-            """
+            """,
         )
 
     return output_filename

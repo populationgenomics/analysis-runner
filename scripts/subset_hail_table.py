@@ -96,7 +96,7 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         return None
 
     if pos and not contig:
-        raise ValueError(f'Positional filtering requires a chromosome')
+        raise ValueError('Positional filtering requires a chromosome')
 
     if contig and not pos:
         start = 'start'
@@ -123,7 +123,7 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
 
     else:
         assert int(
-            pos
+            pos,
         ), f'if only one position is specified, it must be numerical: {pos}'
         start = int(pos)
         end = start + 1
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         required=False,
     )
     parser.add_argument(
-        '--biallelic', help='Remove non-biallelic sites', action='store_true'
+        '--biallelic', help='Remove non-biallelic sites', action='store_true',
     )
     parser.add_argument(
         '--format',

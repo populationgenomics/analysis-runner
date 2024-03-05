@@ -47,7 +47,7 @@ class MockResponse:
 
 
 def apply_mock_behaviour(
-    *, mock_post: MagicMock = None, mock_identity_token: MagicMock = None
+    *, mock_post: MagicMock = None, mock_identity_token: MagicMock = None,
 ):
     if mock_post:
         mock_post.return_value = MockResponse(text='<mocked-url>')
@@ -74,7 +74,7 @@ class TestCliAnalysisRunner(unittest.TestCase):
     @patch(REQUEST_POST_PATH)
     def test_regular_cli(self, mock_post: MagicMock, mock_identity_token: MagicMock):
         apply_mock_behaviour(
-            mock_post=mock_post, mock_identity_token=mock_identity_token
+            mock_post=mock_post, mock_identity_token=mock_identity_token,
         )
 
         main_from_args(self.ANALYSIS_RUNNER_ARGS)
@@ -86,7 +86,7 @@ class TestCliAnalysisRunner(unittest.TestCase):
     @patch(REQUEST_POST_PATH)
     def test_cli_with_mode(self, mock_post: MagicMock, mock_identity_token: MagicMock):
         apply_mock_behaviour(
-            mock_post=mock_post, mock_identity_token=mock_identity_token
+            mock_post=mock_post, mock_identity_token=mock_identity_token,
         )
         main_from_args(['analysis-runner', *self.ANALYSIS_RUNNER_ARGS])
 
@@ -99,7 +99,7 @@ class TestCliCromwell(unittest.TestCase):
     @patch(REQUEST_POST_PATH)
     def test_submit_cli(self, mock_post: MagicMock, mock_identity_token: MagicMock):
         apply_mock_behaviour(
-            mock_post=mock_post, mock_identity_token=mock_identity_token
+            mock_post=mock_post, mock_identity_token=mock_identity_token,
         )
 
         args = [
@@ -125,7 +125,7 @@ class TestCliCromwell(unittest.TestCase):
     @patch(REQUEST_GET_PATH)
     @patch('builtins.print')
     def test_status_cli(
-        self, mock_print: MagicMock, mock_get: MagicMock, mock_id_token
+        self, mock_print: MagicMock, mock_get: MagicMock, mock_id_token,
     ):
         apply_mock_behaviour(mock_identity_token=mock_id_token)
         cm = {
@@ -139,8 +139,8 @@ class TestCliCromwell(unittest.TestCase):
                         'executionStatus': 'succeeded',
                         'start': '2021-07-09T09:47:00.000Z',
                         'end': '2021-07-09T09:48:00.000Z',
-                    }
-                ]
+                    },
+                ],
             },
         }
         mock_get.return_value = MockResponse(json=lambda: cm)

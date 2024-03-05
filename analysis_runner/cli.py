@@ -61,7 +61,7 @@ optional positional arguments:
 optional arguments:
   -h, --help       show this help message and exit
   -v, --version    display the version and exit
-"""
+""",
         )
         return
     if mode in ('-v', '--version', 'version'):

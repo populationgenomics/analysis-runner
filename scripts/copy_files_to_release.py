@@ -30,7 +30,7 @@ def check_paths_exist(paths: list[str]):
     for path in paths:
         # gsutil ls <path> returns '<path>\n' if path exists
         result = subprocess.run(
-            ['gsutil', 'ls', path], check=True, capture_output=True, text=True
+            ['gsutil', 'ls', path], check=True, capture_output=True, text=True,
         ).stdout.strip('\n')
         if result == path:
             continue

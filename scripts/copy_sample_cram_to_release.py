@@ -27,7 +27,7 @@ def check_paths_exist(paths: list[str]):
     for path in paths:
         # gsutil ls <path> returns '<path>\n' if path exists
         result = subprocess.run(
-            ['gsutil', 'ls', path], check=True, capture_output=True, text=True
+            ['gsutil', 'ls', path], check=True, capture_output=True, text=True,
         ).stdout.strip('\n')
         if result == path:
             continue
@@ -85,7 +85,7 @@ def main(project: str, billing_project: str, samples):
 
     # Retrieve latest crams for selected samples
     latest_crams = AnalysisApi().get_latest_analysis_for_samples_and_type(
-        AnalysisType('cram'), project, request_body=sample_ids
+        AnalysisType('cram'), project, request_body=sample_ids,
     )
 
     # Get all paths of files to be copied to release
