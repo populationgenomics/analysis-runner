@@ -5,6 +5,7 @@ Exports 'add_cromwell_routes', to add the following route to a flask API:
 """
 import json
 from datetime import datetime
+from shlex import quote
 
 import hailtop.batch as hb
 import requests
@@ -186,7 +187,7 @@ def add_cromwell_routes(
             comments.append(f'URL: {script_url}')
 
         job = batch.new_job(name='driver')
-        job.command('\n'.join(f'# {comment}' for comment in comments))
+        job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
         job = prepare_git_job(
             job=job,
             repo_name=repo,

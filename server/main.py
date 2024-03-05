@@ -202,7 +202,7 @@ async def index(request):
 
     job = batch.new_job(name='driver')
     # add comments
-    job.command('\n'.join(f'# {comment}' for comment in comments))
+    job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
 
     job = prepare_git_job(job=job, repo_name=repo, commit=commit, is_test=is_test)
     job.image(image)
