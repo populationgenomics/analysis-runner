@@ -43,7 +43,7 @@ logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
 USE_GCP_LOGGING = True
 if USE_GCP_LOGGING:
-    import google.cloud.logging  # pylint: disable=import-error,no-name-in-module,c-extension-no-member
+    import google.cloud.logging
 
     client = google.cloud.logging.Client()
     client.get_default_handler()
@@ -54,7 +54,6 @@ routes = web.RouteTableDef()
 SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp'}
 
 
-# pylint: disable=too-many-statements
 @routes.post('/')
 async def index(request: web.Request) -> web.Response:  # noqa: C901
     """Main entry point, responds to the web root."""
@@ -375,7 +374,7 @@ async def error_middleware(_: web.Application, handler: web.middleware.Handler):
             if isinstance(response, web.HTTPException):
                 return prepare_response_from_exception(response)
             return response
-        # pylint: disable=broad-except
+
         except Exception as e:  # noqa: BLE001
             return prepare_response_from_exception(e)
 

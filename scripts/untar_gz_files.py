@@ -12,8 +12,6 @@ import subprocess
 import sys
 
 import click
-
-# pylint: disable=E0401,E0611
 from google.cloud import storage
 
 client = storage.Client()
@@ -88,4 +86,4 @@ if __name__ == '__main__':
         stream=sys.stderr,
     )
 
-    main()  # pylint: disable=no-value-for-parameter
+    main()

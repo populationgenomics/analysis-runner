@@ -13,7 +13,6 @@ import sys
 from argparse import ArgumentParser
 from collections import defaultdict
 
-# pylint: disable=E0401,E0611
 from sample_metadata.apis import AnalysisApi, FamilyApi, SampleApi
 from sample_metadata.models import AnalysisType, BodyGetSamples
 

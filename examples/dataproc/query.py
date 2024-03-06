@@ -45,4 +45,4 @@ def query(rerun: bool):
 
 
 if __name__ == '__main__':
-    query()  # pylint: disable=no-value-for-parameter
+    query()

@@ -43,4 +43,4 @@ def main(name_to_print: str):
 
 
 if __name__ == '__main__':
-    main()  # pylint: disable=no-value-for-parameter
+    main()

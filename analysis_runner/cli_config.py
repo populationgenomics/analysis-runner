@@ -81,7 +81,7 @@ def run_config_from_args(args: argparse.ArgumentParser):
     return run_config(**vars(args))
 
 
-def run_config(  # pylint: disable=too-many-arguments
+def run_config(
     dataset: str,
     output_dir: str,
     access_level: str,

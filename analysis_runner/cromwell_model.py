@@ -1,5 +1,5 @@
 # flake8: noqa
-# pylint: skip-file
+
 from enum import Enum
 from textwrap import indent
 from typing import List, Dict, Optional

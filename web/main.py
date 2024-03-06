@@ -1,4 +1,3 @@
-# pylint: disable=too-many-return-statements
 """Web server which proxies requests to per-dataset "web" buckets."""
 
 import json
@@ -57,7 +56,7 @@ def handler(  # noqa: C901
         # Use allAuthenticatedUsers for the IAP configuration to make this
         # work for arbitrary users.
         email = decoded_jwt['email'].lower()
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         logger.exception('Failed to extract email from ID token')
         return abort(403)
 

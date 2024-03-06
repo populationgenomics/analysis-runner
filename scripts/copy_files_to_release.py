@@ -15,8 +15,6 @@ import click
 from google.cloud import storage
 
 from cpg_utils import to_path
-
-# pylint: disable=E0401,E0611
 from cpg_utils.config import get_config
 
 client = storage.Client()
@@ -105,4 +103,4 @@ if __name__ == '__main__':
         stream=sys.stderr,
     )
 
-    main()  # pylint: disable=no-value-for-parameter
+    main()

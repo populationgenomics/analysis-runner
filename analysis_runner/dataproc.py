@@ -159,7 +159,7 @@ class DataprocCluster:
         return job
 
 
-def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
+def setup_dataproc(
     batch: hb.Batch,
     max_age: str,
     num_workers: int = 2,

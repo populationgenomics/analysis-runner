@@ -1,7 +1,7 @@
-# pylint: disable=too-many-function-args
 """
 Utility methods for analysis-runner server
 """
+
 import json
 import os
 import random
@@ -156,7 +156,6 @@ def check_dataset_and_group(
     return dataset_config
 
 
-# pylint: disable=too-many-arguments
 def get_analysis_runner_metadata(
     *,
     ar_guid: str,

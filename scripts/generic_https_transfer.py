@@ -77,4 +77,4 @@ def main(presigned_url_file_path: str, filenames: bool):
 
 
 if __name__ == '__main__':
-    main()  # pylint: disable=no-value-for-parameter
+    main()

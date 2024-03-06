@@ -157,7 +157,7 @@ def run_cromwell_workflow(  # noqa: C901
 
     def get_cromwell_key(dataset: str, access_level: str) -> str:
         """Get Cromwell key from secrets"""
-        # pylint: disable=import-error,import-outside-toplevel
+
         from cpg_utils.cloud import read_secret
 
         secret_name = f'{dataset}-cromwell-{access_level}-key'
@@ -363,7 +363,7 @@ def watch_workflow(  # noqa: C901
     """
     # Re-importing dependencies here so the function is self-contained
     # and can be run in a Hail bash job.
-    # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel,too-many-locals
+
     import json
     import math
     import subprocess
@@ -381,13 +381,11 @@ def watch_workflow(  # noqa: C901
     from analysis_runner.cromwell_model import WorkflowMetadataModel
     from analysis_runner.util import logger
 
-    # pylint: enable=redefined-outer-name,reimported,import-outside-toplevel
-
     class CromwellError(Exception):
         """Cromwell status error"""
 
     # Also re-defining this function that uses subprocess, for the same reason.
-    def _get_cromwell_oauth_token() -> str:  # pylint: disable=redefined-outer-name
+    def _get_cromwell_oauth_token() -> str:
         """Get oath token for cromwell, specific to audience"""
         token_command = [
             'gcloud',

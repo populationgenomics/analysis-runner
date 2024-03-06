@@ -16,7 +16,7 @@ def get_output_of_command(command: List[str], description: str) -> str:
     try:
         return subprocess.check_output(command).decode().strip()  # noqa: S603
     # Handle and rethrow KeyboardInterrupt error to stop global exception catch
-    # pylint: disable=try-except-raise
+
     except KeyboardInterrupt:
         raise
     except subprocess.CalledProcessError as e:

@@ -1,16 +1,14 @@
-# pylint: disable=unused-variable
 """
 Exports 'add_cromwell_routes', to add the following route to a flask API:
     POST /cromwell: Posts a workflow to a cromwell_url
 """
+
 import json
 from datetime import datetime
 from shlex import quote
 
 import requests
 from aiohttp import web
-
-# pylint: disable=wrong-import-order
 from util import (
     DRIVER_IMAGE,
     PUBSUB_TOPIC,
