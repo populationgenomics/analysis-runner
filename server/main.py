@@ -1,18 +1,14 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
 
-# flake8: noqa=E402
-# pylint: disable=wrong-import-position,too-many-locals
+# ruff: noqa: E402
 import datetime
 import json
 import logging
 import traceback
 from shlex import quote
 
-import hailtop.batch as hb
 import nest_asyncio
 from aiohttp import web
-from cpg_utils.config import AR_GUID_NAME, update_dict
-from cpg_utils.hail_batch import remote_tmpdir
 from cromwell import add_cromwell_routes
 from util import (
     DRIVER_IMAGE,
@@ -32,7 +28,11 @@ from util import (
     write_config,
 )
 
+import hailtop.batch as hb
+
 from analysis_runner.git import guess_script_github_url_from, prepare_git_job
+from cpg_utils.config import AR_GUID_NAME, update_dict
+from cpg_utils.hail_batch import remote_tmpdir
 
 # Patching asyncio *before* importing the Hail Batch module is necessary to avoid a
 # "Cannot enter into task" error.
@@ -43,7 +43,7 @@ logging.basicConfig(level=logging.INFO)
 # do it like this so it's easy to disable
 USE_GCP_LOGGING = True
 if USE_GCP_LOGGING:
-    import google.cloud.logging  # pylint: disable=import-error,no-name-in-module,c-extension-no-member
+    import google.cloud.logging
 
     client = google.cloud.logging.Client()
     client.get_default_handler()
@@ -54,9 +54,8 @@ routes = web.RouteTableDef()
 SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp'}
 
 
-# pylint: disable=too-many-statements
 @routes.post('/')
-async def index(request):
+async def index(request: web.Request) -> web.Response:  # noqa: C901
     """Main entry point, responds to the web root."""
 
     email = get_email_from_request(request)
@@ -69,7 +68,7 @@ async def index(request):
     cloud_environment = params.get('cloud_environment', 'gcp')
     if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
-            reason=f'analysis-runner does not yet support the {cloud_environment} environment'
+            reason=f'analysis-runner does not yet support the {cloud_environment} environment',
         )
 
     dataset_config = check_dataset_and_group(
@@ -141,7 +140,9 @@ async def index(request):
         update_dict(run_config, user_config)
 
     config_path = write_config(
-        ar_guid=ar_guid, config=run_config, environment=cloud_environment
+        ar_guid=ar_guid,
+        config=run_config,
+        environment=cloud_environment,
     )
 
     user_name = email.split('@')[0]
@@ -212,7 +213,7 @@ async def index(request):
         job.storage(storage)
     if memory:
         job.memory(memory)
-    job._preemptible = preemptible  # pylint: disable=protected-access
+    job._preemptible = preemptible  # noqa: SLF001
 
     # NOTE: Prefer using config variables instead of environment variables.
     # In case you need to add an environment variable here, make sure to update the
@@ -232,7 +233,7 @@ async def index(request):
         if len(invalid_env_vars) > 0:
             raise ValueError(
                 'Some environment_variables values were not strings, got '
-                + ', '.join(invalid_env_vars)
+                + ', '.join(invalid_env_vars),
             )
 
         for k, v in environment_variables.items():
@@ -248,7 +249,9 @@ async def index(request):
     job.command(escaped_script)
 
     url = run_batch_job_and_print_url(
-        batch, wait=params.get('wait', False), environment=cloud_environment
+        batch,
+        wait=params.get('wait', False),
+        environment=cloud_environment,
     )
 
     # Publish the metadata to Pub/Sub.
@@ -259,7 +262,7 @@ async def index(request):
 
 
 @routes.post('/config')
-async def config(request):
+async def config(request: web.Request) -> web.Response:
     """
     Generate CPG config, as JSON response
     """
@@ -273,7 +276,7 @@ async def config(request):
     cloud_environment = params.get('cloud_environment', 'gcp')
     if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
         raise web.HTTPBadRequest(
-            reason=f'analysis-runner config does not yet support the {cloud_environment} environment'
+            reason=f'analysis-runner config does not yet support the {cloud_environment} environment',
         )
 
     dataset_config = check_dataset_and_group(
@@ -316,13 +319,15 @@ add_cromwell_routes(routes)
 
 
 def prepare_exception_json_response(
-    status_code: int, message: str, tb: str
+    status_code: int,
+    message: str,
+    tb: str,
 ) -> web.Response:
     """Prepare web.Response for"""
     return web.Response(
         status=status_code,
         body=json.dumps({'message': message, 'success': False, 'traceback': tb}).encode(
-            'utf-8'
+            'utf-8',
         ),
         content_type='application/json',
     )
@@ -336,30 +341,31 @@ def prepare_response_from_exception(ex: Exception):
 
     if isinstance(ex, web.HTTPException):
         return prepare_exception_json_response(
-            status_code=ex.status_code, message=ex.reason, tb=tb
+            status_code=ex.status_code,
+            message=ex.reason,
+            tb=tb,
         )
     if isinstance(ex, KeyError):
         keys = ', '.join(ex.args)
         return prepare_exception_json_response(
-            400, message=f'Missing request parameter: {keys}', tb=tb
+            400,
+            message=f'Missing request parameter: {keys}',
+            tb=tb,
         )
     if isinstance(ex, ValueError):
         return prepare_exception_json_response(400, ', '.join(ex.args), tb=tb)
 
-    if hasattr(ex, 'message'):
-        m = ex.message
-    else:
-        m = str(ex)
+    m = ex.message if hasattr(ex, 'message') else str(ex)
     return prepare_exception_json_response(500, message=m, tb=tb)
 
 
-async def error_middleware(_, handler):
+async def error_middleware(_, handler):  # noqa: ANN001
     """
     Constructs middleware handler
     First argument is app, but unused in this context
     """
 
-    async def middleware_handler(request):
+    async def middleware_handler(request: web.Request) -> web.Response:
         """
         Run handler and catch exceptions and response errors
         """
@@ -368,8 +374,8 @@ async def error_middleware(_, handler):
             if isinstance(response, web.HTTPException):
                 return prepare_response_from_exception(response)
             return response
-        # pylint: disable=broad-except
-        except Exception as e:
+
+        except Exception as e:  # noqa: BLE001
             return prepare_response_from_exception(e)
 
     return middleware_handler

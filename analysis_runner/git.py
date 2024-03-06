@@ -4,7 +4,7 @@ import os
 import re
 import subprocess
 from shlex import quote
-from typing import List, Optional
+from typing import Any, List, Optional
 
 GITHUB_ORG = 'populationgenomics'
 SUPPORTED_ORGANIZATIONS = {GITHUB_ORG}
@@ -14,18 +14,18 @@ def get_output_of_command(command: List[str], description: str) -> str:
     """subprocess.check_output wrapper that returns string output and raises detailed
     exceptions on error."""
     try:
-        return subprocess.check_output(command).decode().strip()
+        return subprocess.check_output(command).decode().strip()  # noqa: S603
     # Handle and rethrow KeyboardInterrupt error to stop global exception catch
-    # pylint: disable=try-except-raise
+
     except KeyboardInterrupt:
         raise
     except subprocess.CalledProcessError as e:
-        raise IOError(
-            f"Couldn't call {description} by calling '{' '.join(command)}', {e}"
+        raise OSError(
+            f"Couldn't call {description} by calling '{' '.join(command)}', {e}",
         ) from e
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise type(e)(
-            f"Couldn't process {description} through calling '{' '.join(command)}', {e}"
+            f"Couldn't process {description} through calling '{' '.join(command)}', {e}",
         ) from e
 
 
@@ -47,8 +47,7 @@ def get_relative_path_from_git_root() -> str:
     to the current directory. Relpath returns "." if cwd is a git root.
     """
     root = get_git_repo_root()
-    base = os.path.relpath(os.getcwd(), root)
-    return base
+    return os.path.relpath(os.getcwd(), root)
 
 
 def get_git_default_remote() -> str:
@@ -64,8 +63,7 @@ def get_git_repo_root() -> str:
     e.g. /Users/foo/repos/analysis-runner
     """
     command = ['git', 'rev-parse', '--show-toplevel']
-    repo_root = get_output_of_command(command, 'get Git repo directory')
-    return repo_root
+    return get_output_of_command(command, 'get Git repo directory')
 
 
 def get_git_commit_ref_of_current_repository() -> str:
@@ -78,10 +76,10 @@ def get_git_branch_name() -> Optional[str]:
     """Returns the current branch name."""
     command = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
     try:
-        value = subprocess.check_output(command).decode().strip()
+        value = subprocess.check_output(command).decode().strip()  # noqa: S603
         if value:
             return value
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception:  # noqa: BLE001
         return None
 
     return None
@@ -111,10 +109,12 @@ def get_repo_name_from_remote(remote_name: str) -> str:
     repo = None
     if remote_name.startswith('http'):
         match = re.match(r'https:\/\/[A-z0-9\.]+?\/(.+?)\/(.+)$', remote_name)
-        organization, repo = match.groups()
+        if match:
+            organization, repo = match.groups()
     elif remote_name.startswith('git@'):
         match = re.match(r'git@[A-z0-9\.]+?:(.+?)\/(.+)$', remote_name)
-        organization, repo = match.groups()
+        if match:
+            organization, repo = match.groups()
 
     if organization not in SUPPORTED_ORGANIZATIONS:
         raise ValueError(f'Unsupported GitHub organization "{organization}"')
@@ -135,7 +135,7 @@ def check_if_commit_is_on_remote(commit: str) -> bool:
     """
     command = ['git', 'branch', '-r', '--contains', commit]
     try:
-        ret = subprocess.check_output(command)
+        ret = subprocess.check_output(command)  # noqa: S603
         return bool(ret)
     except subprocess.CalledProcessError:
         return False
@@ -178,7 +178,11 @@ def guess_script_name_from_script_argument(script: List[str]) -> Optional[str]:
 
 
 def guess_script_github_url_from(
-    *, repo: Optional[str], commit: Optional[str], cwd: Optional[str], script: List[str]
+    *,
+    repo: Optional[str],
+    commit: Optional[str],
+    cwd: Optional[str],
+    script: List[str],
 ) -> Optional[str]:
     """
     Guess the GitHub URL of the script from the given arguments.
@@ -196,11 +200,11 @@ def guess_script_github_url_from(
 
 
 def prepare_git_job(
-    job,
+    job: Any,  # don't specify the type to avoid an extra import
     repo_name: str,
     commit: str,
     is_test: bool = True,
-    print_all_statements=True,
+    print_all_statements: bool = True,
     get_deploy_token: bool = True,
 ):
     """
@@ -223,7 +227,7 @@ def prepare_git_job(
 
     # activate the google service account
     job.command(
-        'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+        'gcloud -q auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS',
     )
 
     # Note: for private GitHub repos we'd need to use a token to clone.
@@ -258,7 +262,7 @@ if [ ! -z "$secret_name" ] && [ ! -z "$secret_project" ]; then
 else
     echo 'No git credentials secret found, unable to check out private repositories.'
 fi
-        """
+        """,
         )
 
     # Any job commands here are evaluated in a bash shell, so user arguments should
@@ -272,7 +276,7 @@ fi
         job.command('git checkout main')
         job.command(
             f'git merge-base --is-ancestor {quote(commit)} HEAD || '
-            '{ echo "error: commit not merged into main branch"; exit 1; }'
+            '{ echo "error: commit not merged into main branch"; exit 1; }',
         )
     job.command(f'git checkout {quote(commit)}')
     job.command('git submodule update')

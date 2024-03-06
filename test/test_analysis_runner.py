@@ -1,7 +1,7 @@
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+# ruff: noqa: S105
 import unittest
-
-from unittest.mock import patch, MagicMock
+from typing import Any, Optional
+from unittest.mock import MagicMock, patch
 
 from analysis_runner._version import __version__
 from analysis_runner.cli import main_from_args
@@ -39,7 +39,7 @@ class TestCliBasic(unittest.TestCase):
 
 
 class MockResponse:
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self.raise_for_status = lambda: None
 
         for k, v in kwargs.items():
@@ -47,7 +47,9 @@ class MockResponse:
 
 
 def apply_mock_behaviour(
-    *, mock_post: MagicMock = None, mock_identity_token: MagicMock = None
+    *,
+    mock_post: Optional[MagicMock] = None,
+    mock_identity_token: Optional[MagicMock] = None,
 ):
     if mock_post:
         mock_post.return_value = MockResponse(text='<mocked-url>')
@@ -57,7 +59,7 @@ def apply_mock_behaviour(
 
 
 class TestCliAnalysisRunner(unittest.TestCase):
-    ANALYSIS_RUNNER_ARGS = [
+    ANALYSIS_RUNNER_ARGS = (
         '--dataset',
         'fewgenomes',
         '--access-level',
@@ -68,13 +70,14 @@ class TestCliAnalysisRunner(unittest.TestCase):
         'hello-world-test',
         'echo',
         'hello-world',
-    ]
+    )
 
     @patch(IMPORT_AR_IDENTITY_TOKEN_PATH)
     @patch(REQUEST_POST_PATH)
     def test_regular_cli(self, mock_post: MagicMock, mock_identity_token: MagicMock):
         apply_mock_behaviour(
-            mock_post=mock_post, mock_identity_token=mock_identity_token
+            mock_post=mock_post,
+            mock_identity_token=mock_identity_token,
         )
 
         main_from_args(self.ANALYSIS_RUNNER_ARGS)
@@ -86,7 +89,8 @@ class TestCliAnalysisRunner(unittest.TestCase):
     @patch(REQUEST_POST_PATH)
     def test_cli_with_mode(self, mock_post: MagicMock, mock_identity_token: MagicMock):
         apply_mock_behaviour(
-            mock_post=mock_post, mock_identity_token=mock_identity_token
+            mock_post=mock_post,
+            mock_identity_token=mock_identity_token,
         )
         main_from_args(['analysis-runner', *self.ANALYSIS_RUNNER_ARGS])
 
@@ -99,7 +103,8 @@ class TestCliCromwell(unittest.TestCase):
     @patch(REQUEST_POST_PATH)
     def test_submit_cli(self, mock_post: MagicMock, mock_identity_token: MagicMock):
         apply_mock_behaviour(
-            mock_post=mock_post, mock_identity_token=mock_identity_token
+            mock_post=mock_post,
+            mock_identity_token=mock_identity_token,
         )
 
         args = [
@@ -125,7 +130,10 @@ class TestCliCromwell(unittest.TestCase):
     @patch(REQUEST_GET_PATH)
     @patch('builtins.print')
     def test_status_cli(
-        self, mock_print: MagicMock, mock_get: MagicMock, mock_id_token
+        self,
+        mock_print: MagicMock,
+        mock_get: MagicMock,
+        mock_id_token: MagicMock,
     ):
         apply_mock_behaviour(mock_identity_token=mock_id_token)
         cm = {
@@ -139,8 +147,8 @@ class TestCliCromwell(unittest.TestCase):
                         'executionStatus': 'succeeded',
                         'start': '2021-07-09T09:47:00.000Z',
                         'end': '2021-07-09T09:48:00.000Z',
-                    }
-                ]
+                    },
+                ],
             },
         }
         mock_get.return_value = MockResponse(json=lambda: cm)

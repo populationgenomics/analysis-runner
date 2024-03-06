@@ -1,18 +1,17 @@
+# ruff: noqa: DTZ005
 """
 Cromwell module contains helper code for submitting + watching
 jobs from within Hail batch.
 """
-# pylint: disable=too-many-arguments,too-many-return-statements,broad-except
+
 import json
 import os
 import subprocess
 from shlex import quote
 from typing import Any, Dict, List, Optional, Union
 
-from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
-from cpg_utils.hail_batch import query_command
-from hailtop.batch import Resource
-from hailtop.batch.job import Job
+from hailtop.batch import Batch, Resource
+from hailtop.batch.job import BashJob, Job
 
 from analysis_runner.constants import (
     ANALYSIS_RUNNER_PROJECT_ID,
@@ -27,6 +26,8 @@ from analysis_runner.git import (
     prepare_git_job,
 )
 from analysis_runner.util import get_project_id_from_service_account_email
+from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
+from cpg_utils.hail_batch import query_command
 
 
 class CromwellOutputType:
@@ -37,22 +38,27 @@ class CromwellOutputType:
         name: str,
         copy_file_into_batch: bool,
         array_length: Optional[int],
-        resource_group=None,
-    ):
+        resource_group: Optional[Dict[str, Any]] = None,
+    ) -> None:
         self.name = name
         self.copy_file_into_batch = copy_file_into_batch
         self.array_length = array_length
         self.resource_group = resource_group
 
     @staticmethod
-    def single(name: str):
+    def single(name: str) -> 'CromwellOutputType':
         """Single file"""
         return CromwellOutputType(
-            name=name, array_length=None, copy_file_into_batch=True
+            name=name,
+            array_length=None,
+            copy_file_into_batch=True,
         )
 
     @staticmethod
-    def single_resource_group(name: str, resource_group):
+    def single_resource_group(
+        name: str,
+        resource_group: Dict[str, Any],
+    ) -> 'CromwellOutputType':
         """
         Specify a resource group you want to return, where resource_group has the format:
             {<read-group-name>: <corresponding-output-in-cromwell>}
@@ -73,14 +79,20 @@ class CromwellOutputType:
         )
 
     @staticmethod
-    def array(name: str, length: int):
+    def array(name: str, length: int) -> 'CromwellOutputType':
         """Array of simple files"""
         return CromwellOutputType(
-            name=name, array_length=length, copy_file_into_batch=True
+            name=name,
+            array_length=length,
+            copy_file_into_batch=True,
         )
 
     @staticmethod
-    def array_resource_group(name: str, length: int, resource_group):
+    def array_resource_group(
+        name: str,
+        length: int,
+        resource_group: Dict[str, Any],
+    ) -> 'CromwellOutputType':
         """
         Select an array of resource groups. In this case, the outputs
         you select within the resource group are zipped.
@@ -105,47 +117,54 @@ class CromwellOutputType:
         )
 
     @staticmethod
-    def single_path(name: str):
+    def single_path(name: str) -> 'CromwellOutputType':
         """Return the file path of the output in a file"""
         return CromwellOutputType(
-            name=name, array_length=None, copy_file_into_batch=False
+            name=name,
+            array_length=None,
+            copy_file_into_batch=False,
         )
 
     @staticmethod
-    def array_path(name: str, length: int):
+    def array_path(name: str, length: int) -> 'CromwellOutputType':
         """Return a list of file paths of the outputs (one path per file)"""
         return CromwellOutputType(
-            name=name, array_length=length, copy_file_into_batch=False
+            name=name,
+            array_length=length,
+            copy_file_into_batch=False,
         )
 
 
-def run_cromwell_workflow(
-    job,
+def run_cromwell_workflow(  # noqa: C901
+    job: BashJob,
     dataset: str,
     access_level: str,
     workflow: str,
     cwd: Optional[str],
     libs: List[str],
     output_prefix: str,
-    labels: Dict[str, str] = None,
+    labels: Optional[Dict[str, str]] = None,
     input_dict: Optional[Dict[str, Any]] = None,
-    input_paths: List[str] = None,
+    input_paths: Optional[List[str]] = None,
     project: Optional[str] = None,
     copy_outputs_to_gcp: bool = True,
-    ar_guid_override: str = None,
+    ar_guid_override: Optional[str] = None,
 ):
     """
     Run a cromwell workflow, and return a Batch.ResourceFile
     that contains the workflow ID
     """
 
-    def get_cromwell_key(dataset, access_level):
+    def get_cromwell_key(dataset: str, access_level: str) -> str:
         """Get Cromwell key from secrets"""
-        # pylint: disable=import-error,import-outside-toplevel
+
         from cpg_utils.cloud import read_secret
 
         secret_name = f'{dataset}-cromwell-{access_level}-key'
-        return read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
+        value = read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
+        if not value:
+            raise ValueError(f"Couldn't find secret: {secret_name}")
+        return value
 
     if cwd:
         job.command(f'cd {quote(cwd)}')
@@ -190,7 +209,9 @@ def run_cromwell_workflow(
     intermediate_dir = os.path.join(storage_config['tmp'], 'cromwell')
     workflow_output_dir = os.path.join(storage_config['default'], output_prefix)
     logging_output_dir = os.path.join(
-        storage_config['analysis'], 'cromwell_logs', output_prefix
+        storage_config['analysis'],
+        'cromwell_logs',
+        output_prefix,
     )
 
     workflow_options = {
@@ -209,7 +230,7 @@ def run_cromwell_workflow(
 
     input_paths = input_paths or []
     if input_dict:
-        tmp_input_json_path = '/tmp/inputs.json'
+        tmp_input_json_path = '$TMPDIR/inputs.json'
         job.command(f"echo '{json.dumps(input_dict)}' > {tmp_input_json_path}")
         input_paths.append(tmp_input_json_path)
 
@@ -238,23 +259,23 @@ def run_cromwell_workflow(
 
     echo "Submitted workflow with ID $wid"
     echo $wid | jq -r .id >> {output_workflow_id}
-    """
+    """,
     )
 
     return output_workflow_id
 
 
 def run_cromwell_workflow_from_repo_and_get_outputs(
-    b,
+    b: Batch,
     job_prefix: str,
     dataset: str,
     workflow: str,
     outputs_to_collect: Dict[str, CromwellOutputType],
     libs: List[str],
     output_prefix: str,
-    labels: Dict[str, str] = None,
+    labels: Optional[Dict[str, str]] = None,
     input_dict: Optional[Dict[str, Any]] = None,
-    input_paths: List[str] = None,
+    input_paths: Optional[List[str]] = None,
     repo: Optional[str] = None,
     commit: Optional[str] = None,
     cwd: Optional[str] = None,
@@ -263,7 +284,7 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     copy_outputs_to_gcp: bool = True,
     min_watch_poll_interval: int = 5,
     max_watch_poll_interval: int = 60,
-) -> tuple[Job, dict[str, Union[Resource, List[Resource]]]]:
+) -> tuple[Job, Dict[str, Union[Resource, List[Resource]]]]:
     """
     This function needs to know the structure of the outputs you
     want to collect. It currently only supports:
@@ -328,13 +349,13 @@ def run_cromwell_workflow_from_repo_and_get_outputs(
     return submit_job, outputs_dict
 
 
-def watch_workflow(
-    workflow_id_file,
-    max_sequential_exception_count,
-    min_poll_interval,
-    max_poll_interval,
-    exponential_decrease_seconds,
-    output_json_path,
+def watch_workflow(  # noqa: C901
+    workflow_id_file: str,
+    max_sequential_exception_count: int,
+    min_poll_interval: int,
+    max_poll_interval: int,
+    exponential_decrease_seconds: int,
+    output_json_path: str,
 ):
     """
     INNER Python function to watch workflow status, and write
@@ -342,7 +363,7 @@ def watch_workflow(
     """
     # Re-importing dependencies here so the function is self-contained
     # and can be run in a Hail bash job.
-    # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel,too-many-locals
+
     import json
     import math
     import subprocess
@@ -355,18 +376,16 @@ def watch_workflow(
     from analysis_runner.constants import (
         CROMWELL_AUDIENCE,
         CROMWELL_URL,
-        GCLOUD_ACTIVATE_AUTH,
+        GCLOUD_ACTIVATE_AUTH_BASE,
     )
     from analysis_runner.cromwell_model import WorkflowMetadataModel
     from analysis_runner.util import logger
-
-    # pylint: enable=redefined-outer-name,reimported,import-outside-toplevel
 
     class CromwellError(Exception):
         """Cromwell status error"""
 
     # Also re-defining this function that uses subprocess, for the same reason.
-    def _get_cromwell_oauth_token():  # pylint: disable=redefined-outer-name
+    def _get_cromwell_oauth_token() -> str:
         """Get oath token for cromwell, specific to audience"""
         token_command = [
             'gcloud',
@@ -374,10 +393,10 @@ def watch_workflow(
             'print-identity-token',
             f'--audiences={CROMWELL_AUDIENCE}',
         ]
-        return subprocess.check_output(token_command).decode().strip()
+        return subprocess.check_output(token_command).decode().strip()  # noqa: S603
 
     def _get_wait_interval(
-        start,
+        start: datetime,
         min_poll_interval: int = 5,
         max_poll_interval: int = 60,
         exponential_decrease_seconds: int = 1200,
@@ -401,7 +420,7 @@ def watch_workflow(
     failed_statuses = {'failed', 'aborted'}
     terminal_statuses = {'succeeded'} | failed_statuses
     status_reported = False
-    subprocess.check_output(GCLOUD_ACTIVATE_AUTH, shell=True)
+    subprocess.check_output(GCLOUD_ACTIVATE_AUTH_BASE)  # noqa: S603
     cromwell_workflow_root = f'{CROMWELL_URL}/api/workflows/v1/{workflow_id}'
     metadata_url = f'{cromwell_workflow_root}/metadata'
     outputs_url = f'{cromwell_workflow_root}/outputs'
@@ -413,7 +432,10 @@ def watch_workflow(
         if _remaining_exceptions <= 0:
             raise CromwellError('Unreachable')
         wait_time = _get_wait_interval(
-            start, min_poll_interval, max_poll_interval, exponential_decrease_seconds
+            start,
+            min_poll_interval,
+            max_poll_interval,
+            exponential_decrease_seconds,
         )
         try:
             auth_header = {'Authorization': f'Bearer {_get_cromwell_oauth_token()}'}
@@ -422,7 +444,7 @@ def watch_workflow(
                 _remaining_exceptions -= 1
                 logger.warning(
                     f'Received "not okay" (status={r.status_code}) from cromwell '
-                    f'(waiting={wait_time}): {r.text}'
+                    f'(waiting={wait_time}): {r.text}',
                 )
                 time.sleep(wait_time)
                 continue
@@ -449,7 +471,7 @@ def watch_workflow(
                 if not r_outputs.ok:
                     logger.warning(
                         'Received error when fetching cromwell outputs, '
-                        f'will retry in {wait_time} seconds'
+                        f'will retry in {wait_time} seconds',
                     )
                     time.sleep(wait_time)
                     continue
@@ -466,24 +488,24 @@ def watch_workflow(
         except CromwellError:
             # pass through
             raise
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _remaining_exceptions -= 1
             logger.error(
-                f'Cromwell status watch caught general exception (sleeping={wait_time}): {e}'
+                f'Cromwell status watch caught general exception (sleeping={wait_time}): {e}',
             )
             time.sleep(wait_time)
 
 
 def watch_workflow_and_get_output(
-    b,
+    b: Batch,
     job_prefix: str,
-    workflow_id_file,
+    workflow_id_file: Resource,
     outputs_to_collect: Dict[str, CromwellOutputType],
     driver_image: Optional[str] = None,
-    min_poll_interval=5,  # 5 seconds
-    max_poll_interval=60,  # 1 minute
-    exponential_decrease_seconds=1200,  # 20 minutes
-    max_sequential_exception_count=25,
+    min_poll_interval: int = 5,  # 5 seconds
+    max_poll_interval: int = 60,  # 1 minute
+    exponential_decrease_seconds: int = 1200,  # 20 minutes
+    max_sequential_exception_count: int = 25,
 ):
     """
     This is a little bit tricky, but the process is:
@@ -535,7 +557,7 @@ def watch_workflow_and_get_output(
             str(watch_job.output_json_path),
             setup_gcp=True,
             setup_hail=False,
-        )
+        ),
     )
 
     rdict = watch_job.output_json_path
@@ -578,7 +600,7 @@ def watch_workflow_and_get_output(
                             rdict=rdict,
                             output=output,
                             idx=idx,
-                        )
+                        ),
                     )
                 else:
                     out_file_map[oname].append(
@@ -589,21 +611,21 @@ def watch_workflow_and_get_output(
                             idx=idx,
                             copy_file_into_batch=output.copy_file_into_batch,
                             driver_image=driver_image,
-                        )
+                        ),
                     )
 
     return out_file_map
 
 
 def _copy_basic_file_into_batch(
-    j,
+    j: BashJob,
     *,
-    rdict,
-    output_name,
+    rdict: Resource,
+    output_name: str,
     idx: Optional[int],
     copy_file_into_batch: bool,
     driver_image: str,
-):
+) -> Resource:
     """
     1. Take the file-pointer to the dictionary `rdict`,
     2. the output name `output`,
@@ -644,7 +666,7 @@ if [ $OUTPUT_TYPE != "string" ]; then
     echo "The element {error_description} was not of type string, got $OUTPUT_TYPE";
     # exit 1;
 fi
-"""
+""",
     )
     if copy_file_into_batch:
         j.command(
@@ -657,7 +679,7 @@ else
     # cleaner to directly pipe into file
     cat {rdict} | jq -r '.{jq_el}' > {output_filename}
 fi
-    """
+    """,
         )
     else:
         # directly pipe result into a file
@@ -667,12 +689,22 @@ fi
 
 
 def _copy_resource_group_into_batch(
-    j, *, rdict, output: CromwellOutputType, idx: Optional[int]
-):
+    j: BashJob,
+    *,
+    rdict: Resource,
+    output: CromwellOutputType,
+    idx: Optional[int],
+) -> Resource:
+    """
+    For a job, construct a set of commands that copy a resource group into the batch
+    """
     rg = output.resource_group
 
+    if not rg:
+        raise ValueError('Resource group must be specified')
+
     j.declare_resource_group(
-        out={part_name: f'{{root}}.{part_name}' for part_name in rg}
+        out={part_name: f'{{root}}.{part_name}' for part_name in rg},
     )
 
     output_filename = j.out
@@ -701,7 +733,9 @@ def _copy_resource_group_into_batch(
     # in future, add s3://* or AWS handling here
 
     for jq_el, error_description, output_name in zip(
-        jq_els, error_descriptions, rg.keys()
+        jq_els,
+        error_descriptions,
+        rg.keys(),
     ):
         j.command(
             f"""
@@ -719,7 +753,7 @@ def _copy_resource_group_into_batch(
             # cleaner to directly pipe into file
             cat {rdict} | jq -r '.{jq_el}' > {output_filename}.{output_name};
         fi
-            """
+            """,
         )
 
     return output_filename
@@ -733,5 +767,4 @@ def get_cromwell_oauth_token():
         'print-identity-token',
         f'--audiences={CROMWELL_AUDIENCE}',
     ]
-    token = subprocess.check_output(token_command).decode().strip()
-    return token
+    return subprocess.check_output(token_command).decode().strip()  # noqa: S603

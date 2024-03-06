@@ -1,19 +1,14 @@
-# pylint: disable=unused-variable
 """
 Exports 'add_cromwell_routes', to add the following route to a flask API:
     POST /cromwell: Posts a workflow to a cromwell_url
 """
+
 import json
 from datetime import datetime
 from shlex import quote
 
-import hailtop.batch as hb
 import requests
 from aiohttp import web
-from cpg_utils.config import AR_GUID_NAME, update_dict
-from cpg_utils.hail_batch import remote_tmpdir
-
-# pylint: disable=wrong-import-order
 from util import (
     DRIVER_IMAGE,
     PUBSUB_TOPIC,
@@ -30,18 +25,20 @@ from util import (
     write_config,
 )
 
+import hailtop.batch as hb
+
 from analysis_runner.constants import CROMWELL_URL
 from analysis_runner.cromwell import get_cromwell_oauth_token, run_cromwell_workflow
 from analysis_runner.git import guess_script_github_url_from, prepare_git_job
+from cpg_utils.config import AR_GUID_NAME, update_dict
+from cpg_utils.hail_batch import remote_tmpdir
 
 
-def add_cromwell_routes(
-    routes,
-):
+def add_cromwell_routes(routes: web.RouteTableDef):  # noqa: C901
     """Add cromwell route(s) to 'routes' flask API"""
 
     @routes.post('/cromwell')
-    async def cromwell(request):  # pylint: disable=too-many-locals
+    async def cromwell(request: web.Request) -> web.Response:
         """
         Checks out a repo, and POSTs the designated workflow to the cromwell server.
         Returns a hail batch link, eg: 'batch.hail.populationgenomics.org.au/batches/{batch}'
@@ -84,7 +81,7 @@ def add_cromwell_routes(
 
         if not hail_token:
             raise web.HTTPBadRequest(
-                reason=f"Invalid access level '{access_level}', couldn't find corresponding hail token"
+                reason=f"Invalid access level '{access_level}', couldn't find corresponding hail token",
             )
 
         commit = params['commit']
@@ -216,7 +213,9 @@ def add_cromwell_routes(
         )
 
         url = run_batch_job_and_print_url(
-            batch, wait=params.get('wait', False), environment=cloud_environment
+            batch,
+            wait=params.get('wait', False),
+            environment=cloud_environment,
         )
 
         # Publish the metadata to Pub/Sub.
@@ -226,7 +225,7 @@ def add_cromwell_routes(
         return web.Response(text=f'{url}/jobs/1\n')
 
     @routes.get('/cromwell/{workflow_id}/metadata')
-    async def get_cromwell_metadata(request):
+    async def get_cromwell_metadata(request: web.Request) -> web.Response:
         try:
             workflow_id = request.match_info['workflow_id']
             cromwell_metadata_url = (
@@ -240,10 +239,10 @@ def add_cromwell_routes(
             req = requests.get(cromwell_metadata_url, headers=headers, timeout=120)
             if not req.ok:
                 raise web.HTTPInternalServerError(
-                    reason=req.content.decode() or req.reason
+                    reason=req.content.decode() or req.reason,
                 )
             return web.json_response(req.json())
         except web.HTTPError:
             raise
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             raise web.HTTPInternalServerError(reason=str(e)) from e

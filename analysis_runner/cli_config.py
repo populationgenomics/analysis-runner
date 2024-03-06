@@ -2,20 +2,23 @@
 CLI options for standard analysis-runner
 """
 
-import os
 import argparse
+import os
 import sys
-from typing import List
+from typing import List, Optional
 
 import requests
 import toml
-from cpg_utils.config import read_configs
-from cpg_utils.cloud import get_google_identity_token
+
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.util import _perform_version_check, logger
+from cpg_utils.cloud import get_google_identity_token
+from cpg_utils.config import read_configs
 
 
-def add_config_args(parser=None) -> argparse.ArgumentParser:
+def add_config_args(
+    parser: Optional[argparse.ArgumentParser] = None,
+) -> argparse.ArgumentParser:
     """
     Add CLI arguments for standard analysis-runner
     """
@@ -73,19 +76,20 @@ def add_config_args(parser=None) -> argparse.ArgumentParser:
     return parser
 
 
-def run_config_from_args(args):
+def run_config_from_args(args: argparse.ArgumentParser):
     """Run analysis runner from argparse.parse_arguments"""
     return run_config(**vars(args))
 
 
-def run_config(  # pylint: disable=too-many-arguments
-    dataset,
-    output_dir,
-    access_level,
-    image=None,
-    config: List[str] = None,
-    config_output=None,
-    use_test_server=False,
+def run_config(
+    dataset: str,
+    output_dir: str,
+    access_level: str,
+    image: Optional[str] = None,
+    config: Optional[List[str]] = None,
+    config_output: Optional[str] = None,
+    use_test_server: bool = False,
+    server_url: Optional[str] = None,
 ):
     """
     Main function that drives the CLI.
@@ -97,7 +101,8 @@ def run_config(  # pylint: disable=too-many-arguments
         _config = dict(read_configs(config))
 
     server_endpoint = os.path.join(
-        get_server_endpoint(is_test=use_test_server), 'config'
+        get_server_endpoint(is_test=use_test_server, server_url=server_url),
+        'config',
     )
     _token = get_google_identity_token(server_endpoint)
 
@@ -119,7 +124,7 @@ def run_config(  # pylint: disable=too-many-arguments
             if not config_output.endswith('.toml'):
                 logger.warning(
                     'The config is written as a .toml file, but the extension on the '
-                    'file you have provided is not .toml'
+                    'file you have provided is not .toml',
                 )
             with open(config_output, 'w+', encoding='utf-8') as f:
                 toml.dump(response.json(), f)
@@ -129,6 +134,6 @@ def run_config(  # pylint: disable=too-many-arguments
 
     except requests.HTTPError as e:
         logger.critical(
-            f'Request failed with status {response.status_code}: {str(e)}\n'
+            f'Request failed with status {response.status_code}: {e!s}\n'
             f'Full response: {response.text}',
         )

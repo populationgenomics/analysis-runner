@@ -7,15 +7,14 @@ files for each individual in the family into the project test bucket.
 """
 
 
+import logging
+import subprocess
+import sys
 from argparse import ArgumentParser
 from collections import defaultdict
-import logging
-import sys
-import subprocess
 
-# pylint: disable=E0401,E0611
-from sample_metadata.apis import FamilyApi, AnalysisApi, SampleApi
-from sample_metadata.models import BodyGetSamples, AnalysisType
+from sample_metadata.apis import AnalysisApi, FamilyApi, SampleApi
+from sample_metadata.models import AnalysisType, BodyGetSamples
 
 
 def get_family_id_to_participant_map(project: str) -> dict[str, list[dict]]:
@@ -45,7 +44,7 @@ def copy_to_test(project: str, path: str):
         f'cpg-{project}-test',
     )
 
-    subprocess.run(f'gsutil cp {path} {test_path}', shell=True, check=True)
+    subprocess.run(['gsutil', 'cp', path, test_path], check=True)  # noqa: S603,S607
     logging.info(f'Copied {test_path}')
 
 
@@ -83,17 +82,23 @@ def main(
     # Retrieve active samples for these participants
     samples = SampleApi().get_samples(
         body_get_samples=BodyGetSamples(
-            project_ids=[project], participant_ids=participant_ids, active=True
-        )
+            project_ids=[project],
+            participant_ids=participant_ids,
+            active=True,
+        ),
     )
 
     # Retrieve latest crams and gvcfs for selected samples
     sample_ids = [sample['id'] for sample in samples]
     latest_crams = AnalysisApi().get_latest_analysis_for_samples_and_type(
-        AnalysisType('cram'), project, request_body=sample_ids
+        AnalysisType('cram'),
+        project,
+        request_body=sample_ids,
     )
     latest_gvcfs = AnalysisApi().get_latest_analysis_for_samples_and_type(
-        AnalysisType('gvcf'), project, request_body=sample_ids
+        AnalysisType('gvcf'),
+        project,
+        request_body=sample_ids,
     )
 
     # Copy files to test
@@ -116,7 +121,9 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('-p', '--project', help='Project name', required=True)
     parser.add_argument(
-        'family_ids', nargs='+', help='External family IDs to be transferred.'
+        'family_ids',
+        nargs='+',
+        help='External family IDs to be transferred.',
     )
 
     args, unknown = parser.parse_known_args()

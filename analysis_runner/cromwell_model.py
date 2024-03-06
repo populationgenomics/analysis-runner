@@ -1,5 +1,5 @@
 # flake8: noqa
-# pylint: skip-file
+
 from enum import Enum
 from textwrap import indent
 from typing import List, Dict, Optional
@@ -428,7 +428,7 @@ def get_readable_duration(seconds: int):
         if interval > seconds and not has_seen_value:
             continue
         has_seen_value = True
-        intervals, seconds = divmod(seconds, interval)
+        intervals, seconds = divmod(seconds, interval)  # type: ignore
         periods.append(f'{intervals}{suffix}')
 
     # weird if we get to here, but sure

@@ -35,7 +35,7 @@ setuptools.setup(
         'tabulate',
     ],
     entry_points={
-        'console_scripts': ['analysis-runner=analysis_runner.cli:main_from_args']
+        'console_scripts': ['analysis-runner=analysis_runner.cli:main_from_args'],
     },
     keywords='bioinformatics',
     classifiers=[

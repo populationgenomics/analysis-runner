@@ -14,12 +14,13 @@ Test Hail Batch Workflow
 from shlex import quote
 
 import click
+
 from cpg_utils.hail_batch import get_batch
 
 
 @click.command()
 @click.option('--name-to-print')
-def main(name_to_print):
+def main(name_to_print: str):
     """Runs test hail batch workflow"""
 
     b = get_batch()
@@ -42,4 +43,4 @@ def main(name_to_print):
 
 
 if __name__ == '__main__':
-    main()  # pylint: disable=no-value-for-parameter
+    main()
