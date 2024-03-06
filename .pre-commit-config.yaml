@@ -19,13 +19,13 @@ repos:
       - id: cpg-id-checker
 
   - repo: https://github.com/ambv/black
-    rev: 23.12.1
+    rev: 24.2.0
     hooks:
       - id: black
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.1.11
+    rev: v0.3.0
     hooks:
       - id: ruff
 
