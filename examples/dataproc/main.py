@@ -3,9 +3,8 @@
 """Demonstrates the use of the dataproc module."""
 import os
 
-from cpg_utils.hail_batch import get_batch
-
 from analysis_runner import dataproc
+from cpg_utils.hail_batch import get_batch
 
 batch = get_batch(name='dataproc example')
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# ruff: noqa: PLR2004
 """
 Takes a path to a Hail Table and an output name
 Writes data into the test bucket for the dataset
@@ -9,13 +9,13 @@ Optionally supply both --chr and --pos; subset to a specific locus
 The pos format can be a single int, or a "start-end"
 """
 
-from argparse import ArgumentParser
 import logging
 import sys
+from argparse import ArgumentParser
 
 import hail as hl
 
-from cpg_utils.hail_batch import output_path, init_batch
+from cpg_utils.hail_batch import init_batch, output_path
 
 
 def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
@@ -154,7 +154,9 @@ if __name__ == '__main__':
         required=False,
     )
     parser.add_argument(
-        '--biallelic', help='Remove non-biallelic sites', action='store_true',
+        '--biallelic',
+        help='Remove non-biallelic sites',
+        action='store_true',
     )
     parser.add_argument(
         '--format',

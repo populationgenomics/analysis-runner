@@ -6,20 +6,23 @@ import json
 import os
 import random
 import uuid
+from typing import Any, Dict
 
 import toml
 from aiohttp import ClientSession, web
 from cloudpathlib import AnyPath
-from cpg_utils.cloud import email_from_id_token, is_member_in_cached_group, read_secret
-from cpg_utils.config import AR_GUID_NAME, update_dict
-from cpg_utils.hail_batch import cpg_namespace
 from google.cloud import pubsub_v1, secretmanager
+
+from hailtop.batch import Batch
 from hailtop.config import get_deploy_config
 
 from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
+from cpg_utils.cloud import email_from_id_token, is_member_in_cached_group, read_secret
+from cpg_utils.config import AR_GUID_NAME, update_dict
+from cpg_utils.hail_batch import cpg_namespace
 
 GITHUB_ORG = 'populationgenomics'
-METADATA_PREFIX = '/tmp/metadata'
+METADATA_PREFIX = '/$TMPDIR/metadata'
 PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
 ALLOWED_CONTAINER_IMAGE_PREFIXES = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/',
@@ -40,8 +43,11 @@ publisher = pubsub_v1.PublisherClient()
 def generate_ar_guid():
     """Generate guid for tracking analysis-runner jobs"""
     guid = str(uuid.uuid4())
+    # guids can't start with a number (GCP labels won't accept it)
     if guid[0].isdigit():
-        guid = random.choice('abcdef') + guid[1:]
+        # Standard pseudo-random generators are not suitable for cryptographic purposes
+        # but that's not a problem for our purposes
+        guid = random.choice('abcdef') + guid[1:]  # noqa: S311
     return guid.lower()
 
 
@@ -72,7 +78,7 @@ async def _get_hail_version(environment: str) -> str:
         return await resp.text()
 
 
-def get_email_from_request(request):
+def get_email_from_request(request: web.Request):
     """
     Get 'Authorization' from request header,
     and parse the email address using cpg-util
@@ -88,7 +94,7 @@ def get_email_from_request(request):
         raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
 
-def check_allowed_repos(dataset_config, repo):
+def check_allowed_repos(dataset_config: Dict, repo: str):
     """Check that repo is the in server_config allowedRepos for the dataset"""
     allowed_repos = dataset_config['allowedRepos']
     if repo not in allowed_repos:
@@ -108,7 +114,12 @@ def validate_output_dir(output_dir: str):
     return output_dir.rstrip('/')  # Strip trailing slash.
 
 
-def check_dataset_and_group(server_config, environment: str, dataset, email) -> dict:
+def check_dataset_and_group(
+    server_config: Dict,
+    environment: str,
+    dataset: str,
+    email: str,
+) -> dict:
     """Check that the email address is a member of the {dataset}-access@popgen group"""
     dataset_config = server_config.get(dataset)
     if not dataset_config:
@@ -134,7 +145,9 @@ def check_dataset_and_group(server_config, environment: str, dataset, email) -> 
             f'the {environment} environment',
         )
     if not is_member_in_cached_group(
-        f'{dataset}-analysis', email, members_cache_location=MEMBERS_CACHE_LOCATION,
+        f'{dataset}-analysis',
+        email,
+        members_cache_location=MEMBERS_CACHE_LOCATION,
     ):
         raise web.HTTPForbidden(
             reason=f'{email} is not a member of the {dataset} analysis group',
@@ -148,20 +161,20 @@ def get_analysis_runner_metadata(
     *,
     ar_guid: str,
     name: str,
-    timestamp,
-    dataset,
-    user,
-    access_level,
-    repo,
-    commit,
-    script,
-    description,
-    output_prefix,
-    driver_image,
-    config_path,
-    cwd,
-    environment,
-    **kwargs,
+    timestamp: str,
+    dataset: str,
+    user: str,
+    access_level: str,
+    repo: str,
+    commit: str,
+    script: str,
+    description: str,
+    output_prefix: str,
+    driver_image: str,
+    config_path: str,
+    cwd: str,
+    environment: str,
+    **kwargs: Any,
 ):
     """
     Get well-formed analysis-runner metadata, requiring the core listed keys
@@ -189,7 +202,7 @@ def get_analysis_runner_metadata(
     }
 
 
-def run_batch_job_and_print_url(batch, wait, environment):
+def run_batch_job_and_print_url(batch: Batch, wait: bool, environment: str):
     """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
     if not environment == 'gcp':
         raise web.HTTPBadRequest(
@@ -232,10 +245,10 @@ def write_config(ar_guid: str, config: dict, environment: str) -> str:
 def get_baseline_run_config(
     ar_guid: str,
     environment: str,
-    gcp_project_id,
-    dataset,
-    access_level,
-    output_prefix,
+    gcp_project_id: str,
+    dataset: str,
+    access_level: str,
+    output_prefix: str,
     driver: str | None = None,
 ) -> dict:
     """

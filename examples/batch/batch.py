@@ -6,6 +6,7 @@ Example of running Batch script with analysis-runner.
 import os
 
 import click
+
 from cpg_utils.hail_batch import copy_common_env, get_batch, output_path
 
 REF_FASTA = 'gs://cpg-common-main/references/hg38/v0/Homo_sapiens_assembly38.fasta'

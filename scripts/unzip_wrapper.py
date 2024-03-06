@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# ruff: noqa: S603,S607
 """
 wrapper script for the un-tar script
 wrapped to modulate the batch job storage
@@ -22,22 +22,27 @@ from cpg_utils.hail_batch import (
     get_batch,
 )
 
-
 CLIENT = storage.Client()
 RMATCH_STR = r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/'
 PATH_PATTERN = re.compile(RMATCH_STR)
 GB = 1024 * 1024 * 1024  # dollars
 UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
-COMMIT_HASH = subprocess.check_output(['git', 'describe', '--always']).strip().decode()
 
 
-def get_path_components_from_path(path):
+def get_commit_hash():
+    return subprocess.check_output(['git', 'describe', '--always']).strip().decode()
+
+
+def get_path_components_from_path(path: str):
     """
     Returns the bucket_name and subdir for GS only paths
     Uses regex to match the bucket name and the subdirectory.
     """
 
-    path_components = (PATH_PATTERN.match(path)).groups()
+    match = PATH_PATTERN.match(path)
+    if not match:
+        raise ValueError(f'Cannot find bucket, path for gs:// path: {path}')
+    path_components = match.groups()
 
     bucket_name = path_components[0]
     subdir = path_components[1]
@@ -71,7 +76,10 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
 
 @click.command()
 @click.option(
-    '--search-path', '-p', help='GCP bucket/directory to search', required=True,
+    '--search-path',
+    '-p',
+    help='GCP bucket/directory to search',
+    required=True,
 )
 def main(search_path: str):
     """
@@ -105,7 +113,7 @@ def main(search_path: str):
             job,
             organisation='populationgenomics',
             repo_name='analysis-runner',
-            commit=COMMIT_HASH,
+            commit=get_commit_hash(),
         )
         job.command('cd /io')
         job.command(

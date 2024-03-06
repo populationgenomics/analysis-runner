@@ -2,14 +2,19 @@
 A Cloud Function to store analysis-runner submission metadata
 in the Sample-Metadata database.
 """
-import json
+
+# ruff: noqa: ARG001
+
 import base64
+import json
+from typing import Any, Dict, Literal
+
 import requests
 
 AUDIENCE = 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
 
 
-def sample_metadata(data, unused_context):
+def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
     """Puts analysis in sample-metadata"""
 
     metadata = json.loads(base64.b64decode(data['data']).decode('utf-8'))

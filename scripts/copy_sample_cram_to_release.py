@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# ruff: noqa: S603,S607
 
 """
 Given a project and sample IDs, copies cram files for
@@ -7,15 +7,15 @@ each sample listed into the project's release bucket.
 """
 
 import logging
-import sys
 import subprocess
+import sys
 import time
+
 import click
 
-# pylint: disable=E0401,E0611
 from cpg_utils.config import get_config
-from sample_metadata.apis import AnalysisApi
-from sample_metadata.models import AnalysisType
+from metamist.apis import AnalysisApi
+from metamist.models import AnalysisType
 
 
 def check_paths_exist(paths: list[str]):
@@ -27,7 +27,10 @@ def check_paths_exist(paths: list[str]):
     for path in paths:
         # gsutil ls <path> returns '<path>\n' if path exists
         result = subprocess.run(
-            ['gsutil', 'ls', path], check=True, capture_output=True, text=True,
+            ['gsutil', 'ls', path],
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout.strip('\n')
         if result == path:
             continue
@@ -66,7 +69,7 @@ def copy_to_release(project: str, billing_project: str, paths: list[str]):
 @click.option('--project', '-p', help='Metamist name of the project', default='')
 @click.option('--billing-project', '-b', help='The GCP billing project to use')
 @click.argument('samples', nargs=-1)
-def main(project: str, billing_project: str, samples):
+def main(project: str, billing_project: str, samples: list[str]):
     """
 
     Parameters
@@ -85,7 +88,9 @@ def main(project: str, billing_project: str, samples):
 
     # Retrieve latest crams for selected samples
     latest_crams = AnalysisApi().get_latest_analysis_for_samples_and_type(
-        AnalysisType('cram'), project, request_body=sample_ids,
+        AnalysisType('cram'),
+        project,
+        request_body=sample_ids,
     )
 
     # Get all paths of files to be copied to release

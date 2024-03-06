@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# ruff: noqa: S603,S607
 
 """
 Given a single TAG.GZ, extract and upload
@@ -10,6 +10,7 @@ import os
 import pathlib
 import subprocess
 import sys
+
 import click
 
 # pylint: disable=E0401,E0611
@@ -48,7 +49,7 @@ def main(bucket: str, subdir: str, blob_name: str, outdir: str):
     input_bucket.get_blob(blob_name).download_to_filename(blob_name)
     logging.info(f'Untaring {blob_name}')
     subprocess.run(
-        ['tar', '-xf', f'{blob_name}', '-C', f'./{subdir}/extracted'],
+        ['tar', '-xf', blob_name, '-C', f'./{subdir}/extracted'],
         check=True,
     )
     logging.info(f'Untared {blob_name}')

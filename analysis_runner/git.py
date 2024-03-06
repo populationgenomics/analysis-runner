@@ -14,7 +14,7 @@ def get_output_of_command(command: List[str], description: str) -> str:
     """subprocess.check_output wrapper that returns string output and raises detailed
     exceptions on error."""
     try:
-        return subprocess.check_output(command).decode().strip()
+        return subprocess.check_output(command).decode().strip()  # noqa: S603
     # Handle and rethrow KeyboardInterrupt error to stop global exception catch
     # pylint: disable=try-except-raise
     except KeyboardInterrupt:
@@ -23,7 +23,7 @@ def get_output_of_command(command: List[str], description: str) -> str:
         raise OSError(
             f"Couldn't call {description} by calling '{' '.join(command)}', {e}",
         ) from e
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise type(e)(
             f"Couldn't process {description} through calling '{' '.join(command)}', {e}",
         ) from e
@@ -76,10 +76,10 @@ def get_git_branch_name() -> Optional[str]:
     """Returns the current branch name."""
     command = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
     try:
-        value = subprocess.check_output(command).decode().strip()
+        value = subprocess.check_output(command).decode().strip()  # noqa: S603
         if value:
             return value
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception:  # noqa: BLE001
         return None
 
     return None
@@ -109,10 +109,12 @@ def get_repo_name_from_remote(remote_name: str) -> str:
     repo = None
     if remote_name.startswith('http'):
         match = re.match(r'https:\/\/[A-z0-9\.]+?\/(.+?)\/(.+)$', remote_name)
-        organization, repo = match.groups()
+        if match:
+            organization, repo = match.groups()
     elif remote_name.startswith('git@'):
         match = re.match(r'git@[A-z0-9\.]+?:(.+?)\/(.+)$', remote_name)
-        organization, repo = match.groups()
+        if match:
+            organization, repo = match.groups()
 
     if organization not in SUPPORTED_ORGANIZATIONS:
         raise ValueError(f'Unsupported GitHub organization "{organization}"')
@@ -133,7 +135,7 @@ def check_if_commit_is_on_remote(commit: str) -> bool:
     """
     command = ['git', 'branch', '-r', '--contains', commit]
     try:
-        ret = subprocess.check_output(command)
+        ret = subprocess.check_output(command)  # noqa: S603
         return bool(ret)
     except subprocess.CalledProcessError:
         return False
@@ -176,7 +178,11 @@ def guess_script_name_from_script_argument(script: List[str]) -> Optional[str]:
 
 
 def guess_script_github_url_from(
-    *, repo: Optional[str], commit: Optional[str], cwd: Optional[str], script: List[str],
+    *,
+    repo: Optional[str],
+    commit: Optional[str],
+    cwd: Optional[str],
+    script: List[str],
 ) -> Optional[str]:
     """
     Guess the GitHub URL of the script from the given arguments.
@@ -194,11 +200,11 @@ def guess_script_github_url_from(
 
 
 def prepare_git_job(
-    job,
+    job: 'hailtop.batch.job.BashJob',  # noqa: F821
     repo_name: str,
     commit: str,
     is_test: bool = True,
-    print_all_statements=True,
+    print_all_statements: bool = True,
     get_deploy_token: bool = True,
 ):
     """

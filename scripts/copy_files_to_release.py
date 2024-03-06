@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# ruff: noqa: S607,S603
 """
 Given a project, billing-project ID, and path to a file
 containing urls, copies all the urls from the file into
@@ -7,16 +7,17 @@ the project's release bucket.
 """
 
 import logging
-import sys
 import subprocess
+import sys
 import time
-import click
 
+import click
 from google.cloud import storage
+
+from cpg_utils import to_path
 
 # pylint: disable=E0401,E0611
 from cpg_utils.config import get_config
-from cpg_utils import to_path
 
 client = storage.Client()
 
@@ -30,7 +31,10 @@ def check_paths_exist(paths: list[str]):
     for path in paths:
         # gsutil ls <path> returns '<path>\n' if path exists
         result = subprocess.run(
-            ['gsutil', 'ls', path], check=True, capture_output=True, text=True,
+            ['gsutil', 'ls', path],
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout.strip('\n')
         if result == path:
             continue

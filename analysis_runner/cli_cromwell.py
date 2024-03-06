@@ -6,10 +6,9 @@ Cromwell CLI
 import argparse
 import json
 import os.path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
-from cpg_utils.cloud import get_google_identity_token
 
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.cromwell_model import WorkflowMetadataModel
@@ -27,6 +26,7 @@ from analysis_runner.util import (
     confirm_choice,
     logger,
 )
+from cpg_utils.cloud import get_google_identity_token
 
 
 def cromwell_modes() -> dict:
@@ -41,7 +41,9 @@ def cromwell_modes() -> dict:
     }
 
 
-def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
+def add_cromwell_args(
+    parser: Optional[argparse.ArgumentParser] = None,
+) -> argparse.ArgumentParser:
     """Create / add arguments for cromwell argparser"""
     if not parser:
         parser = argparse.ArgumentParser('cromwell analysis-runner')
@@ -54,7 +56,7 @@ def add_cromwell_args(parser=None) -> argparse.ArgumentParser:
     return parser
 
 
-def run_cromwell_from_args(args):
+def run_cromwell_from_args(args: argparse.ArgumentParser):
     """Run cromwell CLI mode from argparse.args"""
     _cromwell_modes = cromwell_modes()
 
@@ -66,12 +68,18 @@ def run_cromwell_from_args(args):
     return _cromwell_modes[cromwell_mode][1](**kwargs)
 
 
-def _add_generic_cromwell_visualiser_args(parser: argparse.ArgumentParser) -> None:
+def _add_generic_cromwell_visualiser_args(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     parser.add_argument('-l', '--expand-completed', default=False, action='store_true')
     parser.add_argument('--monochrome', default=False, action='store_true')
 
+    return parser
 
-def _add_cromwell_status_args(parser: argparse.ArgumentParser):
+
+def _add_cromwell_status_args(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     """Add cli args for checking status of Cromwell workflow"""
     parser.add_argument('workflow_id')
     parser.add_argument('--json-output', help='Output metadata to this path')
@@ -81,7 +89,9 @@ def _add_cromwell_status_args(parser: argparse.ArgumentParser):
     return parser
 
 
-def _add_cromwell_metadata_visualier_args(parser: argparse.ArgumentParser):
+def _add_cromwell_metadata_visualier_args(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     """
     Add arguments for visualising cromwell workflow from metadata file
     """
@@ -90,7 +100,9 @@ def _add_cromwell_metadata_visualier_args(parser: argparse.ArgumentParser):
     return parser
 
 
-def _add_cromwell_submit_args_to(parser):
+def _add_cromwell_submit_args_to(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     """
     Add cli args for submitting WDL workflow to cromwell,
     via the analysis runner
@@ -114,7 +126,7 @@ def _add_cromwell_submit_args_to(parser):
         help=(
             'A directory which is used to search for workflow imports. You can specify this argument multiple times.'
             'Note: the directories are zipped from the cwd with `zip -r {directory1} {directory2}`.'
-            'Please raise an issue to change this behaviour',
+            'Please raise an issue to change this behaviour'
         ),
     )
     parser.add_argument(
@@ -149,23 +161,23 @@ def _add_cromwell_submit_args_to(parser):
     return parser
 
 
-def _run_cromwell(
-    dataset,
-    output_dir,
-    description,
-    access_level,
+def _run_cromwell(  # noqa: C901
+    dataset: str,
+    output_dir: str,
+    description: str,
+    access_level: str,
     workflow: str,
     inputs: List[str],
     imports: Optional[List[str]] = None,
     workflow_input_prefix: Optional[str] = None,
     dynamic_inputs: Optional[List[str]] = None,
-    commit=None,
-    repository=None,
-    cwd=None,
-    labels=None,
-    dry_run=False,
-    use_test_server=False,
-    server_url=None,
+    commit: Optional[str] = None,
+    repository: Optional[str] = None,
+    cwd: Optional[str] = None,
+    labels: Optional[str] = None,
+    dry_run: Optional[bool] = False,
+    use_test_server: Optional[bool] = False,
+    server_url: Optional[str] = None,
 ) -> None:
     """
     Prepare parameters for cromwell analysis-runner job
@@ -234,7 +246,8 @@ def _run_cromwell(
     }
 
     server_endpoint = get_server_endpoint(
-        server_url=server_url, is_test=use_test_server,
+        server_url=server_url,
+        is_test=use_test_server,
     )
     endpoint = os.path.join(server_endpoint, '/cromwell')
 
@@ -269,11 +282,11 @@ curl --location --request POST \\
 
 
 def _check_cromwell_status(
-    workflow_id,
+    workflow_id: str,
     json_output: Optional[str],
     server_url: str | None = None,
     is_test: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """Check cromwell status with workflow_id"""
 
@@ -302,7 +315,10 @@ def _check_cromwell_status(
     print(model.display(**kwargs))
 
 
-def _visualise_cromwell_metadata_from_file(metadata_file: str, **kwargs) -> None:
+def _visualise_cromwell_metadata_from_file(
+    metadata_file: str,
+    **kwargs: Any,
+) -> None:
     """Visualise cromwell metadata progress from a json file"""
     with open(metadata_file, encoding='utf-8') as f:
         model = WorkflowMetadataModel.parse(json.load(f))
@@ -311,7 +327,9 @@ def _visualise_cromwell_metadata_from_file(metadata_file: str, **kwargs) -> None
 
 
 def visualise_cromwell_metadata(
-    model: WorkflowMetadataModel, expand_completed, monochrome,
+    model: WorkflowMetadataModel,
+    expand_completed: bool,
+    monochrome: bool,
 ):
     """Print the visualisation of cromwell metadata model"""
     print(model.display(expand_completed=expand_completed, monochrome=monochrome))
@@ -352,7 +370,7 @@ def parse_keyword(keyword: str):
     return keyword[2:].replace('-', '_')
 
 
-def parse_additional_args(args: List[str]) -> Dict[str, any]:
+def parse_additional_args(args: List[str]) -> Dict[str, Any]:
     """
     Parse a list of strings to an inputs json
 
@@ -395,7 +413,7 @@ def parse_additional_args(args: List[str]) -> Dict[str, any]:
 
     keywords = {}
 
-    def add_keyword_value_to_keywords(keyword, value) -> None:
+    def add_keyword_value_to_keywords(keyword: str, value: Any) -> None:
         if keyword in keywords:
             if value is None:
                 value = [keywords.get(keyword)]

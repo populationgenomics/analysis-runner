@@ -8,8 +8,6 @@ from shutil import which
 from typing import List, Optional
 
 import requests
-from cpg_utils.cloud import get_google_identity_token
-from cpg_utils.config import read_configs
 
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
@@ -26,9 +24,13 @@ from analysis_runner.util import (
     confirm_choice,
     logger,
 )
+from cpg_utils.cloud import get_google_identity_token
+from cpg_utils.config import read_configs
 
 
-def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
+def add_analysis_runner_args(
+    parser: Optional[argparse.ArgumentParser] = None,
+) -> argparse.ArgumentParser:
     """
     Add CLI arguments for standard analysis-runner
     """
@@ -99,12 +101,12 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     return parser
 
 
-def run_analysis_runner_from_args(args):
+def run_analysis_runner_from_args(args: argparse.ArgumentParser):
     """Run analysis runner from argparse.parse_arguments"""
     return run_analysis_runner(**vars(args))
 
 
-def run_analysis_runner(  # pylint: disable=too-many-arguments
+def run_analysis_runner(  # noqa: C901
     dataset: str,
     output_dir: str,
     script: List[str],
@@ -121,8 +123,8 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     branch: Optional[str] = None,
     config: Optional[List[str]] = None,
     env: Optional[List[str]] = None,
-    use_test_server=False,
-    server_url=None,
+    use_test_server: bool = False,
+    server_url: Optional[str] = None,
 ):
     """
     Main function that drives the CLI.
@@ -212,7 +214,8 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         _config = dict(read_configs(config))
 
     server_endpoint = get_server_endpoint(
-        server_url=server_url, is_test=use_test_server,
+        server_url=server_url,
+        is_test=use_test_server,
     )
     _token = get_google_identity_token(server_endpoint)
 
@@ -251,7 +254,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         )
 
 
-def _perform_shebang_check(script) -> None:
+def _perform_shebang_check(script: str) -> None:
     """
     Returns None if script has shebang, otherwise raises Exception
     """

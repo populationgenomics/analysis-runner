@@ -1,6 +1,8 @@
 """Utility function"""
-# pylint: disable=import-outside-toplevel
 
+# ruff: noqa: ERA001
+
+import argparse
 import logging
 import re
 
@@ -30,7 +32,7 @@ def get_project_id_from_service_account_email(service_account_email: str) -> str
     return service_account_email.split('@')[-1].split('.')[0]
 
 
-def add_general_args(parser):
+def add_general_args(parser: argparse.ArgumentParser):
     """
     Add CLI arguments that are relevant for most
     analysis-runner submission modes (standard / cromwell)

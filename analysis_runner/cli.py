@@ -4,21 +4,20 @@
 CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
-from typing import Dict, Tuple, Callable
-
-import sys
 import argparse
+import sys
+from typing import Callable, Dict, Optional, Sequence, Tuple
 
 from analysis_runner._version import __version__
 from analysis_runner.cli_analysisrunner import (
     add_analysis_runner_args,
     run_analysis_runner_from_args,
 )
-from analysis_runner.cli_cromwell import add_cromwell_args, run_cromwell_from_args
 from analysis_runner.cli_config import add_config_args, run_config_from_args
+from analysis_runner.cli_cromwell import add_cromwell_args, run_cromwell_from_args
 
 
-def main_from_args(args=None):
+def main_from_args(args: Optional[Sequence[str]] = None):
     """
     Parse args using argparse
     (if args is None, argparse automatically uses `sys.argv`)

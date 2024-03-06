@@ -6,6 +6,7 @@ skip-string-normalization = true
 [tool.ruff]
 line-length = 88
 
+[tool.ruff.lint]
 # ignore pydocstyle, flake8-boolean-trap (FBT)
 select = ["A", "B", "C",  "E", "F", "G", "I", "N", "Q", "S", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "ERA", "EXE", "ICN", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "UP", "YTT"]
 
@@ -14,6 +15,7 @@ fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN
 ignore = [
     "ANN101",  # Missing type annotation for self in method
     "ANN201",  # Missing return type annotation for public function
+    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
     "E501",    # Line length too long
     "E731",    # Do not assign a lambda expression, use a def
     "E741",    # Ambiguous variable name
@@ -26,15 +28,14 @@ ignore = [
     "PT018",   # Assertion should be broken down into multiple parts
     "Q000",    # Single quotes found but double quotes preferred
     "S101",    # Use of assert detected
-    "I001", # Import block is un-sorted (we use isort directly as ruff sort isn't fully supported)
 ]
 
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 
-section-order = ["future", "stdlib", "thirdparty", "hail", "cpg", "firstparty", "localfolder"]
+section-order = ["future", "standard-library", "third-party", "hail", "cpg", "first-party", "local-folder"]
 
-[tool.ruff.isort.sections]
+[tool.ruff.lint.isort.sections]
 hail = [
     "hail",
     "hailtop",

@@ -9,6 +9,7 @@ from shlex import quote
 
 import click
 from cloudpathlib import AnyPath
+
 from cpg_utils.config import get_config
 from cpg_utils.hail_batch import (
     authenticate_cloud_credentials_in_job,
