@@ -359,7 +359,7 @@ def prepare_response_from_exception(ex: Exception):
     return prepare_exception_json_response(500, message=m, tb=tb)
 
 
-async def error_middleware(_: web.Application, handler: web.middleware.Handler):
+async def error_middleware(_, handler):  # noqa: ANN001
     """
     Constructs middleware handler
     First argument is app, but unused in this context
