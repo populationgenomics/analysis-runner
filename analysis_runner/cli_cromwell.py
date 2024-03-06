@@ -2,7 +2,6 @@
 Cromwell CLI
 """
 
-# pylint: disable=too-many-arguments,too-many-return-statements,broad-except
 import argparse
 import json
 import os.path
@@ -370,7 +369,7 @@ def parse_keyword(keyword: str):
     return keyword[2:].replace('-', '_')
 
 
-def parse_additional_args(args: List[str]) -> Dict[str, Any]:
+def parse_additional_args(args: List[str]) -> Dict[str, Any]:  # noqa: C901
     """
     Parse a list of strings to an inputs json
 
@@ -411,9 +410,11 @@ def parse_additional_args(args: List[str]) -> Dict[str, Any]:
     {'keyword': [['val1_a', 'val1_b'], ['val2_a', 'val2_b']]}
     """
 
-    keywords = {}
+    keywords: dict[str, Any] = {}
 
-    def add_keyword_value_to_keywords(keyword: str, value: Any) -> None:
+    def add_keyword_value_to_keywords(keyword: Optional[str], value: Any) -> None:
+        if not keyword:
+            return
         if keyword in keywords:
             if value is None:
                 value = [keywords.get(keyword)]
@@ -428,7 +429,7 @@ def parse_additional_args(args: List[str]) -> Dict[str, Any]:
         keywords[keyword] = value
 
     current_keyword = None
-    new_value: any = None
+    new_value: Any = None
 
     for arg in args:
         if not arg.startswith('--'):

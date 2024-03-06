@@ -4,7 +4,7 @@ import os
 import re
 import subprocess
 from shlex import quote
-from typing import List, Optional
+from typing import Any, List, Optional
 
 GITHUB_ORG = 'populationgenomics'
 SUPPORTED_ORGANIZATIONS = {GITHUB_ORG}
@@ -200,7 +200,7 @@ def guess_script_github_url_from(
 
 
 def prepare_git_job(
-    job: 'hailtop.batch.job.BashJob',  # noqa: F821
+    job: Any,  # don't specify the type to avoid an extra import
     repo_name: str,
     commit: str,
     is_test: bool = True,

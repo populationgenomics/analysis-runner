@@ -11,7 +11,8 @@ batch = get_batch(name='dataproc example')
 
 # get relative path of cwd to the script using os
 QUERY_PATH = os.path.join(
-    os.path.relpath(os.path.dirname(__file__), os.getcwd()), 'query.py',
+    os.path.relpath(os.path.dirname(__file__), os.getcwd()),
+    'query.py',
 )
 
 cluster = dataproc.setup_dataproc(

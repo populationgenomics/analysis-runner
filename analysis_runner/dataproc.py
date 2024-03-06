@@ -92,9 +92,9 @@ class DataprocCluster:
         self._depends_on = kwargs.pop('depends_on', None)
         self._cluster_name = kwargs.get('cluster_name', None)
         self._region = kwargs.pop('region')
-        self._cluster_id = None
-        self._start_job = None
-        self._stop_job = None
+        self._cluster_id: Optional[str] = None
+        self._start_job: Optional[hb.batch.job.Job] = None
+        self._stop_job: Optional[hb.batch.job.Job] = None
         self._hail_version = kwargs.pop('hail_version', DEFAULT_HAIL_VERSION)
         self._startup_params = kwargs
         self._stop_cluster = kwargs.pop('stop_cluster', True)
@@ -119,6 +119,7 @@ class DataprocCluster:
                 **self._startup_params,
             )
             if self._depends_on:
+                assert self._start_job, 'Start job was not created correctly'
                 self._start_job.depends_on(*self._depends_on)
 
             if self._stop_cluster:
@@ -131,6 +132,7 @@ class DataprocCluster:
                     region=self._region,
                     hail_version=self._hail_version,
                 )
+                assert self._stop_job, 'Stop job was not created correctly'
                 self._stop_job.depends_on(self._start_job)
 
         if self._cluster_id is None:

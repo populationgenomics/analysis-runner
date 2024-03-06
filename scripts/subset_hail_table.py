@@ -98,6 +98,9 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
     if pos and not contig:
         raise ValueError('Positional filtering requires a chromosome')
 
+    start: int | str
+    end: int | str
+
     if contig and not pos:
         start = 'start'
         end = 'end'
@@ -126,7 +129,7 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
             pos,
         ), f'if only one position is specified, it must be numerical: {pos}'
         start = int(pos)
-        end = start + 1
+        end = int(pos) + 1
 
     return hl.parse_locus_interval(f'{contig}:{start}-{end}', reference_genome='GRCh38')
 
