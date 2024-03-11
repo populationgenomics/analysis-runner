@@ -6,6 +6,7 @@ Example of running Batch script with analysis-runner.
 import os
 
 import click
+
 from cpg_utils.hail_batch import copy_common_env, get_batch, output_path
 
 REF_FASTA = 'gs://cpg-common-main/references/hg38/v0/Homo_sapiens_assembly38.fasta'
@@ -15,7 +16,7 @@ SAMTOOLS_IMAGE = 'australia-southeast1-docker.pkg.dev/cpg-common/images/samtools
 @click.command()
 @click.argument('cram_path')
 @click.argument('region')
-def main(cram_path: str, region: str):  # pylint: disable=missing-function-docstring
+def main(cram_path: str, region: str):
     """
     Subset CRAM or BAM file CRAM_PATH to REGION. Example: batch.py sample.cram chr21:1-10000
     """
@@ -53,7 +54,7 @@ def main(cram_path: str, region: str):  # pylint: disable=missing-function-docst
     j.command(
         f"""
     samtools view -T {ref.base} {cram['cram']} {region} -Ocram -o {j.output_bam}
-    """
+    """,
     )
 
     # Speciying where to write the result
@@ -66,4 +67,4 @@ def main(cram_path: str, region: str):  # pylint: disable=missing-function-docst
 
 
 if __name__ == '__main__':
-    main()  # pylint: disable=no-value-for-parameter
+    main()

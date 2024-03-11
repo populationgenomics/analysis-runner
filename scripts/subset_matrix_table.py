@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# ruff: noqa: PLR2004
 """
 Takes a path to a MatrixTable and a name prefix
 Writes data into the test bucket for the dataset
@@ -13,17 +13,19 @@ Default behaviour is to remove any sites where the requested samples
     are all HomRef. All sites can be retained with --keep_ref
 """
 
-from argparse import ArgumentParser
 import logging
 import sys
+from argparse import ArgumentParser
 
 import hail as hl
 
-from cpg_utils.hail_batch import output_path, init_batch
+from cpg_utils.hail_batch import init_batch, output_path
 
 
 def subset_to_samples(
-    mt: hl.MatrixTable, samples: set[str], keep_hom_ref: bool
+    mt: hl.MatrixTable,
+    samples: set[str],
+    keep_hom_ref: bool,
 ) -> hl.MatrixTable:
     """
     checks the requested sample subset exists in this joint call
@@ -45,7 +47,7 @@ def subset_to_samples(
 
     if missing_samples:
         raise AssertionError(
-            f'Sample(s) missing from subset: {", ".join(missing_samples)}'
+            f'Sample(s) missing from subset: {", ".join(missing_samples)}',
         )
 
     mt = mt.filter_cols(hl.set(samples).contains(mt.s))
@@ -160,7 +162,10 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         return None
 
     if pos and not contig:
-        raise AssertionError(f'Positional filtering requires a chromosome')
+        raise AssertionError('Positional filtering requires a chromosome')
+
+    start: str | int
+    end: str | int
 
     if contig and not pos:
         start = 'start'
@@ -187,10 +192,10 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
 
     else:
         assert int(
-            pos
+            pos,
         ), f'if only one position is specified, it must be numerical: {pos}'
         start = int(pos)
-        end = start + 1
+        end = int(pos) + 1
 
     return hl.parse_locus_interval(f'{contig}:{start}-{end}', reference_genome='GRCh38')
 
@@ -212,7 +217,10 @@ if __name__ == '__main__':
         required=True,
     )
     parser.add_argument(
-        '-s', help='One or more sample IDs, whitespace delimited', nargs='+', default=[]
+        '-s',
+        help='One or more sample IDs, whitespace delimited',
+        nargs='+',
+        default=[],
     )
     parser.add_argument(
         '--format',

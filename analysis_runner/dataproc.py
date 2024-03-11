@@ -4,11 +4,9 @@ import os
 import re
 import uuid
 from shlex import quote
-from typing import Collection, Dict, List, Optional, Tuple
+from typing import Any, Collection, Dict, List, Optional, Tuple
 
 import hailtop.batch as hb
-from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
-from cpg_utils.hail_batch import cpg_namespace
 
 from analysis_runner.constants import GCLOUD_ACTIVATE_AUTH
 from analysis_runner.git import (
@@ -18,6 +16,8 @@ from analysis_runner.git import (
     get_repo_name_from_remote,
     prepare_git_job,
 )
+from cpg_utils.config import AR_GUID_NAME, get_config, try_get_ar_guid
+from cpg_utils.hail_batch import cpg_namespace
 
 DEFAULT_HAIL_VERSION = '0.2.126'
 
@@ -26,7 +26,7 @@ ACCESS_LEVEL = _config['workflow']['access_level']
 DATASET = _config['workflow']['dataset']
 DATASET_GCP_PROJECT = _config['workflow']['dataset_gcp_project']
 GCLOUD_CONFIG_SET_PROJECT = f'gcloud config set project {DATASET_GCP_PROJECT}'
-PYFILES_DIR = '/tmp/pyfiles'
+PYFILES_DIR = '$TMPDIR/pyfiles'
 PYFILES_ZIP = 'pyfiles.zip'
 
 DEFAULT_PACKAGES = [
@@ -66,7 +66,8 @@ def get_init_script_from_hail_version(hail_version: str) -> str:
     Use the install_common.sh which reinstalls the Hail wheel and phantomjs
     """
     return os.path.join(
-        get_script_directory_from_hail_version(hail_version), 'install_common.sh'
+        get_script_directory_from_hail_version(hail_version),
+        'install_common.sh',
     )
 
 
@@ -86,14 +87,14 @@ class DataprocCluster:
     Helper class that represents a Dataproc cluster created within a Batch
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self._batch = kwargs.pop('batch')
         self._depends_on = kwargs.pop('depends_on', None)
         self._cluster_name = kwargs.get('cluster_name', None)
         self._region = kwargs.pop('region')
-        self._cluster_id = None
-        self._start_job = None
-        self._stop_job = None
+        self._cluster_id: Optional[str] = None
+        self._start_job: Optional[hb.batch.job.Job] = None
+        self._stop_job: Optional[hb.batch.job.Job] = None
         self._hail_version = kwargs.pop('hail_version', DEFAULT_HAIL_VERSION)
         self._startup_params = kwargs
         self._stop_cluster = kwargs.pop('stop_cluster', True)
@@ -118,6 +119,7 @@ class DataprocCluster:
                 **self._startup_params,
             )
             if self._depends_on:
+                assert self._start_job, 'Start job was not created correctly'
                 self._start_job.depends_on(*self._depends_on)
 
             if self._stop_cluster:
@@ -130,6 +132,7 @@ class DataprocCluster:
                     region=self._region,
                     hail_version=self._hail_version,
                 )
+                assert self._stop_job, 'Stop job was not created correctly'
                 self._stop_job.depends_on(self._start_job)
 
         if self._cluster_id is None:
@@ -156,7 +159,7 @@ class DataprocCluster:
         return job
 
 
-def setup_dataproc(  # pylint: disable=unused-argument,too-many-arguments
+def setup_dataproc(
     batch: hb.Batch,
     max_age: str,
     num_workers: int = 2,
@@ -199,7 +202,7 @@ def hail_dataproc_job(
     pyfiles: Optional[List[str]] = None,
     job_name: Optional[str] = None,
     attributes: Optional[Dict] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> hb.batch.job.Job:
     """
     A legacy wrapper that adds a start, submit, and stop job altogether
@@ -209,7 +212,7 @@ def hail_dataproc_job(
     return cluster.add_job(script, job_name, pyfiles, attributes=attributes)
 
 
-def _add_start_job(  # pylint: disable=too-many-arguments
+def _add_start_job(  # noqa: C901
     batch: hb.Batch,
     max_age: str,
     region: str,
@@ -293,7 +296,7 @@ def _add_start_job(  # pylint: disable=too-many-arguments
         start_job_command.append(f'--worker-boot-disk-size={worker_boot_disk_size}')
     if secondary_worker_boot_disk_size:
         start_job_command.append(
-            f'--secondary-worker-boot-disk-size={secondary_worker_boot_disk_size}'
+            f'--secondary-worker-boot-disk-size={secondary_worker_boot_disk_size}',
         )
     _packages = []
     if install_default_packages:
@@ -366,7 +369,7 @@ def _add_submit_job(
         f'hailctl dataproc submit '
         f'--region={region} '
         + (f'--pyfiles {",".join(pyfiles)} ' if pyfiles else '')
-        + f'{cluster_id} -- {script} '
+        + f'{cluster_id} -- {script} ',
     )
     return main_job
 

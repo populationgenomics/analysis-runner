@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# ruff: noqa: PLR2004
 """
 Takes a path to a Hail Table and an output name
 Writes data into the test bucket for the dataset
@@ -9,13 +9,13 @@ Optionally supply both --chr and --pos; subset to a specific locus
 The pos format can be a single int, or a "start-end"
 """
 
-from argparse import ArgumentParser
 import logging
 import sys
+from argparse import ArgumentParser
 
 import hail as hl
 
-from cpg_utils.hail_batch import output_path, init_batch
+from cpg_utils.hail_batch import init_batch, output_path
 
 
 def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
@@ -96,7 +96,10 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         return None
 
     if pos and not contig:
-        raise ValueError(f'Positional filtering requires a chromosome')
+        raise ValueError('Positional filtering requires a chromosome')
+
+    start: int | str
+    end: int | str
 
     if contig and not pos:
         start = 'start'
@@ -123,10 +126,10 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
 
     else:
         assert int(
-            pos
+            pos,
         ), f'if only one position is specified, it must be numerical: {pos}'
         start = int(pos)
-        end = start + 1
+        end = int(pos) + 1
 
     return hl.parse_locus_interval(f'{contig}:{start}-{end}', reference_genome='GRCh38')
 
@@ -154,7 +157,9 @@ if __name__ == '__main__':
         required=False,
     )
     parser.add_argument(
-        '--biallelic', help='Remove non-biallelic sites', action='store_true'
+        '--biallelic',
+        help='Remove non-biallelic sites',
+        action='store_true',
     )
     parser.add_argument(
         '--format',

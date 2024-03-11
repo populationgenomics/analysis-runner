@@ -5,15 +5,14 @@ CLI options for standard analysis-runner
 import argparse
 import os
 from shutil import which
-from typing import List
+from typing import List, Optional
 
 import requests
-from cpg_utils.cloud import get_google_identity_token
-from cpg_utils.config import read_configs
 
 from analysis_runner.constants import get_server_endpoint
 from analysis_runner.git import (
     check_if_commit_is_on_remote,
+    get_git_branch_name,
     get_git_commit_ref_of_current_repository,
     get_git_default_remote,
     get_relative_path_from_git_root,
@@ -25,9 +24,13 @@ from analysis_runner.util import (
     confirm_choice,
     logger,
 )
+from cpg_utils.cloud import get_google_identity_token
+from cpg_utils.config import read_configs
 
 
-def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
+def add_analysis_runner_args(
+    parser: Optional[argparse.ArgumentParser] = None,
+) -> argparse.ArgumentParser:
     """
     Add CLI arguments for standard analysis-runner
     """
@@ -98,29 +101,30 @@ def add_analysis_runner_args(parser=None) -> argparse.ArgumentParser:
     return parser
 
 
-def run_analysis_runner_from_args(args):
+def run_analysis_runner_from_args(args: argparse.ArgumentParser):
     """Run analysis runner from argparse.parse_arguments"""
     return run_analysis_runner(**vars(args))
 
 
-def run_analysis_runner(  # pylint: disable=too-many-arguments
-    dataset,
-    output_dir,
-    script,
-    description,
-    access_level,
-    commit=None,
-    repository=None,
-    cwd=None,
-    image=None,
-    cpu=None,
-    memory=None,
-    storage=None,
-    preemptible=None,
-    config: List[str] = None,
-    env: List[str] = None,
-    use_test_server=False,
-    server_url=None,
+def run_analysis_runner(  # noqa: C901
+    dataset: str,
+    output_dir: str,
+    script: List[str],
+    description: str,
+    access_level: str,
+    commit: Optional[str] = None,
+    repository: Optional[str] = None,
+    cwd: Optional[str] = None,
+    image: Optional[str] = None,
+    cpu: Optional[str] = None,
+    memory: Optional[str] = None,
+    storage: Optional[str] = None,
+    preemptible: Optional[str] = None,
+    branch: Optional[str] = None,
+    config: Optional[List[str]] = None,
+    env: Optional[List[str]] = None,
+    use_test_server: bool = False,
+    server_url: Optional[str] = None,
 ):
     """
     Main function that drives the CLI.
@@ -129,19 +133,19 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
     if repository is not None and commit is None:
         raise ValueError(
             "You must supply the '--commit <SHA>' parameter "
-            "when specifying the '--repository'"
+            "when specifying the '--repository'",
         )
 
     _perform_version_check()
 
-    if access_level == 'full':
-        if not confirm_choice(
-            'Full access increases the risk of accidental data loss. Continue?',
-        ):
-            raise SystemExit()
+    if access_level == 'full' and not confirm_choice(
+        'Full access increases the risk of accidental data loss. Continue?',
+    ):
+        raise SystemExit
 
     _repository = repository
     _commit_ref = commit
+    _branch = branch or get_git_branch_name()
     _script = list(script)
     _cwd = cwd
 
@@ -171,9 +175,9 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         if not confirm_choice(
             f"The program '{executable_path}' was not executable \n"
             f'(or a script could not be found) on this computer. \n'
-            f'Please confirm to continue.'
+            f'Please confirm to continue.',
         ):
-            raise SystemExit()
+            raise SystemExit
 
     if repository is None:
         _repository = get_repo_name_from_remote(get_git_default_remote())
@@ -183,13 +187,12 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         if _cwd is None:
             _cwd = get_relative_path_from_git_root()
 
-        if not check_if_commit_is_on_remote(_commit_ref):
-            if not confirm_choice(
-                f'The commit "{_commit_ref}" was not found on GitHub '
-                '(Did you forget to push your latest commit?) \n'
-                'Please confirm if you want to proceed anyway.'
-            ):
-                raise SystemExit()
+        if not check_if_commit_is_on_remote(_commit_ref) and not confirm_choice(
+            f'The commit "{_commit_ref}" was not found on GitHub '
+            '(Did you forget to push your latest commit?) \n'
+            'Please confirm if you want to proceed anyway.',
+        ):
+            raise SystemExit
 
     if _cwd == '.':
         _cwd = None
@@ -203,7 +206,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
                 _env[pair[0]] = pair[1]
             except IndexError as e:
                 raise IndexError(
-                    env_var_pair + ' does not conform to key=value format.'
+                    env_var_pair + ' does not conform to key=value format.',
                 ) from e
 
     _config = None
@@ -211,7 +214,8 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         _config = dict(read_configs(config))
 
     server_endpoint = get_server_endpoint(
-        server_url=server_url, is_test=use_test_server
+        server_url=server_url,
+        is_test=use_test_server,
     )
     _token = get_google_identity_token(server_endpoint)
 
@@ -235,6 +239,7 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
             'preemptible': preemptible,
             'environmentVariables': _env,
             'config': _config,
+            'branch': _branch,
         },
         headers={'Authorization': f'Bearer {_token}'},
         timeout=60,
@@ -244,12 +249,12 @@ def run_analysis_runner(  # pylint: disable=too-many-arguments
         logger.info(f'Request submitted successfully: {response.text}')
     except requests.HTTPError as e:
         logger.critical(
-            f'Request failed with status {response.status_code}: {str(e)}\n'
+            f'Request failed with status {response.status_code}: {e!s}\n'
             f'Full response: {response.text}',
         )
 
 
-def _perform_shebang_check(script):
+def _perform_shebang_check(script: str) -> None:
     """
     Returns None if script has shebang, otherwise raises Exception
     """

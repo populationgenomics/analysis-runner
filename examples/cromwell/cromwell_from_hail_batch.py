@@ -1,14 +1,14 @@
+# ruff: noqa: ERA001
 """
 Test script, to demonstrate how you can run a cromwell workflow
 from within a batch environment, and operate on the result(s)
 """
-from cpg_utils.config import get_config
-from cpg_utils.hail_batch import get_batch, output_path
-
 from analysis_runner.cromwell import (
     CromwellOutputType,
     run_cromwell_workflow_from_repo_and_get_outputs,
 )
+from cpg_utils.config import get_config
+from cpg_utils.hail_batch import get_batch, output_path
 
 _config = get_config()
 DATASET = _config['workflow']['dataset']
@@ -55,7 +55,7 @@ process_j.command(f"cat {workflow_outputs['joined_out']} | awk '{{print toupper(
 
 
 # Use python job to process file paths
-def process_paths_python(*files):
+def process_paths_python(*files: str):
     """Collect a list of output files, and log to console"""
     inner_paths = []
     for file in files:
@@ -64,6 +64,9 @@ def process_paths_python(*files):
     # maybe update sample_metadata server?
     print('Processed paths: ' + ', '.join(inner_paths))
 
+
+assert isinstance(workflow_outputs['out_paths'], list)
+assert isinstance(workflow_outputs['texts'], list)
 
 process_paths_job = b.new_python_job('process_paths')
 process_paths_job.call(process_paths_python, *workflow_outputs['out_paths'])
@@ -79,7 +82,7 @@ for idx, out in enumerate(workflow_outputs['texts']):
     process_j.command(
         f"""\
 cat {out.md5} | awk '{{print toupper($0)}}'
-cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}"""
+cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}""",
     )
     b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx+1}.txt')
 

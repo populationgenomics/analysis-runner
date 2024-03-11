@@ -1,6 +1,8 @@
 """Utility function"""
-# pylint: disable=import-outside-toplevel
 
+# ruff: noqa: ERA001
+
+import argparse
 import logging
 import re
 
@@ -30,7 +32,7 @@ def get_project_id_from_service_account_email(service_account_email: str) -> str
     return service_account_email.split('@')[-1].split('.')[0]
 
 
-def add_general_args(parser):
+def add_general_args(parser: argparse.ArgumentParser):
     """
     Add CLI arguments that are relevant for most
     analysis-runner submission modes (standard / cromwell)
@@ -114,7 +116,7 @@ def confirm_choice(choice: str):
         print('Unrecognised option, please try again.')
 
 
-def _perform_version_check():
+def _perform_version_check() -> None:
     current_version = __version__
 
     # with this URL, we're looking for a line with format:
@@ -131,7 +133,7 @@ def _perform_version_check():
     except requests.HTTPError as e:
         logger.debug(
             f'An error occurred when fetching version '
-            f'information about the analysis-runner: {e}'
+            f'information about the analysis-runner: {e}',
         )
         return
     for line in data.splitlines(keepends=False):

@@ -1,10 +1,11 @@
 """Simple Hail query example."""
 
 import click
-import hail as hl
 from bokeh.io.export import get_screenshot_as_png
-from cpg_utils.hail_batch import output_path
 
+import hail as hl
+
+from cpg_utils.hail_batch import output_path
 
 GNOMAD_HGDP_1KG_MT = (
     'gs://gcp-public-data--gnomad/release/3.1/mt/genomes/'
@@ -13,8 +14,13 @@ GNOMAD_HGDP_1KG_MT = (
 
 
 @click.command()
-@click.option('--rerun', help='Whether to overwrite cached files', default=False)
-def query(rerun):
+@click.option(
+    '--rerun',
+    help='Whether to overwrite cached files',
+    is_flag=True,
+    default=False,
+)
+def query(rerun: bool):
     """Query script entry point."""
 
     hl.init(default_reference='GRCh38')
@@ -30,11 +36,13 @@ def query(rerun):
     plot_filename = output_path('call_rate_plot.png', 'web')
     if rerun or not hl.hadoop_exists(plot_filename):
         call_rate_plot = hl.plot.histogram(
-            mt_qc.sample_qc.call_rate, range=(0, 1), legend='Call rate'
+            mt_qc.sample_qc.call_rate,
+            range=(0, 1),
+            legend='Call rate',
         )
         with hl.hadoop_open(plot_filename, 'wb') as f:
             get_screenshot_as_png(call_rate_plot).save(f, format='PNG')
 
 
 if __name__ == '__main__':
-    query()  # pylint: disable=no-value-for-parameter
+    query()

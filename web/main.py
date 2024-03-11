@@ -1,16 +1,17 @@
-# pylint: disable=too-many-return-statements
 """Web server which proxies requests to per-dataset "web" buckets."""
 
 import json
 import logging
 import mimetypes
 import os
+from typing import Optional
 
 import google.auth.transport.requests
 import google.cloud.storage
 import google.oauth2.id_token
-from cpg_utils.cloud import is_member_in_cached_group, read_secret
 from flask import Flask, Response, abort, request, stream_with_context
+
+from cpg_utils.cloud import is_member_in_cached_group, read_secret
 
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 
@@ -31,7 +32,10 @@ logger = logging.getLogger('gunicorn.error')
 
 
 @app.route('/<dataset>/<path:filename>')
-def handler(dataset=None, filename=None):
+def handler(  # noqa: C901
+    dataset: Optional[str] = None,
+    filename: Optional[str] = None,
+):
     """Main entry point for serving."""
     if not dataset or not filename:
         logger.warning('Invalid request parameters')
@@ -52,7 +56,7 @@ def handler(dataset=None, filename=None):
         # Use allAuthenticatedUsers for the IAP configuration to make this
         # work for arbitrary users.
         email = decoded_jwt['email'].lower()
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         logger.exception('Failed to extract email from ID token')
         return abort(403)
 
@@ -79,14 +83,14 @@ def handler(dataset=None, filename=None):
             email,
             members_cache_location=MEMBERS_CACHE_LOCATION,
         )
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception as e:  # noqa: BLE001
         logger.warning(f'Failed to access group membership cache: {e}')
 
     if not in_web_access_group:
         # Second chance: if there's a '.access' file in the first subdirectory,
         # check if the email is listed there.
         split_subdir = filename.split('/', maxsplit=1)
-        if len(split_subdir) == 2 and split_subdir[0]:
+        if len(split_subdir) == 2 and split_subdir[0]:  # noqa: PLR2004
             access_list_filename = f'{split_subdir[0]}/.access'
             blob = bucket.get_blob(access_list_filename)
             if blob is None:
@@ -95,7 +99,7 @@ def handler(dataset=None, filename=None):
             access_list = blob.download_as_text().lower().splitlines()
             if email not in access_list:
                 logger.warning(
-                    f'{email} is not in {dataset} access group or {access_list_filename}'
+                    f'{email} is not in {dataset} access group or {access_list_filename}',
                 )
                 return abort(403)
 
@@ -113,4 +117,4 @@ def handler(dataset=None, filename=None):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    app.run(host='127.0.0.1', port=int(os.environ.get('PORT', 8080)))
