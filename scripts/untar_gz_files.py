@@ -79,12 +79,12 @@ def main(bucket: str, subdir: str, blob_name: str, outdir: str):
     # Move the tarball to the "completed" directory
     subprocess.run(
         [
-            'gsutil', 
-            'mv', 
-            f'gs://{bucket}/{subdir}/{os.path.basename(blob_name)}', 
-            f'gs://{bucket}/{subdir}/completed/{os.path.basename(blob_name)}'
-        ], 
-        check=True
+            'gsutil',
+            'mv',
+            f'gs://{bucket}/{subdir}/{os.path.basename(blob_name)}',
+            f'gs://{bucket}/{subdir}/completed/{os.path.basename(blob_name)}',
+        ],
+        check=True,
     )
     logging.info('All tarballs extracted and uploaded. Finishing...')
 
