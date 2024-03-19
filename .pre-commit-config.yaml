@@ -30,7 +30,7 @@ repos:
       - id: ruff
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: mypy
         args:
@@ -42,7 +42,14 @@ repos:
             --install-types,
             --non-interactive,
           ]
-        additional_dependencies: [types-PyYAML==6.0.4, types-toml]
+        additional_dependencies:
+          [
+            types-oauthlib,
+            types-protobuf,
+            types-PyYAML,
+            types-requests,
+            types-toml,
+          ]
 
   - repo: https://github.com/koalaman/shellcheck-precommit
     rev: v0.9.0

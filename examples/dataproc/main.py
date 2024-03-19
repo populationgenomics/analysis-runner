@@ -3,7 +3,7 @@
 """Demonstrates the use of the dataproc module."""
 import os
 
-from analysis_runner import dataproc
+from cpg_utils.dataproc import setup_dataproc
 from cpg_utils.hail_batch import get_batch
 
 batch = get_batch(name='dataproc example')
@@ -15,7 +15,7 @@ QUERY_PATH = os.path.join(
     'query.py',
 )
 
-cluster = dataproc.setup_dataproc(
+cluster = setup_dataproc(
     batch,
     max_age='1h',
     packages=['click', 'selenium'],
