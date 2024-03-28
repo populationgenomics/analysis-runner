@@ -13,8 +13,8 @@ import sys
 from argparse import ArgumentParser
 from collections import defaultdict
 
-from sample_metadata.apis import AnalysisApi, FamilyApi, SampleApi
-from sample_metadata.models import AnalysisType, BodyGetSamples
+from metamist.apis import AnalysisApi, FamilyApi, SampleApi
+from metamist.models import AnalysisType, BodyGetSamples
 
 
 def get_family_id_to_participant_map(project: str) -> dict[str, list[dict]]:

@@ -13,14 +13,13 @@ from aiohttp import ClientSession, web
 from cloudpathlib import AnyPath
 from google.cloud import pubsub_v1, secretmanager
 
-from hailtop.batch import Batch
 from hailtop.config import get_deploy_config
 
-from analysis_runner.constants import ANALYSIS_RUNNER_PROJECT_ID
-from cpg_utils.cloud import email_from_id_token, is_member_in_cached_group, read_secret
-from cpg_utils.config import AR_GUID_NAME, update_dict
-from cpg_utils.hail_batch import cpg_namespace
+from cpg_utils.cloud import email_from_id_token, read_secret
+from cpg_utils.config import AR_GUID_NAME, get_cpg_namespace, update_dict
+from cpg_utils.membership import is_member_in_cached_group
 
+ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/$TMPDIR/metadata'
 PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
@@ -40,7 +39,7 @@ secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
 
 
-def generate_ar_guid():
+def generate_ar_guid() -> str:
     """Generate guid for tracking analysis-runner jobs"""
     guid = str(uuid.uuid4())
     # guids can't start with a number (GCP labels won't accept it)
@@ -78,7 +77,7 @@ async def _get_hail_version(environment: str) -> str:
         return await resp.text()
 
 
-def get_email_from_request(request: web.Request):
+def get_email_from_request(request: web.Request) -> str:
     """
     Get 'Authorization' from request header,
     and parse the email address using cpg-util
@@ -107,7 +106,7 @@ def check_allowed_repos(dataset_config: Dict, repo: str):
         )
 
 
-def validate_output_dir(output_dir: str):
+def validate_output_dir(output_dir: str) -> str:
     """Checks that output_dir doesn't start with 'gs://' and strips trailing slashes."""
     if output_dir.startswith('gs://'):
         raise web.HTTPBadRequest(reason='Output directory cannot start with "gs://"')
@@ -174,12 +173,12 @@ def get_analysis_runner_metadata(
     cwd: str,
     environment: str,
     **kwargs: Any,
-):
+) -> dict:
     """
     Get well-formed analysis-runner metadata, requiring the core listed keys
     with some flexibility to provide your own keys (as **kwargs)
     """
-    output_dir = f'gs://cpg-{dataset}-{cpg_namespace(access_level)}/{output_prefix}'
+    output_dir = f'gs://cpg-{dataset}-{get_cpg_namespace(access_level)}/{output_prefix}'
 
     return {
         AR_GUID_NAME: ar_guid,
@@ -201,26 +200,7 @@ def get_analysis_runner_metadata(
     }
 
 
-def run_batch_job_and_print_url(batch: Batch, wait: bool, environment: str):
-    """Call batch.run(), return the URL, and wait for job to  finish if wait=True"""
-    if not environment == 'gcp':
-        raise web.HTTPBadRequest(
-            reason=f'Unsupported Hail Batch deploy config environment: {environment}',
-        )
-    bc_batch = batch.run(wait=False)
-
-    deploy_config = get_deploy_config()
-    url = deploy_config.url('batch', f'/batches/{bc_batch.id}')
-
-    if wait:
-        status = bc_batch.wait()
-        if status['state'] != 'success':
-            raise web.HTTPBadRequest(reason=f'{url} failed')
-
-    return url
-
-
-def validate_image(container: str, is_test: bool):
+def validate_image(container: str, is_test: bool) -> bool:
     """
     Check that the image is valid for the access_level
     """
@@ -280,7 +260,7 @@ def get_baseline_run_config(
             'infrastructure.toml',
             'images/images.toml',
             'references/references.toml',
-            f'storage/{environment}/{dataset}-{cpg_namespace(access_level)}.toml',
+            f'storage/{environment}/{dataset}-{get_cpg_namespace(access_level)}.toml',
             'infrastructure.toml',
         ]
     ]

@@ -15,7 +15,8 @@ from argparse import ArgumentParser
 
 import hail as hl
 
-from cpg_utils.hail_batch import init_batch, output_path
+from cpg_utils.config import output_path
+from cpg_utils.hail_batch import init_batch
 
 
 def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:

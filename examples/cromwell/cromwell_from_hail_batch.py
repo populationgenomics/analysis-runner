@@ -3,12 +3,12 @@
 Test script, to demonstrate how you can run a cromwell workflow
 from within a batch environment, and operate on the result(s)
 """
-from analysis_runner.cromwell import (
+from cpg_utils.config import get_config, output_path
+from cpg_utils.cromwell import (
     CromwellOutputType,
     run_cromwell_workflow_from_repo_and_get_outputs,
 )
-from cpg_utils.config import get_config
-from cpg_utils.hail_batch import get_batch, output_path
+from cpg_utils.hail_batch import get_batch
 
 _config = get_config()
 DATASET = _config['workflow']['dataset']

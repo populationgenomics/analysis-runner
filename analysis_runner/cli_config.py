@@ -5,19 +5,17 @@ CLI options for standard analysis-runner
 import argparse
 import os
 import sys
-from typing import List, Optional
 
 import requests
 import toml
 
-from analysis_runner.constants import get_server_endpoint
-from analysis_runner.util import _perform_version_check, logger
+from analysis_runner.util import _perform_version_check, get_server_endpoint, logger
 from cpg_utils.cloud import get_google_identity_token
 from cpg_utils.config import read_configs
 
 
 def add_config_args(
-    parser: Optional[argparse.ArgumentParser] = None,
+    parser: argparse.ArgumentParser | None = None,
 ) -> argparse.ArgumentParser:
     """
     Add CLI arguments for standard analysis-runner
@@ -85,11 +83,11 @@ def run_config(
     dataset: str,
     output_dir: str,
     access_level: str,
-    image: Optional[str] = None,
-    config: Optional[List[str]] = None,
-    config_output: Optional[str] = None,
+    image: str | None = None,
+    config: list[str] | None = None,
+    config_output: str | None = None,
     use_test_server: bool = False,
-    server_url: Optional[str] = None,
+    server_url: str | None = None,
 ):
     """
     Main function that drives the CLI.

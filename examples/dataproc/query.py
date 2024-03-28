@@ -5,7 +5,7 @@ from bokeh.io.export import get_screenshot_as_png
 
 import hail as hl
 
-from cpg_utils.hail_batch import output_path
+from cpg_utils.config import output_path
 
 GNOMAD_HGDP_1KG_MT = (
     'gs://gcp-public-data--gnomad/release/3.1/mt/genomes/'

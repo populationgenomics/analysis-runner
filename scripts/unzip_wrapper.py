@@ -15,11 +15,11 @@ import click
 from google.cloud import storage
 
 from cpg_utils.config import get_config
-from cpg_utils.git import prepare_git_job
 from cpg_utils.hail_batch import (
     authenticate_cloud_credentials_in_job,
     copy_common_env,
     get_batch,
+    prepare_git_job,
 )
 
 CLIENT = storage.Client()
