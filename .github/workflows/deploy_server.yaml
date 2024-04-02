@@ -6,8 +6,6 @@ on:
         description: 'Hail repo ref (or commit SHA)'
         required: true
         default: "main"
-  push: 
-    branches: ["quote-curl-params"]
 
 permissions:
   contents: read
