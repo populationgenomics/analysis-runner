@@ -19,27 +19,49 @@ def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
 
     metadata = json.loads(base64.b64decode(data['data']).decode('utf-8'))
 
+    # remove them from the metadata object so we can pass the remaining values as meta
     project = metadata.pop('dataset')
-    output_dir = metadata.pop('output')
-    metadata['source'] = 'analysis-runner'
     access_level = metadata.get('accessLevel')
+    ar_guid = metadata.pop('ar-guid')
+    user = metadata.pop('user')
+    access_level = metadata.pop('accessLevel')
+    repo = metadata.pop('repo')
+    commit = metadata.pop('commit')
+    script = metadata.pop('script')
+    description = metadata.pop('description')
+    output_prefix = metadata.pop('outputPrefix')
+    driver_image = metadata.pop('driverImage')
+    config_path = metadata.pop('configPath')
+    cwd = metadata.pop('cwd')
+    environment = metadata.pop('environment')
+    hail_version = metadata.pop('hailVersion', None)
+    batch_url = metadata.pop('batch_url', None)
 
     if access_level == 'test':
         project += '-test'
 
     sm_data = {
-        'sample_ids': [],
-        'type': 'analysis-runner',
-        'status': 'unknown',
-        'output': output_dir,
-        'author': metadata.pop('user'),
-        'meta': metadata,
-        'active': False,
+        'ar_guid': ar_guid,
+        'access_level': access_level,
+        'repository': repo,
+        'commit': commit,
+        'script': script,
+        'description': description,
+        'driver_image': driver_image,
+        'config_path': config_path,
+        'cwd': cwd,
+        'environment': environment,
+        'hail_version': hail_version,
+        'batch_url': batch_url,
+        'submitting_user': user,
+        'meta': metadata,  # any remaining keys
+        'output_path': output_prefix,
     }
+
     try:
         token = get_identity_token()
         r = requests.put(
-            f'{AUDIENCE}/api/v1/analysis/{project}/',
+            f'{AUDIENCE}/api/v1/analysis-runner/{project}/',
             json=sm_data,
             headers={'Authorization': f'Bearer {token}'},
             timeout=60,
