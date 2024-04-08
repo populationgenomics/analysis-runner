@@ -18,10 +18,11 @@ RUN apt-get update && \
         rsync \
         software-properties-common && \
     rm -r /var/lib/apt/lists/* && \
-    rm -r /var/cache/apt/* && \
-    # Install phantomjs with a workaround for libssl_conf.so:
-    # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
-    cd /opt && \
+    rm -r /var/cache/apt/*
+
+# Install phantomjs with a workaround for libssl_conf.so:
+# https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
+RUN cd /opt && \
     curl -sSL https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 | tar xj && \
     cd .. && \
     printf '#!/bin/bash\nexport OPENSSL_CONF=/dev/null\n/opt/phantomjs-2.1.1-linux-x86_64/bin/phantomjs "$@"\n' > /usr/local/bin/phantomjs && \
@@ -35,17 +36,18 @@ RUN apt-get update && \
     # DEPLOY_REMOTE avoids a dev suffix being appended to dataproc initialization paths.
     make install DEPLOY_REMOTE=1 && \
     cd ../.. && \
-    rm -rf hail && \
-    pip --no-cache-dir install \
-        analysis-runner \
-        bokeh \
-        cloudpathlib[all] \
-        cpg-utils \
-        cpg-workflows \
-        gcsfs \
-        hail \
-        pyarrow \
-        sample-metadata \
-        metamist \
-        selenium>=3.8.0 \
-        statsmodels
+    rm -rf hail
+
+# now install all other python libraries
+RUN pip --no-cache-dir install \
+    analysis-runner \
+    bokeh \
+    cloudpathlib[all] \
+    cpg-utils \
+    cpg-workflows \
+    gcsfs \
+    hail \
+    pyarrow \
+    metamist \
+    selenium>=3.8.0 \
+    statsmodels
