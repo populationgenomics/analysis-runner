@@ -18,17 +18,17 @@ RUN apt-get update && \
         rsync \
         software-properties-common && \
     rm -r /var/lib/apt/lists/* && \
-    rm -r /var/cache/apt/*
-
-# Install phantomjs with a workaround for libssl_conf.so:
-# https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
-RUN cd /opt && \
+    rm -r /var/cache/apt/* && \
+    # Install phantomjs with a workaround for libssl_conf.so:
+    # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
+    cd /opt && \
     curl -sSL https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 | tar xj && \
     cd .. && \
     printf '#!/bin/bash\nexport OPENSSL_CONF=/dev/null\n/opt/phantomjs-2.1.1-linux-x86_64/bin/phantomjs "$@"\n' > /usr/local/bin/phantomjs && \
-    chmod +x /usr/local/bin/phantomjs && \
-    # Install Hail from the CPG fork.
-    git clone https://github.com/populationgenomics/hail.git && \
+    chmod +x /usr/local/bin/phantomjs
+
+# Install Hail from the CPG fork.
+RUN git clone https://github.com/populationgenomics/hail.git && \
     cd hail && \
     git checkout $HAIL_SHA && \
     cd hail && \
