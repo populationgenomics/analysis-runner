@@ -110,7 +110,7 @@ def handler(  # noqa: C901
         return abort(404, 'File was not found')
 
     # Stream the response to allow large files to be served.
-    response = Response(stream_with_context(blob.open('rt')))
+    response = Response(stream_with_context(blob.open('rb')))
     response.headers['Content-Type'] = (
         mimetypes.guess_type(filename)[0] or 'application/octet-stream'
     )
