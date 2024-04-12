@@ -29,7 +29,7 @@ setuptools.setup(
     zip_safe=False,
     install_requires=[
         'cloudpathlib[all]',
-        'cpg-utils>=4.12.1',
+        'cpg-utils>=5.0.0',
         'hail',
         'requests',
         'tabulate',
