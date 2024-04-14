@@ -18,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='2.44.0',
+    version='3.0.0',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
@@ -29,7 +29,7 @@ setuptools.setup(
     zip_safe=False,
     install_requires=[
         'cloudpathlib[all]',
-        'cpg-utils>=4.12.1',
+        'cpg-utils>=5.0.0',
         'hail',
         'requests',
         'tabulate',

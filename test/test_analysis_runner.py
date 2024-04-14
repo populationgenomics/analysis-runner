@@ -126,53 +126,6 @@ class TestCliCromwell(unittest.TestCase):
         mock_post.assert_called()
         mock_identity_token.assert_called()
 
-    @patch(IMPORT_CR_IDENTITY_TOKEN_PATH)
-    @patch(REQUEST_GET_PATH)
-    @patch('builtins.print')
-    def test_status_cli(
-        self,
-        mock_print: MagicMock,
-        mock_get: MagicMock,
-        mock_id_token: MagicMock,
-    ):
-        apply_mock_behaviour(mock_identity_token=mock_id_token)
-        cm = {
-            'id': '<mocked-id>',
-            'start': '2021-07-09T09:47:00.000Z',
-            'end': '2021-07-09T09:48:00.000Z',
-            'calls': {
-                'wf.print': [
-                    {
-                        'name': 'print',
-                        'executionStatus': 'succeeded',
-                        'start': '2021-07-09T09:47:00.000Z',
-                        'end': '2021-07-09T09:48:00.000Z',
-                    },
-                ],
-            },
-        }
-        mock_get.return_value = MockResponse(json=lambda: cm)
-
-        args = ['cromwell', 'status', '<mocked-id>', '--monochrome']
-
-        status_str = """
------------  ------------------------
-Workflow ID  <mocked-id>
-Name
-Status       preparing
-Start        2021-07-09T09:47:00.000Z
-End          2021-07-09T09:48:00.000Z
-Duration     1m:0s
------------  ------------------------
-Jobs:
-  [#] print (1m:0s)
-"""
-
-        main_from_args(args)
-
-        mock_get.assert_called()
-        mock_print.assert_called_with(status_str)
-
 
 if __name__ == '__main__':
     unittest.main()

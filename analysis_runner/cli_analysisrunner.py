@@ -9,8 +9,16 @@ from typing import List, Optional
 
 import requests
 
-from analysis_runner.constants import get_server_endpoint
-from analysis_runner.git import (
+from analysis_runner.util import (
+    _perform_version_check,
+    add_general_args,
+    confirm_choice,
+    get_server_endpoint,
+    logger,
+)
+from cpg_utils.cloud import get_google_identity_token
+from cpg_utils.config import read_configs
+from cpg_utils.git import (
     check_if_commit_is_on_remote,
     get_git_branch_name,
     get_git_commit_ref_of_current_repository,
@@ -18,14 +26,6 @@ from analysis_runner.git import (
     get_relative_path_from_git_root,
     get_repo_name_from_remote,
 )
-from analysis_runner.util import (
-    _perform_version_check,
-    add_general_args,
-    confirm_choice,
-    logger,
-)
-from cpg_utils.cloud import get_google_identity_token
-from cpg_utils.config import read_configs
 
 
 def add_analysis_runner_args(

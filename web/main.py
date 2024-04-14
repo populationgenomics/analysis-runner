@@ -11,7 +11,8 @@ import google.cloud.storage
 import google.oauth2.id_token
 from flask import Flask, Response, abort, request, stream_with_context
 
-from cpg_utils.cloud import is_member_in_cached_group, read_secret
+from cpg_utils.cloud import read_secret
+from cpg_utils.membership import is_member_in_cached_group
 
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 

@@ -6,7 +6,7 @@ See README.md for more information.
 """
 import argparse
 import sys
-from typing import Callable, Dict, Optional, Sequence, Tuple
+from typing import Callable, Sequence
 
 from analysis_runner._version import __version__
 from analysis_runner.cli_analysisrunner import (
@@ -17,7 +17,7 @@ from analysis_runner.cli_config import add_config_args, run_config_from_args
 from analysis_runner.cli_cromwell import add_cromwell_args, run_cromwell_from_args
 
 
-def main_from_args(args: Optional[Sequence[str]] = None):
+def main_from_args(args: Sequence[str] | None = None):
     """
     Parse args using argparse
     (if args is None, argparse automatically uses `sys.argv`)
@@ -33,7 +33,7 @@ def main_from_args(args: Optional[Sequence[str]] = None):
     )
 
     default_mode = 'analysis-runner'
-    modes: Dict[str, Tuple[Callable[[], argparse.ArgumentParser], Callable]] = {
+    modes: dict[str, tuple[Callable[[], argparse.ArgumentParser], Callable]] = {
         'analysis-runner': (add_analysis_runner_args, run_analysis_runner_from_args),
         'cromwell': (add_cromwell_args, run_cromwell_from_args),
         'config': (add_config_args, run_config_from_args),
