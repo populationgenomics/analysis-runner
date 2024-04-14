@@ -1,4 +1,4 @@
-# ruff: noqa: F401
+# ruff: noqa: F401,ANN002,ANN003
 
 from deprecated import deprecated
 
