@@ -14,7 +14,7 @@ permissions:
 jobs:
   deploy_server:
     runs-on: ubuntu-latest
-
+    environment: production
     env:
       DOCKER_BUILDKIT: 1
       BUILDKIT_PROGRESS: plain
@@ -46,7 +46,7 @@ jobs:
       name: "Authenticate to Google Cloud"
       uses: google-github-actions/auth@v2
       with:
-        workload_identity_provider: "projects/370374240567/locations/global/workloadIdentityPools/gh-pool/providers/gh-provider"
+        workload_identity_provider: "projects/370374240567/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
         service_account: "server-deploy@analysis-runner.iam.gserviceaccount.com"
 
     - id: "google-cloud-sdk-setup"
