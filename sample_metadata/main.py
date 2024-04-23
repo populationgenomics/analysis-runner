@@ -8,6 +8,7 @@ in the Sample-Metadata database.
 import base64
 import json
 from typing import Any, Dict, Literal
+from urllib.parse import urlencode
 
 import requests
 
@@ -57,7 +58,7 @@ def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
         'submitting_user': user,
         'output_path': output_prefix,
     }
-    q = '&'.join([f'{k}={v}' for k, v in query_params.items()])
+    q = urlencode(query_params)
 
     try:
         token = get_identity_token()
