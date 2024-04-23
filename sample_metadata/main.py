@@ -8,6 +8,7 @@ in the Sample-Metadata database.
 import base64
 import json
 from typing import Any, Dict, Literal
+from urllib.parse import urlencode
 
 import requests
 
@@ -29,18 +30,19 @@ def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
     commit = metadata.pop('commit')
     script = metadata.pop('script')
     description = metadata.pop('description')
-    output_prefix = metadata.pop('outputPrefix')
+    output_prefix = metadata.pop('output')
     driver_image = metadata.pop('driverImage')
     config_path = metadata.pop('configPath')
     cwd = metadata.pop('cwd')
     environment = metadata.pop('environment')
     hail_version = metadata.pop('hailVersion', None)
     batch_url = metadata.pop('batch_url', None)
+    meta = metadata.pop('meta', {}) or {}
 
     if access_level == 'test':
         project += '-test'
 
-    sm_data = {
+    query_params = {
         'ar_guid': ar_guid,
         'access_level': access_level,
         'repository': repo,
@@ -54,15 +56,15 @@ def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
         'hail_version': hail_version,
         'batch_url': batch_url,
         'submitting_user': user,
-        'meta': metadata,  # any remaining keys
         'output_path': output_prefix,
     }
+    q = urlencode(query_params)
 
     try:
         token = get_identity_token()
         r = requests.put(
-            f'{AUDIENCE}/api/v1/analysis-runner/{project}/',
-            json=sm_data,
+            f'{AUDIENCE}/api/v1/analysis-runner/{project}/?' + q,
+            json=meta,
             headers={'Authorization': f'Bearer {token}'},
             timeout=60,
         )
