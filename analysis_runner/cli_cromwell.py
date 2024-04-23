@@ -5,13 +5,20 @@ Cromwell CLI
 import argparse
 import json
 import os.path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 
-from analysis_runner.constants import get_server_endpoint
-from analysis_runner.cromwell_model import WorkflowMetadataModel
-from analysis_runner.git import (
+from analysis_runner.util import (
+    _perform_version_check,
+    add_general_args,
+    confirm_choice,
+    get_server_endpoint,
+    logger,
+)
+from cpg_utils.cloud import get_google_identity_token
+from cpg_utils.cromwell_model import WorkflowMetadataModel
+from cpg_utils.git import (
     check_if_commit_is_on_remote,
     get_git_branch_name,
     get_git_commit_ref_of_current_repository,
@@ -19,13 +26,6 @@ from analysis_runner.git import (
     get_relative_path_from_git_root,
     get_repo_name_from_remote,
 )
-from analysis_runner.util import (
-    _perform_version_check,
-    add_general_args,
-    confirm_choice,
-    logger,
-)
-from cpg_utils.cloud import get_google_identity_token
 
 
 def cromwell_modes() -> dict:
@@ -41,7 +41,7 @@ def cromwell_modes() -> dict:
 
 
 def add_cromwell_args(
-    parser: Optional[argparse.ArgumentParser] = None,
+    parser: argparse.ArgumentParser | None = None,
 ) -> argparse.ArgumentParser:
     """Create / add arguments for cromwell argparser"""
     if not parser:
@@ -166,17 +166,17 @@ def _run_cromwell(  # noqa: C901
     description: str,
     access_level: str,
     workflow: str,
-    inputs: List[str],
-    imports: Optional[List[str]] = None,
-    workflow_input_prefix: Optional[str] = None,
-    dynamic_inputs: Optional[List[str]] = None,
-    commit: Optional[str] = None,
-    repository: Optional[str] = None,
-    cwd: Optional[str] = None,
-    labels: Optional[str] = None,
-    dry_run: Optional[bool] = False,
-    use_test_server: Optional[bool] = False,
-    server_url: Optional[str] = None,
+    inputs: list[str],
+    imports: list[str] | None = None,
+    workflow_input_prefix: str | None = None,
+    dynamic_inputs: list[str] | None = None,
+    commit: str | None = None,
+    repository: str | None = None,
+    cwd: str | None = None,
+    labels: str | None = None,
+    dry_run: bool | None = False,
+    use_test_server: bool | None = False,
+    server_url: str | None = None,
 ) -> None:
     """
     Prepare parameters for cromwell analysis-runner job
@@ -282,7 +282,7 @@ curl --location --request POST \\
 
 def _check_cromwell_status(
     workflow_id: str,
-    json_output: Optional[str],
+    json_output: str | None,
     server_url: str | None = None,
     is_test: bool = False,
     **kwargs: Any,
@@ -334,7 +334,7 @@ def visualise_cromwell_metadata(
     print(model.display(expand_completed=expand_completed, monochrome=monochrome))
 
 
-def try_parse_value(value: Optional[str]):
+def try_parse_value(value: str | None):
     """Try parse value from command line string"""
     if value is None or value == 'None' or value == 'null':
         return value
@@ -369,7 +369,7 @@ def parse_keyword(keyword: str):
     return keyword[2:].replace('-', '_')
 
 
-def parse_additional_args(args: List[str]) -> Dict[str, Any]:  # noqa: C901
+def parse_additional_args(args: list[str]) -> dict[str, Any]:  # noqa: C901
     """
     Parse a list of strings to an inputs json
 
@@ -412,7 +412,7 @@ def parse_additional_args(args: List[str]) -> Dict[str, Any]:  # noqa: C901
 
     keywords: dict[str, Any] = {}
 
-    def add_keyword_value_to_keywords(keyword: Optional[str], value: Any) -> None:
+    def add_keyword_value_to_keywords(keyword: str | None, value: Any) -> None:
         if not keyword:
             return
         if keyword in keywords:

@@ -22,7 +22,6 @@ from util import (
     get_email_from_request,
     get_server_config,
     publisher,
-    run_batch_job_and_print_url,
     validate_image,
     validate_output_dir,
     write_config,
@@ -30,9 +29,13 @@ from util import (
 
 import hailtop.batch as hb
 
-from analysis_runner.git import guess_script_github_url_from, prepare_git_job
 from cpg_utils.config import AR_GUID_NAME, update_dict
-from cpg_utils.hail_batch import remote_tmpdir
+from cpg_utils.git import guess_script_github_url_from
+from cpg_utils.hail_batch import (
+    prepare_git_job,
+    remote_tmpdir,
+    run_batch_job_and_print_url,
+)
 
 # Patching asyncio *before* importing the Hail Batch module is necessary to avoid a
 # "Cannot enter into task" error.

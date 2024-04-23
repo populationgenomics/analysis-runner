@@ -9,9 +9,11 @@ import re
 import requests
 
 from analysis_runner._version import __version__
-from analysis_runner.constants import SERVER_ENDPOINT
 
 BRANCH = 'main'
+SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
+SERVER_TEST_ENDPOINT = 'https://server-test-a2pko7ameq-ts.a.run.app'
+ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 
 logger = logging.getLogger('analysis_runner')
 logger.addHandler(logging.StreamHandler())
@@ -140,16 +142,18 @@ def _perform_version_check() -> None:
         if not line.startswith('__version__ = '):
             continue
 
-        latest_version = re.match("__version__ = '(.+)'$", line).groups()[0]
-        if current_version != latest_version:
-            message = (
-                f'Your version of analysis-runner is out of date: '
-                f'{current_version} != {latest_version} (current vs latest).\n'
-                f'Your analysis will still be submitted, but may not work as expected.'
-                f' You can update the analysis-runner by running '
-                f'"pip install analysis-runner=={latest_version}".'
-            )
-            logger.warning(message)
+        match = re.match("__version__ = '(.+)'$", line)
+        if match:
+            latest_version = match.groups()[0]
+            if current_version != latest_version:
+                message = (
+                    f'Your version of analysis-runner is out of date: '
+                    f'{current_version} != {latest_version} (current vs latest).\n'
+                    f'Your analysis will still be submitted, but may not work as expected.'
+                    f' You can update the analysis-runner by running '
+                    f'"pip install analysis-runner=={latest_version}".'
+                )
+                logger.warning(message)
         return
 
 
@@ -167,3 +171,20 @@ class AnsiiColors:
     BOLD = '\033[1m'  # SGR (Bold or increased intensity
     ITALIC = '\033[3m'  # SGR (Italic)
     UNDERLINE = '\033[4m'  # SGR (Underline)
+
+
+def get_server_endpoint(
+    server_url: str | None = SERVER_ENDPOINT,
+    is_test: bool | None = False,
+):
+    """
+    Get the server endpoint {production / test}
+    Do it in a function so it's easy to fix if the logic changes
+    """
+    if is_test:
+        return SERVER_TEST_ENDPOINT
+
+    if not server_url:
+        return SERVER_ENDPOINT
+
+    return server_url
