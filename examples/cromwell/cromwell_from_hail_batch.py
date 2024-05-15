@@ -39,7 +39,7 @@ submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     libs=[],  # hello_all_in_one_file is self-contained, so no dependencies
     output_prefix=OUTPUT_PATH,
     dataset=DATASET,
-    backend=CromwellBackend.batch,
+    backend=CromwellBackend.pipelines_api,
 )
 print(workflow_outputs)
 # {
