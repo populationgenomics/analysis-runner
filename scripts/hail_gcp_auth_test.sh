@@ -12,4 +12,8 @@ gsutil ls -lh gs://cpg-fewgenomes-test/
 
 curl \
     -H "Metadata-Flavor: Google" \
-    "http://$GCE_METADATA_ROOT/computeMetadata/v1/instance/service-accounts"
+    "http://$GCE_METADATA_ROOT/computeMetadata/v1/instance/service-accounts/"
+
+curl \
+    -H "Metadata-Flavor: Google" \
+    "http://$GCE_METADATA_ROOT/computeMetadata/v1/instance/service-accounts/default/token"
