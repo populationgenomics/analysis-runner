@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
 gcloud auth list
 
-curl "http://metadata.google.internal"
+echo $GCE_METADATA_IP
+echo $GCE_METADATA_ROOT
+
+curl \
+    -H "Metadata-Flavor: Google" \
+    "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts"
