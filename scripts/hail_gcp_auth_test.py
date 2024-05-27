@@ -9,16 +9,16 @@ j = b.new_bash_job('Three ls approaches')
 j.image(get_driver_image())
 j.command(
     """
-    set -x
-    gsutil ls -lh gs://cpg-fewgenomes-test/
-    gcloud storage ls gs://cpg-fewgenomes-test/
+set -x
+gsutil ls -lh gs://cpg-fewgenomes-test/
+gcloud storage ls gs://cpg-fewgenomes-test/
 
-    python3 -c '
-    from google.cloud import storage;
-    client = storage.Client();
-    bucket = client.get_bucket("cpg-fewgenomes-test");
-    print([a.name for a in bucket.list_blobs(prefix="", delimiter="/")])
-    '
+python3 -c '
+from google.cloud import storage;
+client = storage.Client();
+bucket = client.get_bucket("cpg-fewgenomes-test");
+print([a.name for a in bucket.list_blobs(prefix="", delimiter="/")])
+'
     """,
 )
 
