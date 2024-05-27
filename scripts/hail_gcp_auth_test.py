@@ -9,7 +9,12 @@ j = b.new_bash_job('Three ls approaches')
 j.image(get_driver_image())
 j.command(
     """
+
 set -x
+
+unset GOOGLE_APPLICATION_CREDENTIALS
+echo "GAC is: $GOOGLE_APPLICATION_CREDENTIALS"
+
 gsutil ls -lh gs://cpg-fewgenomes-test/
 gcloud storage ls gs://cpg-fewgenomes-test/
 
