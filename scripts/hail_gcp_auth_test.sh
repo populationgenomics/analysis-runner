@@ -8,5 +8,5 @@ gcloud auth list
 # export GCE_METADATA_IP=169.254.169.254
 # export GCE_METADATA_ROOT=169.254.169.254
 
-gcloud storage ls -lh gs://cpg-fewgenomes-test/
+gcloud storage ls gs://cpg-fewgenomes-test/
 
