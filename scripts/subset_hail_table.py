@@ -31,7 +31,6 @@ from argparse import ArgumentParser
 
 import hail as hl
 
-from cpg_utils.config import output_path
 from cpg_utils.hail_batch import init_batch
 
 
@@ -84,13 +83,13 @@ def main(
 
     # write data to a test output path
     if out_format in ['ht', 'both']:
-        table_path = output_path(f'{output_root}.ht')
+        table_path = f'{output_root}.ht'
         ht.write(table_path, overwrite=True)
         logging.info(f'Wrote new table to {table_path!r}')
 
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
-        vcf_path = output_path(f'{output_root}.vcf.bgz')
+        vcf_path = f'{output_root}.vcf.bgz'
         hl.export_vcf(ht, vcf_path, tabix=True)
         logging.info(f'Wrote new table to {vcf_path!r}')
 
