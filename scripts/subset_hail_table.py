@@ -1,12 +1,28 @@
 #!/usr/bin/env python3
 # ruff: noqa: PLR2004
 """
-Takes a path to a Hail Table and an output name
-Writes data into the test bucket for the dataset
+Takes a path to a Hail Table and an output path
+
 
 Optionally a locus can be provided to reduce the output
 Optionally supply both --chr and --pos; subset to a specific locus
 The pos format can be a single int, or a "start-end"
+
+
+example usage:
+analysis-runner \
+    --dataset XXX \
+    --description 'subset table' \
+    --access-level full \
+    --output-dir not_used \
+    python3 scripts/subset_hail_table.py \
+        -i gs://cpg-project-main/ht/main.ht \
+        -o gs://cpg-project-main-analysis/ht/analysis
+
+The above invocation would copy the entire main.ht to the analysis bucket, called analysis.ht
+
+n.b. access level can be standard to copy from main to main-analysis
+     full is required to copy from main/main-analysis to test/test-analysis
 """
 
 import logging
@@ -23,14 +39,12 @@ def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
     """
     Subset the provided Table to a locus
 
-    Parameters
-    ----------
-    ht : the current Table
-    locus : a hail LocusExpression indicating the range of positions to select
+    Args:
+        ht (hl.Table): the current Table
+        locus (hl.IntervalExpression): hail LocusExpression indicating the range of positions to select
 
-    Returns
-    -------
-    The subset of the Table overlapping the indicated locus
+    Returns:
+        Table subset overlapping the indicated locus
     """
 
     ht = ht.filter(locus.contains(ht.locus))
@@ -70,13 +84,13 @@ def main(
 
     # write data to a test output path
     if out_format in ['ht', 'both']:
-        table_path = output_path(f'{output_root}.ht', test=True)
+        table_path = output_path(f'{output_root}.ht')
         ht.write(table_path, overwrite=True)
         logging.info(f'Wrote new table to {table_path!r}')
 
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
-        vcf_path = output_path(f'{output_root}.vcf.bgz', test=True)
+        vcf_path = output_path(f'{output_root}.vcf.bgz')
         hl.export_vcf(ht, vcf_path, tabix=True)
         logging.info(f'Wrote new table to {vcf_path!r}')
 
@@ -145,11 +159,7 @@ if __name__ == '__main__':
 
     parser = ArgumentParser()
     parser.add_argument('-i', help='Path to the input HailTable', required=True)
-    parser.add_argument(
-        '--out',
-        help='output name',
-        required=True,
-    )
+    parser.add_argument('-o', help='output name', required=True)
     parser.add_argument('--chr', help='Contig portion of a locus', required=False)
     parser.add_argument(
         '--pos',
@@ -178,7 +188,7 @@ if __name__ == '__main__':
 
     main(
         ht_path=args.i,
-        output_root=args.out,
+        output_root=args.o,
         locus=locus_interval,
         biallelic=args.biallelic,
         out_format=args.format,
