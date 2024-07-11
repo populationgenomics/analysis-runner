@@ -19,6 +19,7 @@ RUN apt-get update && \
         software-properties-common && \
     rm -r /var/lib/apt/lists/* && \
     rm -r /var/cache/apt/* && \
+    pip --no-cache-dir install build && \
     # Install phantomjs with a workaround for libssl_conf.so:
     # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
     cd /opt && \
