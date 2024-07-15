@@ -240,7 +240,7 @@ def main(dataset: list[str], workflow_id: list[str], dry_run: bool = False):
     sg_datasets = {}
     sg_analyses = {}
     for wf_id in workflow_id:
-        json_data = get_workflow_metadata_from_file(wf_id)
+        json_data = get_workflow_metadata_from_api(wf_id)
         workflow_status = parse_workflow_status_and_outputs(json_data)
 
         sg_id = next(iter(workflow_status.keys()))
