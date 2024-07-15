@@ -260,7 +260,7 @@ def main(dataset: list[str], workflow_id: list[str], dry_run: bool = False):
                 print(f"    {key}: {value}")
 
         # Copy outputs to bucket
-        source_bucket_name = 'cpg-seqr-main-temp'
+        source_bucket_name = 'cpg-seqr-main-tmp'
         destination_bucket_name = f'cpg-{wf_dataset}-main'
         analysis_file_sizes = copy_outputs_to_bucket(
             outputs,
