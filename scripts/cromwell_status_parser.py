@@ -197,7 +197,7 @@ async def get_sgid_peid_map_async(datasets: list[str]):
 def create_sv_analyses(sg_datasets: dict, sg_analyses: dict):
     """Synchronous entrypoint to create analyses for the given sequencing groups and datasets."""
     asyncio.get_event_loop().run_until_complete(
-        create_sv_analyses(sg_datasets, sg_analyses),
+        create_sv_analyses_async(sg_datasets, sg_analyses),
     )
 
 
