@@ -36,7 +36,9 @@ RUN apt-get update && \
     # DEPLOY_REMOTE avoids a dev suffix being appended to dataproc initialization paths.
     make install DEPLOY_REMOTE=1 && \
     cd ../.. && \
+    python -c 'import hail; print(f"XXX One: {hail.version()}")' && \
     rm -rf hail && \
+    python -c 'import hail; print(f"XXX Two: {hail.version()}")' && \
     pip --no-cache-dir install \
         analysis-runner \
         bokeh \
@@ -49,4 +51,5 @@ RUN apt-get update && \
         sample-metadata \
         metamist \
         selenium>=3.8.0 \
-        statsmodels
+        statsmodels && \
+    python -c 'import hail; print(f"XXX Three: {hail.version()}")'
