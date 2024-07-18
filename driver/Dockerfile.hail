@@ -1,5 +1,27 @@
-# This image adds Hail and some other Python-based stats libraries to the base image.
-FROM australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-base:1.5
+# Any analysis-runner driver image must at least include gcloud and git.
+FROM python:3.10-bullseye
+
+RUN apt update && apt install -y \
+        apt-transport-https \
+        bash \
+        bzip2 \
+        ca-certificates \
+        curl \
+        git \
+        gnupg \
+        jq \
+        python3 \
+        skopeo \
+        wget \
+        zip && \
+    rm -r /var/lib/apt/lists/* && \
+    rm -r /var/cache/apt/* && \
+    # Google Cloud SDK: use the script-based installation, as the Debian package is outdated.
+    curl https://sdk.cloud.google.com > install.sh && \
+    bash install.sh --disable-prompts --install-dir=/opt && \
+    rm install.sh
+
+ENV PATH=$PATH:/opt/google-cloud-sdk/bin
 
 ARG HAIL_SHA
 
