@@ -276,7 +276,8 @@ def prepare_job_from_config(
 
     # add comments
     comments = job_config.get_batch_comments()
-    job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
+    if comments:
+        job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
 
     job.image(job_config.image)
     if job_config.cpu:
