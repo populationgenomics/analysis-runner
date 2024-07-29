@@ -3,21 +3,26 @@ Exports 'add_cromwell_routes', to add the following route to a flask API:
     POST /cromwell: Posts a workflow to a cromwell_url
 """
 
+import dataclasses
 import json
+import os
 from datetime import datetime
 from shlex import quote
 
 import requests
 from aiohttp import web
 from util import (
-    DRIVER_IMAGE,
     PUBSUB_TOPIC,
     check_allowed_repos,
     check_dataset_and_group,
     generate_ar_guid,
     get_analysis_runner_metadata,
+    get_and_check_commit,
+    get_and_check_image,
+    get_and_check_repository,
     get_baseline_run_config,
     get_email_from_request,
+    get_hail_token,
     get_server_config,
     publisher,
     validate_output_dir,
@@ -37,7 +42,65 @@ from cpg_utils.hail_batch import (
 )
 
 
-def add_cromwell_routes(routes: web.RouteTableDef):  # noqa: C901
+@dataclasses.dataclass
+class CromwellJobArgs:
+    dataset: str
+    access_level: str
+    cloud_environment: str
+    description: str
+    labels: dict[str, str]
+
+    output: str
+    image: str
+
+    # repo checkout
+    branch: str | None
+    repo: str
+    commit: str
+    cwd: str
+
+    # workflow specific
+    workflow: str
+    dependencies: list[str]
+    inputs: dict
+    input_jsons: list[str]
+
+    # job submission
+    gcp_project: str
+    hail_token: str
+
+    def is_test(self) -> bool:
+        return self.access_level == 'test'
+
+    def get_batch_attributes(self) -> dict:
+        attributes = {}
+        if self.repo and self.commit:
+            attributes['repo'] = self.repo
+            attributes['commit'] = self.commit
+        if self.branch:
+            attributes['branch'] = self.branch
+
+        return attributes
+
+    def get_batch_comments(self) -> list[str]:
+        comments = []
+        if self.branch:
+            comments.append(f'BRANCH: {self.branch}')
+
+        if self.repo and self.commit:
+            script_url = guess_script_github_url_from(
+                repo=self.repo,
+                commit=self.commit,
+                script=[self.workflow],
+                cwd=self.cwd,
+            )
+            if script_url:
+                comments.append(f'URL: {script_url}')
+
+        return comments
+
+
+def add_cromwell_routes(routes: web.RouteTableDef):
     """Add cromwell route(s) to 'routes' flask API"""
 
     @routes.post('/cromwell')
@@ -64,161 +127,109 @@ def add_cromwell_routes(routes: web.RouteTableDef):  # noqa: C901
         params = await request.json()
 
         ar_guid = generate_ar_guid()
-        dataset = params['dataset']
-        access_level = params['accessLevel']
-        cloud_environment = 'gcp'
-        output_dir = validate_output_dir(params['output'])
-        dataset_config = check_dataset_and_group(
-            server_config=get_server_config(),
-            environment=cloud_environment,
-            dataset=dataset,
+
+        job_args = get_args_from_params(
+            params,
             email=email,
+            server_config=get_server_config(),
         )
-        environment_config = dataset_config.get(cloud_environment)
-        repo = params['repo']
-        check_allowed_repos(dataset_config=dataset_config, repo=repo)
-        labels = params.get('labels')
-
-        project = environment_config.get('projectId')
-        hail_token = environment_config.get(f'{access_level}Token')
-
-        if not hail_token:
-            raise web.HTTPBadRequest(
-                reason=f"Invalid access level '{access_level}', couldn't find corresponding hail token",
-            )
-
-        commit = params['commit']
-        if not commit or commit == 'HEAD':
-            raise web.HTTPBadRequest(reason='Invalid commit parameter')
-
-        libs = params.get('dependencies')
-        if not isinstance(libs, list):
-            raise web.HTTPBadRequest(reason='Expected "dependencies" to be a list')
-        cwd = params['cwd']
-        wf = params['workflow']
-        if not wf:
-            raise web.HTTPBadRequest(reason='Invalid script parameter')
-
-        input_jsons = params.get('input_json_paths') or []
-        input_dict = params.get('inputs_dict')
-
-        if access_level == 'test':
-            workflow_output_dir = f'gs://cpg-{dataset}-test/{output_dir}'
-        else:
-            workflow_output_dir = f'gs://cpg-{dataset}-main/{output_dir}'
-
-        timestamp = datetime.now().astimezone().isoformat()
-
-        # Prepare the job's configuration and write it to a blob.
 
         config = get_baseline_run_config(
             ar_guid=ar_guid,
-            environment=cloud_environment,
-            gcp_project_id=project,
-            dataset=dataset,
-            access_level=access_level,
-            output_prefix=output_dir,
+            environment=job_args.cloud_environment,
+            gcp_project_id=job_args.gcp_project,
+            dataset=job_args.dataset,
+            access_level=job_args.access_level,
+            output_prefix=job_args.output,
         )
+
+        timestamp = datetime.now().astimezone().isoformat()
+        workflow_output_dir: str = get_workflow_output_dir(config, job_args)
+
+        # Prepare the job's configuration and write it to a blob.
+
         if user_config := params.get('config'):  # Update with user-specified configs.
             update_dict(config, user_config)
-        config_path = write_config(ar_guid, config, cloud_environment)
+        config_path = write_config(ar_guid, config, job_args.cloud_environment)
 
         user_name = email.split('@')[0]
-        batch_name = f'{user_name} {repo}:{commit}/cromwell/{wf}'
+        batch_name = f'{user_name} {job_args.repo}:{job_args.commit}/cromwell/{job_args.workflow}'
 
         # This metadata dictionary gets stored at the output_dir location.
         metadata = get_analysis_runner_metadata(
             ar_guid=ar_guid,
             name=batch_name,
             timestamp=timestamp,
-            dataset=dataset,
+            dataset=job_args.dataset,
             user=email,
-            access_level=access_level,
-            repo=repo,
-            commit=commit,
-            script=wf,
+            access_level=job_args.access_level,
+            repo=job_args.repo,
+            commit=job_args.commit,
+            script=job_args.workflow,
             description=params['description'],
             output_prefix=workflow_output_dir,
-            driver_image=DRIVER_IMAGE,
+            driver_image=job_args.image,
             config_path=config_path,
-            cwd=cwd,
+            cwd=job_args.cwd,
             mode='cromwell',
             # no support for other environments
-            environment=cloud_environment,
+            environment=job_args.cloud_environment,
         )
 
-        hail_bucket = f'cpg-{dataset}-hail'
+        hail_bucket = f'cpg-{job_args.dataset}-hail'
         backend = hb.ServiceBackend(
-            billing_project=dataset,
+            billing_project=job_args.dataset,
             remote_tmpdir=remote_tmpdir(hail_bucket),
-            token=hail_token,
+            token=job_args.hail_token,
         )
 
         attributes = {
             AR_GUID_NAME: ar_guid,
-            'commit': commit,
-            'repo': repo,
             'author': user_name,
+            **job_args.get_batch_attributes(),
         }
-
-        branch = params.get('branch')
-        if branch:
-            attributes['branch'] = branch
+        comments = job_args.get_batch_comments()
 
         batch = hb.Batch(
             backend=backend,
             name=batch_name,
-            requester_pays_project=project,
+            requester_pays_project=job_args.gcp_project,
             attributes=attributes,
         )
-        branch = params.get('branch')
-        comments = []
-        if branch:
-            attributes['branch'] = branch
-            comments.append(f'BRANCH: {branch}')
-
-        script_url = guess_script_github_url_from(
-            repo=repo,
-            commit=commit,
-            script=[wf],
-            cwd=cwd,
-        )
-        if script_url:
-            comments.append(f'URL: {script_url}')
 
         job = batch.new_job(name='driver')
         job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
         job = prepare_git_job(
             job=job,
-            repo_name=repo,
-            commit=commit,
+            repo_name=job_args.repo,
+            commit=job_args.commit,
             print_all_statements=False,
-            is_test=access_level == 'test',
+            is_test=job_args.is_test(),
         )
 
-        job.image(DRIVER_IMAGE)
+        job.image(job_args.image)
 
         job.env('CPG_CONFIG_PATH', config_path)
 
         run_cromwell_workflow(
             job=job,
-            dataset=dataset,
-            access_level=access_level,
-            workflow=wf,
-            cwd=cwd,
-            libs=libs,
-            labels=labels,
-            output_prefix=output_dir,
-            input_dict=input_dict,
-            input_paths=input_jsons,
-            project=project,
+            dataset=job_args.dataset,
+            access_level=job_args.access_level,
+            workflow=job_args.workflow,
+            cwd=job_args.cwd,
+            libs=job_args.dependencies,
+            labels=job_args.labels,
+            output_prefix=job_args.output,
+            input_dict=job_args.inputs,
+            input_paths=job_args.input_jsons,
+            project=job_args.gcp_project,
             ar_guid_override=ar_guid,
         )
 
         url = run_batch_job_and_print_url(
             batch,
             wait=params.get('wait', False),
-            environment=cloud_environment,
+            environment=job_args.cloud_environment,
         )
 
         # Publish the metadata to Pub/Sub.
@@ -249,3 +260,75 @@ def add_cromwell_routes(routes: web.RouteTableDef):  # noqa: C901
             raise
         except Exception as e:  # noqa: BLE001
             raise web.HTTPInternalServerError(reason=str(e)) from e
+
+
+def get_args_from_params(
+    params: dict,
+    email: str,
+    server_config: dict,
+) -> CromwellJobArgs:
+    dataset = params['dataset']
+    access_level = params['accessLevel']
+    cloud_environment = 'gcp'
+
+    input_jsons = params.get('input_json_paths') or []
+    input_dict = params.get('inputs_dict')
+
+    dataset_config = check_dataset_and_group(
+        server_config=server_config,
+        environment=cloud_environment,
+        dataset=dataset,
+        email=email,
+    )
+    environment_config = dataset_config.get(cloud_environment, {})
+    hail_token = get_hail_token(dataset, dataset_config, access_level)
+
+    repo = get_and_check_repository(params, dataset_config)
+    if not repo:
+        raise web.HTTPBadRequest(reason='Must supply a "repo"')
+    commit = get_and_check_commit(params, repo)
+    if not commit:
+        raise web.HTTPBadRequest(reason='Must supply a "commit"')
+
+    check_allowed_repos(dataset_config=dataset_config, repo=repo)
+    output = validate_output_dir(params['output'])
+
+    libs = params.get('dependencies')
+    if not isinstance(libs, list):
+        raise web.HTTPBadRequest(reason='Expected "dependencies" to be a list')
+
+    wf = params['workflow']
+    if not wf:
+        raise web.HTTPBadRequest(reason='Invalid "workflow" parameter')
+
+    return CromwellJobArgs(
+        dataset=dataset,
+        branch=params.get('branch'),
+        inputs=input_dict,
+        input_jsons=input_jsons,
+        access_level=access_level,
+        cloud_environment='gcp',
+        output=output,
+        description=params['description'],
+        labels=params.get('labels'),
+        repo=repo,
+        commit=commit,
+        cwd=params['cwd'],
+        workflow=wf,
+        dependencies=libs,
+        gcp_project=environment_config.get('projectId'),
+        hail_token=hail_token,
+        # will default to the DRIVER_IMAGE
+        image=get_and_check_image({}, is_test=access_level == 'test'),
+    )
+
+
+def get_workflow_output_dir(config: dict, job_args: CromwellJobArgs) -> str:
+    bucket_path = config.get('storage', {}).get('default')
+    if not bucket_path:
+        if job_args.is_test():
+            bucket_path = f'gs://cpg-{job_args.dataset}-test'
+        else:
+            bucket_path = f'gs://cpg-{job_args.dataset}-main'
+
+    return os.path.join(bucket_path, job_args.output)
