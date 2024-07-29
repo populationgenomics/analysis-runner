@@ -190,6 +190,12 @@ def add_analysis_runner_routes(routes: web.RouteTableDef):
             attributes=attributes,
         )
 
+        _job = prepare_job_from_config(
+            batch=batch,
+            job_config=job_config,
+            config_path=config_path,
+        )
+
         url = run_batch_job_and_print_url(
             batch,
             wait=params.get('wait', False),

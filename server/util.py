@@ -69,7 +69,6 @@ def get_server_config() -> dict:
     raise web.HTTPInternalServerError(reason='Failed to read server-config secret')
 
 
-@ttl_cache(maxsize=4, ttl=600)
 async def _get_hail_version(environment: str) -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
     if not environment == 'gcp':
