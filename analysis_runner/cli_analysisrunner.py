@@ -3,9 +3,10 @@ CLI options for standard analysis-runner
 """
 
 import argparse
+import dataclasses
 import os
 from shutil import which
-from typing import List, Optional
+from typing import Any
 
 import requests
 
@@ -29,7 +30,7 @@ from cpg_utils.git import (
 
 
 def add_analysis_runner_args(
-    parser: Optional[argparse.ArgumentParser] = None,
+    parser: argparse.ArgumentParser | None = None,
 ) -> argparse.ArgumentParser:
     """
     Add CLI arguments for standard analysis-runner
@@ -96,6 +97,12 @@ def add_analysis_runner_args(
         action='append',
     )
 
+    parser.add_argument(
+        '--skip-repo-checkout',
+        required=False,
+        action='store_true',
+    )
+
     parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
 
     return parser
@@ -106,35 +113,41 @@ def run_analysis_runner_from_args(args: argparse.ArgumentParser):
     return run_analysis_runner(**vars(args))
 
 
-def run_analysis_runner(  # noqa: C901
+@dataclasses.dataclass
+class RepositorySpecificInformation:
+    repository: str
+    commit: str
+    cwd: str | None
+    branch: str | None
+    script: list[str]
+
+
+def run_analysis_runner(
     dataset: str,
     output_dir: str,
-    script: List[str],
+    script: list[str],
     description: str,
     access_level: str,
-    commit: Optional[str] = None,
-    repository: Optional[str] = None,
-    cwd: Optional[str] = None,
-    image: Optional[str] = None,
-    cpu: Optional[str] = None,
-    memory: Optional[str] = None,
-    storage: Optional[str] = None,
-    preemptible: Optional[str] = None,
-    branch: Optional[str] = None,
-    config: Optional[List[str]] = None,
-    env: Optional[List[str]] = None,
+    commit: str | None = None,
+    repository: str | None = None,
+    cwd: str | None = None,
+    image: str | None = None,
+    cpu: str | None = None,
+    memory: str | None = None,
+    storage: str | None = None,
+    preemptible: str | None = None,
+    branch: str | None = None,
+    config: list[str] | None = None,
+    env: list[str] | None = None,
     use_test_server: bool = False,
-    server_url: Optional[str] = None,
+    server_url: str | None = None,
+    skip_repo_checkout: bool = False,
 ):
     """
     Main function that drives the CLI.
     """
-
-    if repository is not None and commit is None:
-        raise ValueError(
-            "You must supply the '--commit <SHA>' parameter "
-            "when specifying the '--repository'",
-        )
+    if not script:
+        raise ValueError('No script provided')
 
     _perform_version_check()
 
@@ -143,15 +156,139 @@ def run_analysis_runner(  # noqa: C901
     ):
         raise SystemExit
 
+    _script = list(script)
+    server_args: dict[str, Any] = {
+        'dataset': dataset,
+        'output': output_dir,
+        'accessLevel': access_level,
+        'script': _script,
+        'description': description,
+        'image': image,
+        'cpu': cpu,
+        'memory': memory,
+        'storage': storage,
+        'preemptible': preemptible,
+    }
+
+    if not skip_repo_checkout:
+        repo_info = get_repository_specific_information(
+            repository=repository,
+            commit=commit,
+            branch=branch,
+            cwd=cwd,
+            script=_script,
+        )
+        server_args['repo'] = repo_info.repository
+        server_args['commit'] = repo_info.commit
+        server_args['branch'] = repo_info.branch
+        server_args['cwd'] = repo_info.cwd
+        server_args['script'] = repo_info.script
+
+        logger.info(
+            f'Submitting {repo_info.repository}@{repo_info.commit} on {repo_info.branch} for dataset "{dataset}"',
+        )
+    else:
+        logger.info(f'Submitting analysis for dataset "{dataset}"')
+
+    if env:
+        _env: dict = {}
+        for env_var_pair in env:
+            try:
+                pair = env_var_pair.split('=', maxsplit=1)
+                _env[pair[0]] = pair[1]
+            except IndexError as e:
+                raise IndexError(
+                    env_var_pair + ' does not conform to key=value format.',
+                ) from e
+        server_args['environmentVariables'] = _env
+
+    if config:
+        _config = dict(read_configs(config))
+        server_args['config'] = _config
+
+    server_endpoint = get_server_endpoint(
+        server_url=server_url,
+        is_test=use_test_server,
+    )
+    _token = get_google_identity_token(server_endpoint)
+
+    response = requests.post(
+        server_endpoint,
+        json=server_args,
+        headers={'Authorization': f'Bearer {_token}'},
+        timeout=60,
+    )
+    try:
+        response.raise_for_status()
+        logger.info(f'Request submitted successfully: {response.text}')
+    except requests.HTTPError as e:
+        logger.critical(
+            f'Request failed with status {response.status_code}: {e!s}\n'
+            f'Full response: {response.text}',
+        )
+
+
+def _perform_shebang_check(script: str) -> None:
+    """
+    Returns None if script has shebang, otherwise raises Exception
+    """
+    with open(script, encoding='utf-8') as f:
+        potential_shebang = f.readline()
+        if potential_shebang.startswith('#!'):
+            return
+
+        suggestion_shebang = ''
+        if script.endswith('.py'):
+            suggestion_shebang = '#!/usr/bin/env python3'
+        elif script.endswith('.sh'):
+            suggestion_shebang = '#!/usr/bin/env bash'
+        elif script.lower().endswith('.r') or script.lower().endswith('.rscript'):
+            suggestion_shebang = '#!/usr/bin/env Rscript'
+
+        message = f'Couldn\'t find shebang at start of "{script}"'
+        if suggestion_shebang:
+            message += (
+                f', consider inserting "{suggestion_shebang}" at the top of this file'
+            )
+        raise AssertionError(message)
+
+
+def get_repository_specific_information(  # noqa: C901
+    repository: str | None,
+    commit: str | None,
+    branch: str | None,
+    cwd: str | None,
+    script: list[str],
+) -> RepositorySpecificInformation:
+    """Do all the repository specific stuff (like fetching repo, commit, cwd)
+
+    Args:
+        repository (str | None): _description_
+        commit (str | None): _description_
+        branch (str | None): _description_
+        cwd (str | None): _description_
+        script (list[str]): _description_
+
+    Raises:
+        ValueError: _description_
+        SystemExit: _description_
+        SystemExit: _description_
+
+    Returns:
+        RepositorySpecificInformation: _description_
+    """
+
+    if repository is not None and commit is None:
+        raise ValueError(
+            "You must supply the '--commit <SHA>' parameter "
+            "when specifying the '--repository'",
+        )
+
     _repository = repository
     _commit_ref = commit
     _branch = branch or get_git_branch_name()
     _script = list(script)
     _cwd = cwd
-
-    # false-y value catches empty list / tuple as well
-    if not _script:
-        _script = ['main.py']
 
     # os.path.exists is only case-sensitive if the local file system is
     # https://stackoverflow.com/questions/6710511/case-sensitive-path-comparison-in-python
@@ -197,83 +334,16 @@ def run_analysis_runner(  # noqa: C901
     if _cwd == '.':
         _cwd = None
 
-    _env = None
-    if env:
-        _env = {}
-        for env_var_pair in env:
-            try:
-                pair = env_var_pair.split('=', maxsplit=1)
-                _env[pair[0]] = pair[1]
-            except IndexError as e:
-                raise IndexError(
-                    env_var_pair + ' does not conform to key=value format.',
-                ) from e
-
-    _config = None
-    if config:
-        _config = dict(read_configs(config))
-
-    server_endpoint = get_server_endpoint(
-        server_url=server_url,
-        is_test=use_test_server,
-    )
-    _token = get_google_identity_token(server_endpoint)
-
-    logger.info(f'Submitting {_repository}@{_commit_ref} for dataset "{dataset}"')
-
-    response = requests.post(
-        server_endpoint,
-        json={
-            'dataset': dataset,
-            'output': output_dir,
-            'repo': _repository,
-            'accessLevel': access_level,
-            'commit': _commit_ref,
-            'script': _script,
-            'description': description,
-            'cwd': _cwd,
-            'image': image,
-            'cpu': cpu,
-            'memory': memory,
-            'storage': storage,
-            'preemptible': preemptible,
-            'environmentVariables': _env,
-            'config': _config,
-            'branch': _branch,
-        },
-        headers={'Authorization': f'Bearer {_token}'},
-        timeout=60,
-    )
-    try:
-        response.raise_for_status()
-        logger.info(f'Request submitted successfully: {response.text}')
-    except requests.HTTPError as e:
-        logger.critical(
-            f'Request failed with status {response.status_code}: {e!s}\n'
-            f'Full response: {response.text}',
+    if not _repository or not _commit_ref:
+        raise SystemExit(
+            'Could not determine repository, commit, or cwd. '
+            'Please supply these parameters explicitly.',
         )
 
-
-def _perform_shebang_check(script: str) -> None:
-    """
-    Returns None if script has shebang, otherwise raises Exception
-    """
-    with open(script, encoding='utf-8') as f:
-        potential_shebang = f.readline()
-        if potential_shebang.startswith('#!'):
-            return
-
-        suggestion_shebang = ''
-        if script.endswith('.py'):
-            suggestion_shebang = '#!/usr/bin/env python3'
-        elif script.endswith('.sh'):
-            suggestion_shebang = '#!/usr/bin/env bash'
-        elif script.lower().endswith('.r') or script.lower().endswith('.rscript'):
-            suggestion_shebang = '#!/usr/bin/env Rscript'
-
-        message = f'Couldn\'t find shebang at start of "{script}"'
-        if suggestion_shebang:
-            message += (
-                f', consider inserting "{suggestion_shebang}" at the top of this file'
-            )
-        raise AssertionError(message)
+    return RepositorySpecificInformation(
+        repository=_repository,
+        commit=_commit_ref,
+        cwd=_cwd,
+        branch=_branch,
+        script=_script,
+    )

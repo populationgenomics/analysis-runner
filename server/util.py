@@ -6,13 +6,15 @@ import json
 import os
 import random
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 import toml
 from aiohttp import ClientSession, web
+from cachetools.func import ttl_cache
 from cloudpathlib import AnyPath
 from google.cloud import pubsub_v1, secretmanager
 
+import hailtop.batch as hb
 from hailtop.config import get_deploy_config
 
 from cpg_utils.cloud import email_from_id_token, read_secret
@@ -34,6 +36,7 @@ MEMBERS_CACHE_LOCATION = os.getenv('MEMBERS_CACHE_LOCATION')
 assert MEMBERS_CACHE_LOCATION
 
 CONFIG_PATH_PREFIXES = {'gcp': 'gs://cpg-config'}
+SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp'}
 
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
@@ -50,8 +53,11 @@ def generate_ar_guid() -> str:
     return guid.lower()
 
 
+# cache the result for 60 seconds, so we can call this function multiple times
+@ttl_cache(maxsize=1, ttl=600)
 def get_server_config() -> dict:
     """Get the server-config from the secret manager"""
+
     server_config = os.getenv('SERVER_CONFIG')
     if server_config:
         return json.loads(server_config)
@@ -63,6 +69,7 @@ def get_server_config() -> dict:
     raise web.HTTPInternalServerError(reason='Failed to read server-config secret')
 
 
+@ttl_cache(maxsize=4, ttl=600)
 async def _get_hail_version(environment: str) -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
     if not environment == 'gcp':
@@ -93,7 +100,7 @@ def get_email_from_request(request: web.Request) -> str:
         raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
 
-def check_allowed_repos(dataset_config: Dict, repo: str):
+def check_allowed_repos(dataset_config: dict, repo: str):
     """Check that repo is the in server_config allowedRepos for the dataset"""
     allowed_repos = dataset_config['allowedRepos']
     if repo not in allowed_repos:
@@ -114,7 +121,7 @@ def validate_output_dir(output_dir: str) -> str:
 
 
 def check_dataset_and_group(
-    server_config: Dict,
+    server_config: dict,
     environment: str,
     dataset: str,
     email: str,
@@ -163,14 +170,14 @@ def get_analysis_runner_metadata(
     dataset: str,
     user: str,
     access_level: str,
-    repo: str,
-    commit: str,
+    repo: str | None,
+    commit: str | None,
     script: str,
     description: str,
     output_prefix: str,
     driver_image: str,
     config_path: str,
-    cwd: str,
+    cwd: str | None,
     environment: str,
     **kwargs: Any,
 ) -> dict:
@@ -271,3 +278,90 @@ def get_baseline_run_config(
         with path.open() as f:
             update_dict(baseline_config, toml.load(f))
     return baseline_config
+
+
+def get_and_check_script(params: dict) -> list[str]:
+    script = params.get('script')
+    if not script:
+        raise web.HTTPBadRequest(reason='Missing script parameter')
+    if not isinstance(script, list):
+        raise web.HTTPBadRequest(reason='Script parameter expects an array')
+
+    return script
+
+
+def get_and_check_repository(params: dict, dataset_config: dict) -> str | None:
+    repo = params.get('repo')
+    if not repo:
+        return None
+    check_allowed_repos(dataset_config=dataset_config, repo=repo)
+
+    return repo
+
+
+def get_and_check_commit(params: dict, repo: str | None) -> str | None:
+
+    commit = params.get('commit')
+    if not commit and repo:
+        raise web.HTTPBadRequest(reason='Missing commit parameter')
+    if commit and not repo:
+        raise web.HTTPBadRequest(reason='Missing repo parameter')
+
+    if commit == 'HEAD':
+        raise web.HTTPBadRequest(reason='Invalid commit parameter')
+
+    return commit
+
+
+def get_and_check_cloud_environment(params: dict) -> str:
+    cloud_environment = params.get('cloud_environment', 'gcp')
+    if cloud_environment not in SUPPORTED_CLOUD_ENVIRONMENTS:
+        raise web.HTTPBadRequest(
+            reason=f'analysis-runner does not yet support the {cloud_environment} environment',
+        )
+    return cloud_environment
+
+
+def get_and_check_image(params: dict, is_test: bool) -> str:
+    image = params.get('image') or DRIVER_IMAGE
+    if not image or not validate_image(image, is_test):
+        raise web.HTTPBadRequest(reason=f'Invalid image "{image}"')
+
+    # TODO: find the docker digest for the image
+    # to turn the image:floating-tag into a image@sha256:digest, so it's completely provenant
+
+    return image
+
+
+def get_hail_token(dataset: str, environment_config: dict, access_level: str) -> str:
+    hail_token = environment_config.get(f'{access_level}Token')
+    if not hail_token:
+        raise web.HTTPBadRequest(
+            reason=f'Invalid access level ({access_level}) for {dataset}"',
+        )
+
+    return hail_token
+
+
+def add_environment_variables(
+    job: hb.batch.job.BashJob,
+    environment_variables: dict | None,
+):
+    if not environment_variables:
+        return
+
+    if not isinstance(environment_variables, dict):
+        raise ValueError('Expected environment_variables to be dictionary')
+
+    invalid_env_vars = [
+        f'{k}={v}' for k, v in environment_variables.items() if not isinstance(v, str)
+    ]
+
+    if len(invalid_env_vars) > 0:
+        raise ValueError(
+            'Some environment_variables values were not strings, got '
+            + ', '.join(invalid_env_vars),
+        )
+
+    for k, v in environment_variables.items():
+        job.env(k, v)
