@@ -5,7 +5,7 @@ Dataproc is a managed Spark and Hadoop service provided by Google that we use fo
 The `cpg-utils` package includes helper functions for managing Dataproc clusters, including spinning up and down clusters, and submitting jobs. See [Team Docs: cpg-utils/dataproc](https://populationgenomics.readthedocs.io/en/latest/cpg-utils/dataproc.html) for a guide on how to make Hail Query interact with Dataproc.
 
 > ### Issues with running Dataproc
-> 
+>
 > If you have issues with dataproc, please see the [Playbooks: Hail Query on Dataproc](https://populationgenomics.readthedocs.io/en/latest/playbooks/hail_query_on_dataproc.html) guide.
 
 ## Docker driver image
