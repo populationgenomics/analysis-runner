@@ -19,7 +19,6 @@ RUN apt-get update && \
     libopenblas-base \
     make \
     openjdk-8-jdk-headless \
-    python3-build \
     python3-pip \
     python3-venv \
     rsync \
@@ -30,6 +29,7 @@ RUN apt-get update && \
     apt-get install -y google-cloud-sdk && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
+    pip3 install --no-cache-dir build && \
     git clone https://github.com/populationgenomics/hail.git && \
     if [ -n "$HAIL_COMMIT" ]; then cd hail && git checkout ${HAIL_COMMIT} && cd ..; fi && \
     cd hail/hail && \
