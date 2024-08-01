@@ -58,4 +58,4 @@ RUN apt-get update && \
 # the `pip_dependencies` section of this yaml file, then the hail wheel won't be
 # copied over to the cluster resulting in the above error. However, remember to
 # check your error logs for the exact error message.
-RUN if [ "$STRIP_PIP_VERSIONS" == "true" ]; then sed -i '/pip_dependencies:/s/[<>=~!][^|]*//g' /usr/local/lib/python3.10/dist-packages/hailtop/hailctl/deploy.yaml; fi
+RUN if [ "$STRIP_PIP_VERSIONS" = "true" ]; then sed -i '/pip_dependencies:/s/[<>=~!][^|]*//g' /usr/local/lib/python3.10/dist-packages/hailtop/hailctl/deploy.yaml; fi
