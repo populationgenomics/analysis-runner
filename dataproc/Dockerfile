@@ -19,6 +19,7 @@ RUN apt-get update && \
     libopenblas-base \
     make \
     openjdk-8-jdk-headless \
+    python3-build \
     python3-pip \
     rsync \
     zip && \
