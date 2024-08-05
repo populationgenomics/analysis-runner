@@ -5,9 +5,6 @@ on:
       hail_version:
         description: "Hail version"
         required: true
-  push:
-    branches:
-      - dataproc-deploy-script
 
 permissions:
   contents: read
@@ -46,7 +43,7 @@ jobs:
 
       - name: "build docker file"
         run: |
-          DOCKER_PATH=$DOCKER_IMAGE:hail-${{ github.event.inputs.hail_version || '0.2.132' }}
+          DOCKER_PATH=$DOCKER_IMAGE:hail-${{ github.event.inputs.hail_version }}
 
           docker build \
             --tag $DOCKER_PATH \
