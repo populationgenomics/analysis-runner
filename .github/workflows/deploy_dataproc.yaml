@@ -1,0 +1,46 @@
+name: Deploy dataproc container
+on:
+  workflow_dispatch:
+    inputs:
+      hail_version:
+        description: "Hail version"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy_dataproc:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DOCKER_BUILDKIT: 1
+      BUILDKIT_PROGRESS: plain
+      CLOUDSDK_CORE_DISABLE_PROMPTS: 1
+      DOCKER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/dataproc
+
+    steps:
+      - name: "checkout repo"
+        uses: actions/checkout@v4
+
+      - id: "google-cloud-auth"
+        name: "Authenticate to Google Cloud"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "projects/370374240567/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+          service_account: "server-deploy@analysis-runner.iam.gserviceaccount.com"
+
+      - id: "google-cloud-sdk-setup"
+        name: "Set up Cloud SDK"
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: "analysis-runner"
+
+      - name: "deploy through gcloud build"
+        run: |
+          cd dataproc
+          gcloud builds submit \
+            --timeout=1h \
+            --tag=$DOCKER_IMAGE:hail-${{ github.event.inputs.hail_version }} \
+            .
