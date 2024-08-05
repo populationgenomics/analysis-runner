@@ -243,7 +243,7 @@ def prepare_inputs_from_request_json(
         description=params['description'],
         config=params.get('config'),
         # repo specific
-        repo=get_and_check_repository(params, dataset_config),
+        repo=repo,
         commit=commit,
         branch=params.get('branch'),
         cwd=params.get('cwd'),

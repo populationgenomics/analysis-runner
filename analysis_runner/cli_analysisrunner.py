@@ -260,22 +260,9 @@ def get_repository_specific_information(  # noqa: C901
     cwd: str | None,
     script: list[str],
 ) -> RepositorySpecificInformation:
-    """Do all the repository specific stuff (like fetching repo, commit, cwd)
-
-    Args:
-        repository (str | None): _description_
-        commit (str | None): _description_
-        branch (str | None): _description_
-        cwd (str | None): _description_
-        script (list[str]): _description_
-
-    Raises:
-        ValueError: _description_
-        SystemExit: _description_
-        SystemExit: _description_
-
-    Returns:
-        RepositorySpecificInformation: _description_
+    """
+    Do all the repository specific stuff (like fetching repo, commit, cwd).
+    The values here are the _user_ provided values (from the CLI).
     """
 
     if repository is not None and commit is None:
