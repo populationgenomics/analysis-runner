@@ -45,5 +45,5 @@ jobs:
           cd dataproc
           gcloud builds submit \
             --timeout=1h \
-            --tag=$DOCKER_IMAGE:hail-${{ github.event.inputs.hail_version }} \
+            --tag=$DOCKER_IMAGE:hail-${{ github.event.inputs.hail_version || '0.2.132' }} \
             .
