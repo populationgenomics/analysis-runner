@@ -40,10 +40,16 @@ jobs:
         with:
           project_id: "analysis-runner"
 
-      - name: "deploy through gcloud build"
+      - name: "gcloud docker auth"
         run: |
-          cd dataproc
-          gcloud builds submit \
-            --timeout=1h \
-            --tag=$DOCKER_IMAGE:hail-${{ github.event.inputs.hail_version || '0.2.132' }} \
-            .
+          gcloud auth configure-docker marketplace.gcr.io,australia-southeast1-docker.pkg.dev
+
+      - name: "build docker file"
+        run: |
+          DOCKER_PATH=$DOCKER_IMAGE:hail-${{ github.event.inputs.hail_version || '0.2.132' }}
+
+          docker build \
+            --tag $DOCKER_PATH \
+            dataproc/
+
+          docker push $DOCKER_PATH
