@@ -19,8 +19,8 @@ RUN apt-get update && \
     libopenblas-base \
     make \
     openjdk-8-jdk-headless \
-    python3-build \
     python3-pip \
+    python3-venv \
     rsync \
     zip && \
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
@@ -29,6 +29,7 @@ RUN apt-get update && \
     apt-get install -y google-cloud-sdk && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
+    pip3 install --no-cache-dir build && \
     git clone https://github.com/populationgenomics/hail.git && \
     if [ -n "$HAIL_COMMIT" ]; then cd hail && git checkout ${HAIL_COMMIT} && cd ..; fi && \
     cd hail/hail && \
@@ -57,4 +58,4 @@ RUN apt-get update && \
 # the `pip_dependencies` section of this yaml file, then the hail wheel won't be
 # copied over to the cluster resulting in the above error. However, remember to
 # check your error logs for the exact error message.
-RUN if [ "$STRIP_PIP_VERSIONS" == "true" ]; then sed -i '/pip_dependencies:/s/[<>=~!][^|]*//g' /usr/local/lib/python3.10/dist-packages/hailtop/hailctl/deploy.yaml; fi
+RUN if [ "$STRIP_PIP_VERSIONS" = "true" ]; then sed -i '/pip_dependencies:/s/[<>=~!][^|]*//g' /usr/local/lib/python3.10/dist-packages/hailtop/hailctl/deploy.yaml; fi
