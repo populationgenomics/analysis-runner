@@ -105,8 +105,8 @@ def check_allowed_repos(dataset_config: dict, repo: str):
     if repo not in allowed_repos:
         raise web.HTTPForbidden(
             reason=(
-                f'Repository "{repo}" is not one of the allowed repositories, you may'
-                'need add it to the repository-map: '
+                f'Repository "{repo}" is not one of the allowed repositories, you may '
+                'need to add it to the repository-map: '
                 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/tokens/repository-map.json'
             ),
         )
@@ -130,7 +130,7 @@ def check_dataset_and_group(
     if not dataset_config:
         raise web.HTTPForbidden(
             reason=(
-                f'The dataset "{dataset}" is not present in the server config, have you'
+                f'The dataset "{dataset}" is not present in the server config, have you '
                 'added it to the repository map: '
                 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/tokens/repository-map.json'
             ),
