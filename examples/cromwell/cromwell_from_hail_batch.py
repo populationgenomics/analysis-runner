@@ -6,6 +6,7 @@ from within a batch environment, and operate on the result(s)
 
 from cpg_utils.config import get_config, output_path
 from cpg_utils.cromwell import (
+    CromwellBackend,
     CromwellOutputType,
     run_cromwell_workflow_from_repo_and_get_outputs,
 )
@@ -39,6 +40,7 @@ submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     libs=[],  # hello_all_in_one_file is self-contained, so no dependencies
     output_prefix=OUTPUT_PATH,
     dataset=DATASET,
+    backend=CromwellBackend.batch,
 )
 print(workflow_outputs)
 # {
