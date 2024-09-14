@@ -1,7 +1,9 @@
 black
 bump2version
 cloudpathlib[all]
+coverage
 cpg-utils>=4.12.1
 pre-commit
 pylint
+pytest
 toml
