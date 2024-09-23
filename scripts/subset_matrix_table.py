@@ -138,7 +138,7 @@ def main(
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
         # remove GVCF INFO field if present - can't be exported to VCF
-        if 'gvcf_info' in mt.row:
+        if 'gvcf_info' in mt.entry:
             mt = mt.drop('gvcf_info')
 
         vcf_path = output_path(f'{prefix}.vcf.bgz', test=True)
