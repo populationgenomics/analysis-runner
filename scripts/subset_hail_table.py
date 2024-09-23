@@ -89,6 +89,11 @@ def main(
 
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
+        # remove GVCF INFO field if present - can't be exported to VCF
+        # HT shouldn't contain a FORMAT fiels, this is here as insurance
+        if 'gvcf_info' in ht.row:
+            ht = ht.drop('gvcf_info')
+
         vcf_path = f'{output_root}.vcf.bgz'
         hl.export_vcf(ht, vcf_path, tabix=True)
         logging.info(f'Wrote new table to {vcf_path!r}')
