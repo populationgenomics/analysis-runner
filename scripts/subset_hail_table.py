@@ -90,7 +90,7 @@ def main(
     # if VCF, export as a VCF as well
     if out_format in ['vcf', 'both']:
         # remove GVCF INFO field if present - can't be exported to VCF
-        # HT shouldn't contain a FORMAT fiels, this is here as insurance
+        # HT shouldn't contain a FORMAT fields, this is here as insurance
         if 'gvcf_info' in ht.row:
             ht = ht.drop('gvcf_info')
 
