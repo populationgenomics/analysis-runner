@@ -201,18 +201,17 @@ def create_sv_analyses(sg_datasets: dict, sg_analyses: dict):
     )
 
 
-async def create_sv_analyses_async(dataset_sgs: dict, sg_analyses: dict):
+async def create_sv_analyses_async(sg_datasets: dict, sg_analyses: dict):
     """
     Asynchronously create analyses for the given sequencing groups and datasets.
     """
     aapi = AnalysisApi()
     promises = []
-    for dataset, sgs in dataset_sgs.items():
-        for sg_id in sgs:
-            for analysis in sg_analyses[sg_id]:
-                promises.append(
-                    aapi.create_analysis_async(project=dataset, analysis=analysis),
-                )
+    for sg_id, dataset in sg_datasets.items():
+        for analysis in sg_analyses[sg_id]:
+            promises.append(
+                aapi.create_analysis_async(project=dataset, analysis=analysis),
+            )
 
     await asyncio.gather(*promises)
 
