@@ -198,7 +198,8 @@ def add_cromwell_routes(routes: web.RouteTableDef):
         )
 
         job = batch.new_job(name='driver')
-        job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
+        if comments:
+            job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
         job = prepare_git_job(
             job=job,
             repo_name=job_args.repo,
