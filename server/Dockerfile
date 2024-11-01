@@ -11,7 +11,7 @@ EXPOSE $PORT
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-COPY main.py cromwell.py util.py ./
+COPY main.py ar.py config.py cromwell.py util.py ./
 
 # Prepare the Hail deploy config to point to the CPG domain.
 COPY deploy-config.json /deploy-config/deploy-config.json
