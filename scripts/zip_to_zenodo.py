@@ -40,9 +40,12 @@ def zip_tree(
     print(f'Creating {zip_fname} from gs://{bucket}/{prefix}/{subset}/**')
     with ZipFile(zip_fname, mode='w') as zipf:
         nfiles = 0
-        for blob in storage_client.list_blobs(bucket, prefix=f'{prefix}/{subset}'):
+        for blob in storage_client.list_blobs(bucket, prefix=f'{prefix}/{subset}/'):
             subname = blob.name.removeprefix(prefix).removeprefix('/')
-            print(f'Adding {subname} to archive')
+            if nfiles <= 100:  # noqa: PLR2004  # Literal 100 is clear enough here!
+                print(f'Adding {subname} to archive')
+            elif nfiles % 100 == 0:
+                print(f'Adding a hundred files through {subname} to archive')
 
             contents = blob.download_as_bytes()
             info = ZipInfo(filename=subname, date_time=blob.updated.utctimetuple())
