@@ -296,11 +296,12 @@ def get_and_check_repository(
     dataset_config: dict,
     dataset: str,
 ) -> str | None:
-    repo = params.get('repo')
-    if not repo:
+    if not (repo := params.get('repo')) or check_allowed_repos(
+        dataset_config=dataset_config,
+        repo=repo,
+        dataset=dataset,
+    ):
         return None
-    check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
-
     return repo
 
 
