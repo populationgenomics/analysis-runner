@@ -232,7 +232,11 @@ def prepare_inputs_from_request_json(
 
     is_test = access_level == 'test'
 
-    repo = get_and_check_repository(params=params, dataset_config=dataset_config, dataset=dataset)
+    repo = get_and_check_repository(
+        params=params,
+        dataset_config=dataset_config,
+        dataset=dataset,
+    )
     commit = get_and_check_commit(params, repo)
 
     return AnalysisRunnerJobArgs(

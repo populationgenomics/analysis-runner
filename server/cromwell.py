@@ -284,7 +284,11 @@ def get_args_from_params(
     environment_config = dataset_config.get(cloud_environment, {})
     hail_token = get_hail_token(dataset, dataset_config, access_level)
 
-    repo = get_and_check_repository(params=params, dataset_config=dataset_config, dataset=dataset)
+    repo = get_and_check_repository(
+        params=params,
+        dataset_config=dataset_config,
+        dataset=dataset,
+    )
     if not repo:
         raise web.HTTPBadRequest(reason='Must supply a "repo"')
     commit = get_and_check_commit(params, repo)

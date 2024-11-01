@@ -291,7 +291,11 @@ def get_and_check_script(params: dict) -> list[str]:
     return script
 
 
-def get_and_check_repository(params: dict, dataset_config: dict, dataset: str) -> str | None:
+def get_and_check_repository(
+    params: dict,
+    dataset_config: dict,
+    dataset: str,
+) -> str | None:
     repo = params.get('repo')
     if not repo:
         return None
