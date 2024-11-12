@@ -13,7 +13,6 @@ import requests
 from aiohttp import web
 from util import (
     PUBSUB_TOPIC,
-    check_allowed_repos,
     check_dataset_and_group,
     generate_ar_guid,
     get_analysis_runner_metadata,
