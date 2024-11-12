@@ -144,13 +144,13 @@ def add_cromwell_routes(routes: web.RouteTableDef):
         )
 
         timestamp = datetime.now().astimezone().isoformat()
-        workflow_output_dir: str = get_workflow_output_dir(config, job_args)
+        workflow_output_dir: str = get_workflow_output_dir()
 
         # Prepare the job's configuration and write it to a blob.
 
         if user_config := params.get('config'):  # Update with user-specified configs.
             update_dict(config, user_config)
-        config_path = write_config(ar_guid, config, job_args.cloud_environment)
+        config_path = write_config()
 
         user_name = email.split('@')[0]
         batch_name = f'{user_name} {job_args.repo}:{job_args.commit}/cromwell/{job_args.workflow}'
@@ -200,13 +200,7 @@ def add_cromwell_routes(routes: web.RouteTableDef):
         job = batch.new_job(name='driver')
         if comments:
             job.command('\n'.join(f'echo {quote(comment)}' for comment in comments))
-        job = prepare_git_job(
-            job=job,
-            repo_name=job_args.repo,
-            commit=job_args.commit,
-            print_all_statements=False,
-            is_test=job_args.is_test(),
-        )
+        job = prepare_git_job()
 
         job.image(job_args.image)
 
