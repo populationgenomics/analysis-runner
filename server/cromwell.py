@@ -295,7 +295,6 @@ def get_args_from_params(
     if not commit:
         raise web.HTTPBadRequest(reason='Must supply a "commit"')
 
-    check_allowed_repos(dataset_config=dataset_config, repo=repo)
     output = validate_output_dir(params['output'])
 
     libs = params.get('dependencies')
