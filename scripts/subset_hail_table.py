@@ -96,6 +96,8 @@ def main(
 
     ht: hl.Table = hl.read_table(ht_path)
 
+    logging.info(ht.describe())
+
     if isinstance(locus, hl.IntervalExpression):
         ht = subset_to_locus(ht, locus=locus)
 
