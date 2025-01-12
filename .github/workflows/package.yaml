@@ -21,22 +21,17 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: List installed modules
+        run: pip list -v
+
       - name: Build
         run: python setup.py sdist
+
+      - name: List artifacts
+        run: ls -l dist/*
 
       - name: Test install
         run: pip install dist/*
 
       - name: Run tests
         run: python -m unittest test/test_analysis_runner.py
-
-      # `skip_existing: true` makes sure that the package will be published
-      # only when new version is created
-      - name: Publish the wheel to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        if: ${{ github.event_name != 'pull_request' }}
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          packages-dir: dist/
-          skip-existing: true
