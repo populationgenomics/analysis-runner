@@ -13,7 +13,6 @@ import requests
 from aiohttp import web
 from util import (
     PUBSUB_TOPIC,
-    check_allowed_repos,
     check_dataset_and_group,
     generate_ar_guid,
     get_analysis_runner_metadata,
@@ -284,14 +283,17 @@ def get_args_from_params(
     environment_config = dataset_config.get(cloud_environment, {})
     hail_token = get_hail_token(dataset, dataset_config, access_level)
 
-    repo = get_and_check_repository(params, dataset_config)
+    repo = get_and_check_repository(
+        params=params,
+        dataset_config=dataset_config,
+        dataset=dataset,
+    )
     if not repo:
         raise web.HTTPBadRequest(reason='Must supply a "repo"')
     commit = get_and_check_commit(params, repo)
     if not commit:
         raise web.HTTPBadRequest(reason='Must supply a "commit"')
 
-    check_allowed_repos(dataset_config=dataset_config, repo=repo)
     output = validate_output_dir(params['output'])
 
     libs = params.get('dependencies')

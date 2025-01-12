@@ -39,6 +39,8 @@ CONFIG_PATH_PREFIXES = {'gcp': 'gs://cpg-config'}
 SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp'}
 DEFAULT_STATUS_REPORTER = 'metamist'
 
+ALLOWED = 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/datasets/{}/repositories.yaml'
+
 secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
 
@@ -100,15 +102,15 @@ def get_email_from_request(request: web.Request) -> str:
         raise web.HTTPForbidden(reason='Invalid authorization header') from e
 
 
-def check_allowed_repos(dataset_config: dict, repo: str):
+def check_allowed_repos(dataset_config: dict, repo: str, dataset: str):
     """Check that repo is the in server_config allowedRepos for the dataset"""
     allowed_repos = dataset_config['allowedRepos']
     if repo not in allowed_repos:
+        allowed_path = ALLOWED.format(dataset)
         raise web.HTTPForbidden(
             reason=(
                 f'Repository "{repo}" is not one of the allowed repositories, you may '
-                'need to add it to the repository-map: '
-                'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/tokens/repository-map.json'
+                f'need to add it to the permitted repository list: {allowed_path}'
             ),
         )
 
@@ -129,11 +131,11 @@ def check_dataset_and_group(
     """Check that the email address is a member of the {dataset}-access@popgen group"""
     dataset_config = server_config.get(dataset)
     if not dataset_config:
+        allowed_path = ALLOWED.format(dataset)
         raise web.HTTPForbidden(
             reason=(
                 f'The dataset "{dataset}" is not present in the server config, have you '
-                'added it to the repository map: '
-                'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/tokens/repository-map.json'
+                f'added it to the repository list: {allowed_path}'
             ),
         )
 
@@ -291,12 +293,19 @@ def get_and_check_script(params: dict) -> list[str]:
     return script
 
 
-def get_and_check_repository(params: dict, dataset_config: dict) -> str | None:
-    repo = params.get('repo')
-    if not repo:
+def get_and_check_repository(
+    params: dict,
+    dataset_config: dict,
+    dataset: str,
+) -> str | None:
+    if not (repo := params.get('repo')):
         return None
-    check_allowed_repos(dataset_config=dataset_config, repo=repo)
 
+    check_allowed_repos(
+        dataset_config=dataset_config,
+        repo=repo,
+        dataset=dataset,
+    )
     return repo
 
 
