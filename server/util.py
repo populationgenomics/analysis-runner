@@ -37,6 +37,7 @@ assert MEMBERS_CACHE_LOCATION
 
 CONFIG_PATH_PREFIXES = {'gcp': 'gs://cpg-config'}
 SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp'}
+DEFAULT_STATUS_REPORTER = 'metamist'
 
 ALLOWED = 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/datasets/{}/repositories.yaml'
 
@@ -260,6 +261,7 @@ def get_baseline_run_config(
             'dataset_gcp_project': gcp_project_id,
             'driver_image': driver or DRIVER_IMAGE,
             'output_prefix': output_prefix,
+            'status_reporter': DEFAULT_STATUS_REPORTER,
         },
     }
     template_paths = [
