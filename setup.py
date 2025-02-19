@@ -30,6 +30,10 @@ setuptools.setup(
     install_requires=[
         'cloudpathlib[all]',
         'cpg-utils>=5.0.0',
+        # Avoid dependency resolution backtracking caused by hail pinning an
+        # old version of protobuf and recent versions of grpcio-status requiring
+        # a much newer version
+        'grpcio-status>=1.48,<1.50',
         'hail',
         'requests',
         'tabulate',
