@@ -48,15 +48,16 @@ def parse_workflow_status_and_outputs(json_data: dict):
     calls = json_data.get('calls', {})
 
     for key, value in calls.items():
+        # Get the dataset and sequencing group ID from the LocalizeReads sub-workflow
+        # This should never be missing as it is required for all other sub-workflows
+        if key == 'GatherSampleEvidence.LocalizeReads':
+            input_reads = value[0].get('inputs', {}).get('reads_path')
+            sg_id = input_reads.split('/')[-1].split('.')[0]
+            dataset = input_reads.removeprefix('gs://cpg-').rsplit('-', 1)[0]
+            continue
         if key.startswith('GatherSampleEvidence.'):
             workflow_name = key.split('.')[-1]
             if value:
-                # Get the dataset and sequencing group ID
-                if not dataset or not sg_id:
-                    labels = value[0].get('backendLabels', {})
-                    dataset = labels.get('dataset')
-                    sg_id = labels.get('sequencing-group')
-
                 # Get the execution status
                 execution_status = value[0].get('executionStatus')
 
