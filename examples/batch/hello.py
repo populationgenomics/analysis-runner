@@ -23,7 +23,7 @@ from cpg_utils.hail_batch import get_batch
 @click.command()
 @click.option("--name-of-sender")
 @click.option("--name-of-receiver")
-def main(name_to_print: str):
+def main(name_of_sender: str, name_of_receiver: str):
     """Runs test hail batch workflow"""
 
     b = get_batch()
