@@ -23,7 +23,8 @@ jobs:
       DOCKER_BUILDKIT: 1
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
-      TEMPLATE_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images-tmp/template
+      TEMPLATE_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images/template
+      TMP_LATE_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner/images-tmp/template
 
     steps:
     - name: "checkout analysis-runner repo"
@@ -55,9 +56,9 @@ jobs:
     - name: "attempt to pull base image"
       continue-on-error: true
       run: |
-        docker pull $TEMPLATE_IMAGE:$BASE_TAG || true
+        docker pull $TEMPLATE_IMAGE:$BASE_TAG
 
-    - name: "build Hail Base image"
+    - name: "Build Main Hail Base image"
       run: |
         docker build \
           --build-arg HAIL_SHA=$HAIL_SHA \
@@ -65,9 +66,16 @@ jobs:
           --tag $TEMPLATE_IMAGE:$BASE_TAG \
           skinny_docker_templates/hail_only
 
-    - name: "push Base image"
+    - name: "Push Main Base image"
+      if: ${{ github.ref_name == 'main' }}
       run: |
         docker push $TEMPLATE_IMAGE:$BASE_TAG
+
+    - name: "Push non-Main Base image"
+      if: ${{ github.ref_name != 'main' }}
+      run: |
+        docker tag $TEMPLATE_IMAGE:$BASE_TAG $TMP_LATE_IMAGE:$BASE_TAG
+        docker push $TMP_LATE_IMAGE:$BASE_TAG
 
     - name: "build Base + GCloud image"
       run: |
@@ -76,6 +84,13 @@ jobs:
           --tag $TEMPLATE_IMAGE:$BASE_GCLOUD_TAG \
           skinny_docker_templates/hail_gcloud
 
-    - name: "push server image"
+    - name: "Push Main Hail-GCloud image"
+      if: ${{ github.ref_name == 'main' }}
       run: |
+        docker push $TEMPLATE_IMAGE:$BASE_GCLOUD_TAG
+
+    - name: "Push non-Main server image"
+      if: ${{ github.ref_name != 'main' }}
+      run: |
+        docker tag $TEMPLATE_IMAGE:$BASE_GCLOUD_TAG $TMP_LATE_IMAGE:$BASE_GCLOUD_TAG
         docker push $TEMPLATE_IMAGE:$BASE_GCLOUD_TAG
