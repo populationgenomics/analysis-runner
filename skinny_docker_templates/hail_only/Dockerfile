@@ -44,22 +44,25 @@ RUN apt-get update && \
     rm -r /var/lib/apt/lists/* && \
     rm -r /var/cache/apt/*
 
-RUN pip --no-cache-dir install build && \
+RUN pip --no-cache-dir install
+        build \
+        orjson>3.9.15 && \
     # Install Hail from the CPG fork.
     git clone https://github.com/populationgenomics/hail.git && \
     cd hail && \
     git checkout $HAIL_SHA && \
     cd hail && \
-    # Install locally, avoiding the need for a pip package.
+    # Generate a Wheel, but don't install it in this layer
     # DEPLOY_REMOTE avoids a dev suffix being appended to dataproc initialization paths.
     make wheel DEPLOY_REMOTE=1 HAIL_RELEASE_MODE=1
 
 FROM basic AS installer
 
-ARG HAIL_VER=${HAIL_VER:-0.2.133}
-
 # wheel needs to have a descriptive name, e.g. hail-0.2.133-py3-none-any.whl
-COPY --from=builder /hail/hail/build/deploy/dist/*.whl /hail-${HAIL_VER}-py3-none-any.whl
+# but this isn't knowable exactly from the hash/branch, so we use a wildcard
+COPY --from=builder /hail/hail/build/deploy/dist/hail-*.whl /
 
-RUN pip install --no-cache-dir wheel && \
-    pip install --no-cache-dir /hail-${HAIL_VER}-py3-none-any.whl
+RUN pip install --no-cache-dir \
+        wheel && \
+    pip install --no-cache-dir \
+        "/hail-*-py3-none-any.whl"
