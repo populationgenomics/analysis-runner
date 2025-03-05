@@ -1,5 +1,7 @@
 # Any analysis-runner driver image must at least include git.
-FROM python:3.10-slim-bullseye AS basic
+ARG PY_VER=${PY_VER:-3.10}
+
+FROM python:${PY_VER}-slim-bullseye AS basic
 
 ARG HAIL_SHA=${HAIL_SHA:-d85618aaf4d2bf667aa72c5c6a142e9bafaae9c8}
 
