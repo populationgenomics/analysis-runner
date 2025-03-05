@@ -12,7 +12,7 @@ source. It also includes:
 * metamist (metadata database interface)
 * gcsfs (python/GCS interface)
 
-These libraries are not pinned during the installation, so each run of the driver building workflow may result in a 
+These libraries are not pinned during the installation, so each run of the driver building workflow may result in a
 different collection of versions. This is not ideal, as it may lead to unexpected behaviour in the future.
 
 It also leaves the 'Driver' image acting less as a template to build on, and more as a full-featured execution
@@ -23,7 +23,7 @@ environment. This image decompressed is **9.53GB**. In spite of this, we build o
 * cpg-infrastructure (storage-vis)
 * cpg-utils (image not used AFAIK)
 
-The aim with these build files is to re-think the template use-case, and design a fresh round of images which can be 
+The aim with these build files is to re-think the template use-case, and design a fresh round of images which can be
 used for templating. Main goals:
 
 * lightweight (e.g. no GCloud, unless required)
@@ -34,7 +34,7 @@ I've gotten some way towards lightweight (for a given value of light...). The pr
 these builds that's now down to 4.25GB with GCloud, or 3.23GB without, saving 5.28GB or 6.3GB respectively. The publicly
 available HailGenetics image is 3.19GB at the same Hail version, so we're not far off that.
 
-These are definitely closer to minimal, not installing any CPG libraries. 
+These are definitely closer to minimal, not installing any CPG libraries.
 
-There's the potential for flexibility on python version, but it's not well characterised, and downstream of this we haven't 
+There's the potential for flexibility on python version, but it's not well characterised, and downstream of this we haven't
 assessed the impact on the images that build on top of these.
