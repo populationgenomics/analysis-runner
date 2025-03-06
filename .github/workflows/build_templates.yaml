@@ -1,4 +1,4 @@
-name: Deploy analysis-runner server
+name: Create and Push CPG Docker templates
 on:
   workflow_dispatch:
     inputs:
