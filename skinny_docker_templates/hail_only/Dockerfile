@@ -12,7 +12,6 @@ RUN apt-get update && \
         apt-transport-https \
         bzip2 \
         ca-certificates \
-        curl \
         git \
         gnupg \
         openjdk-11-jdk-headless \
@@ -20,7 +19,8 @@ RUN apt-get update && \
         wget \
         zip && \
     rm -r /var/lib/apt/lists/* && \
-    rm -r /var/cache/apt/*
+    rm -r /var/cache/apt/* && \
+    pip install --no-cache-dir --upgrade pip
 
 FROM basic AS builder
 
@@ -31,6 +31,7 @@ ENV HAIL_QUERY_BACKEND="service"
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential \
+        curl \
         g++ \
         gcc \
         libfontconfig \
@@ -59,10 +60,7 @@ FROM basic AS installer
 
 # wheel needs to have a descriptive name, e.g. hail-0.2.133-py3-none-any.whl
 # but this isn't knowable exactly from the hash/branch, so we use a wildcard
-COPY --from=builder /hail/hail/build/deploy/dist/hail-*.whl /
-
-RUN pip install --upgrade pip && \
+# this RUN command binds in the wheel from the build layer without copying it in permanently
+RUN --mount=type=bind,from=builder,source=/hail/hail/build/deploy/dist,target=/wheel \
     pip install --no-cache-dir \
-        wheel && \
-    pip install --no-cache-dir \
-        /hail-*-py3-none-any.whl
+        /wheel/hail-*-py3-none-any.whl
