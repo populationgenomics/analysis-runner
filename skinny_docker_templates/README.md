@@ -34,7 +34,5 @@ I've gotten some way towards lightweight (for a given value of light...). The pr
 these builds that's now down to 4.25GB with GCloud, or 3.23GB without, saving 5.28GB or 6.3GB respectively. The publicly
 available HailGenetics image is 3.19GB at the same Hail version, so we're not far off that.
 
-These are definitely closer to minimal, not installing any CPG libraries.
-
-There's the potential for flexibility on python version, but it's not well characterised, and downstream of this we haven't
-assessed the impact on the images that build on top of these.
+The Dockerfiles have been designed so that the python version can be supplied as a parameter, which allows for flexibility.
+We still need to assess whether the current restriction on 3.10 can be relaxed, and adjust other libraries to suit.
