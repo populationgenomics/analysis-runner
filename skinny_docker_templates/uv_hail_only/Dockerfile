@@ -47,6 +47,7 @@ ENV UV_PROJECT_ENVIRONMENT=/usr/local
 # Install Hail from the CPG fork as a wheel
 RUN uv pip --no-cache-dir install --system \
         build && \
+    # Install Hail from the CPG fork.
     git clone https://github.com/populationgenomics/hail.git && \
     cd hail && \
     git checkout $HAIL_SHA && \

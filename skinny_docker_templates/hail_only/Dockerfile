@@ -45,8 +45,7 @@ RUN apt-get update && \
     rm -r /var/cache/apt/*
 
 RUN pip --no-cache-dir install \
-        build \
-        orjson>3.9.15 && \
+        build && \
     # Install Hail from the CPG fork.
     git clone https://github.com/populationgenomics/hail.git && \
     cd hail && \
