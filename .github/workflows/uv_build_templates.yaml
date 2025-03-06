@@ -36,7 +36,7 @@ jobs:
 
     - name: "Set Docker image tag for Base + GCloud"
       run: |
-        echo "BASE_GCLOUD_TAG=UvHailBaseGcloud-$PV_VER-$HAIL_SHA" >> $GITHUB_ENV
+        echo "BASE_GCLOUD_TAG=UvHailGcloudBase-$PV_VER-$HAIL_SHA" >> $GITHUB_ENV
 
     - id: "google-cloud-auth"
       name: "Authenticate to Google Cloud"
