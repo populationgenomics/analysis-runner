@@ -13,12 +13,9 @@ RUN apt-get update && \
         bzip2 \
         ca-certificates \
         curl \
-        g++ \
-        gcc \
         git \
         gnupg \
         openjdk-11-jdk-headless \
-        rsync \
         software-properties-common \
         wget \
         zip && \
@@ -34,6 +31,8 @@ ENV HAIL_QUERY_BACKEND="service"
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential \
+        g++ \
+        gcc \
         libfontconfig \
         liblapack3 \
         libopenblas-base \
@@ -44,7 +43,7 @@ RUN apt-get update && \
     rm -r /var/lib/apt/lists/* && \
     rm -r /var/cache/apt/*
 
-RUN pip --no-cache-dir install
+RUN pip --no-cache-dir install \
         build \
         orjson>3.9.15 && \
     # Install Hail from the CPG fork.
@@ -62,7 +61,8 @@ FROM basic AS installer
 # but this isn't knowable exactly from the hash/branch, so we use a wildcard
 COPY --from=builder /hail/hail/build/deploy/dist/hail-*.whl /
 
-RUN pip install --no-cache-dir \
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir \
         wheel && \
     pip install --no-cache-dir \
-        "/hail-*-py3-none-any.whl"
+        /hail-*-py3-none-any.whl

@@ -11,13 +11,9 @@ RUN apt-get update && \
         apt-transport-https \
         bzip2 \
         ca-certificates \
-        curl \
-        g++ \
-        gcc \
         git \
         gnupg \
         openjdk-17-jre-headless \
-        rsync \
         software-properties-common \
         wget \
         zip && \
@@ -33,6 +29,8 @@ ENV HAIL_QUERY_BACKEND="service"
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential \
+        g++ \
+        gcc \
         libfontconfig \
         liblapack3 \
         libopenblas-dev \
@@ -42,6 +40,8 @@ RUN apt-get update && \
         zip && \
     rm -r /var/lib/apt/lists/* && \
     rm -r /var/cache/apt/*
+
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
 
 # Install Hail from the CPG fork as a wheel
 RUN uv pip --no-cache-dir install --system \
