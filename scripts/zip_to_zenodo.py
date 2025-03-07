@@ -18,6 +18,7 @@ so storage should be set to the expected size of the largest archive.
 """
 
 import os
+import re
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 import click
@@ -32,6 +33,7 @@ def zip_tree(
     bucket: str,
     prefix: str,
     subset: str,
+    regex: re.Pattern,
     maxfiles: int | None,
 ):
     """
@@ -42,6 +44,9 @@ def zip_tree(
         nfiles = 0
         for blob in storage_client.list_blobs(bucket, prefix=f'{prefix}/{subset}/'):
             subname = blob.name.removeprefix(prefix).removeprefix('/')
+            if not regex.fullmatch(subname):
+                continue
+
             if nfiles <= 100:  # noqa: PLR2004  # Literal 100 is clear enough here!
                 print(f'Adding {subname} to archive')
             elif nfiles % 100 == 0:
@@ -75,6 +80,11 @@ def zip_tree(
     help='Upload to sandbox instead of real Zenodo',
 )
 @click.option(
+    '--pattern',
+    default='.*',
+    help='Add only files with SUBSET/BASENAME matching the pattern',
+)
+@click.option(
     '--limit',
     default=-1,
     help='Maximum number of files to add [for testing]',
@@ -97,6 +107,7 @@ def main(
     basedir: str,
     deposit: str,
     sandbox: bool,
+    pattern: str,
     limit: int,
     timeout: float,
     token: str,
@@ -115,10 +126,12 @@ def main(
     response.raise_for_status()
     deposit_bucket = response.json()['links']['bucket']
 
+    regex = re.compile(pattern)
+
     (bucket, prefix) = basedir.removeprefix('gs://').split('/', maxsplit=1)
     for subset in subsets:
         zip_fname = f'{subset}.zip'
-        zip_tree(zip_fname, bucket, prefix, subset, limit if limit > 0 else None)
+        zip_tree(zip_fname, bucket, prefix, subset, regex, limit if limit > 0 else None)
 
         with open(zip_fname, 'rb') as fp:
             print(f'Uploading {zip_fname} to {zenodo_host}')
