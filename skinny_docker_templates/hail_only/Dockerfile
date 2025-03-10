@@ -1,7 +1,7 @@
 # Any analysis-runner driver image must at least include git.
 ARG PY_VER=${PY_VER:-3.10}
 
-FROM python:${PY_VER}-slim-bullseye AS basic
+FROM python:${PY_VER}-slim-bookworm AS basic
 
 ARG HAIL_SHA=${HAIL_SHA:-d85618aaf4d2bf667aa72c5c6a142e9bafaae9c8}
 
@@ -14,7 +14,7 @@ RUN apt-get update && \
         ca-certificates \
         git \
         gnupg \
-        openjdk-11-jdk-headless \
+        openjdk-17-jdk-headless \
         software-properties-common \
         wget \
         zip && \
@@ -36,7 +36,7 @@ RUN apt-get update && \
         gcc \
         libfontconfig \
         liblapack3 \
-        libopenblas-base \
+        libopenblas-dev \
         rsync \
         software-properties-common \
         wget \
