@@ -12,14 +12,14 @@
 # files. The script will need storage space for the final zip archive
 # and one localised input file at a time.
 
-zip_path=$1
+zip_path="$1"
 shift
 
 cd "$BATCH_TMPDIR"
 
 zip_local=$(basename "$zip_path")
 
-for file_path
+for file_path in "$@"
 do
     file_local=$(basename "$file_path")
     gcloud storage cp -P "$file_path" "$file_local"
