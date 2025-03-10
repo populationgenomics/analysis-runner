@@ -93,4 +93,4 @@ jobs:
       if: ${{ github.ref_name != 'main' }}
       run: |
         docker tag $TEMPLATE_IMAGE:$BASE_GCLOUD_TAG $TMP_LATE_IMAGE:$BASE_GCLOUD_TAG
-        docker push $TEMPLATE_IMAGE:$BASE_GCLOUD_TAG
+        docker push $TMP_LATE_IMAGE:$BASE_GCLOUD_TAG
