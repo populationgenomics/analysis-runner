@@ -7,9 +7,13 @@ on:
         required: true
         default: "main"
       py_ver:
-        description: 'Python version'
+        description: 'Python version, used to determine image for build'
         required: true
         default: "3.10"
+      hail_ver:
+        description: 'Hail version, used to give images a more human-readable tag'
+        required: true
+        default: "0.2.133-1"
 
 permissions:
   contents: read
@@ -32,11 +36,11 @@ jobs:
 
     - name: "Set Docker image tag for Base"
       run: |
-        echo "BASE_TAG=HailBase-$PV_VER-$HAIL_SHA" >> $GITHUB_ENV
+        echo "BASE_TAG=HailBase-${{github.event.inputs.py_ver}}-${{github.event.inputs.hail_ver}}" >> $GITHUB_ENV
 
     - name: "Set Docker image tag for Base + GCloud"
       run: |
-        echo "BASE_GCLOUD_TAG=HailGcloudBase-$PV_VER-$HAIL_SHA" >> $GITHUB_ENV
+        echo "BASE_GCLOUD_TAG=HailGcloudBase-${{github.event.inputs.py_ver}}-${{github.event.inputs.hail_ver}}" >> $GITHUB_ENV
 
     - id: "google-cloud-auth"
       name: "Authenticate to Google Cloud"
@@ -61,8 +65,8 @@ jobs:
     - name: "Build Main Hail Base image"
       run: |
         docker build \
-          --build-arg HAIL_SHA=$HAIL_SHA \
-          --build-arg PY_VER=$PY_VER \
+          --build-arg HAIL_SHA=${{github.event.inputs.hail_sha}} \
+          --build-arg PY_VER=${{github.event.inputs.py_ver}} \
           --tag $TEMPLATE_IMAGE:$BASE_TAG \
           skinny_docker_templates/hail_only
 
