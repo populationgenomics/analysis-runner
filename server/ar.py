@@ -289,7 +289,7 @@ def prepare_job_from_config(
         job.storage(job_config.storage)
     if job_config.memory:
         job.memory(job_config.memory)
-    job._preemptible = job_config.preemptible  # noqa: SLF001
+    job.spot(job_config.preemptible)
 
     if job_config.environment_variables:
         add_environment_variables(job, job_config.environment_variables)
