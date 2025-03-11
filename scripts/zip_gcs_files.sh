@@ -49,6 +49,9 @@ do
     rm "$file_local"
 done
 
+# Avoid needing storage.objects.delete permission to clean up tmp fragments
+gcloud config set storage/parallel_composite_upload_enabled False
+
 gcloud storage cp "$zip_local" "$zip_path"
 
 ls -lh "$zip_local"
