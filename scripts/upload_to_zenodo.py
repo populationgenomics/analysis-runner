@@ -8,7 +8,7 @@ Typical usage:
 
 analysis-runner --dataset DATASET --description 'Upload to Zenodo' \
     --access-level standard --output-dir unused --env ZENODO_TOKEN=TOKEN \
-    python3 scripts/zip_to_zenodo.py --deposit ID GCSFILE...
+    python3 scripts/upload_to_zenodo.py --deposit ID GCSFILE...
 
 The script will need storage space for one zip archive at a time,
 so storage should be set sufficient for the size of the largest archive.
