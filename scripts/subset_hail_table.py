@@ -35,7 +35,8 @@ from cpg_utils.hail_batch import init_batch
 
 
 def subset_to_samples(ht: hl.Table, samples: set[str]) -> hl.Table:
-    """Filter a Table to a subset of samples
+    """
+    Filter a Table to a subset of samples
 
     Args:
         ht (hl.Table): The input table to filter
@@ -92,6 +93,7 @@ def main(
     locus : an optional parsed interval for locus-based selection
     out_format : the format(s) to write in - ht, vcf, both (default 'ht')
     biallelic : if True, filter the output MT to biallelic sites only
+    samples : a set of samples to reduce the joint-call to (this might not be valid on HTs)
     """
 
     ht: hl.Table = hl.read_table(ht_path)
@@ -187,7 +189,12 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser.add_argument("-i", help="Path to the input HailTable", required=True)
-    parser.add_argument("-o", help="output name", required=True)
+    parser.add_argument(
+        "--out",
+        help='Full prefix for HT/VCF output\n'
+        '("output" will become output.vcf.bgz or output.mt)',
+        required=True,
+    )
     parser.add_argument("--chr", help="Contig portion of a locus", required=False)
     parser.add_argument(
         "--pos",
@@ -222,7 +229,7 @@ if __name__ == "__main__":
 
     main(
         ht_path=args.i,
-        output_root=args.o,
+        output_root=args.out,
         locus=locus_interval,
         biallelic=args.biallelic,
         out_format=args.format,
