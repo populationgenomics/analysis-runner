@@ -19,7 +19,6 @@ from argparse import ArgumentParser
 
 import hail as hl
 
-from cpg_utils.config import output_path
 from cpg_utils.hail_batch import init_batch
 
 
@@ -131,7 +130,7 @@ def main(
 
     # write data to test output paths
     if out_format in ['mt', 'both']:
-        matrixtable_path = output_path(f'{prefix}.mt', test=True)
+        matrixtable_path = f'{prefix}.mt'
         mt.write(matrixtable_path, overwrite=True)
         logging.info(f'Wrote new MT to {matrixtable_path!r}')
 
@@ -141,12 +140,12 @@ def main(
         if 'gvcf_info' in mt.entry:
             mt = mt.drop('gvcf_info')
 
-        vcf_path = output_path(f'{prefix}.vcf.bgz', test=True)
+        vcf_path = f'{prefix}.vcf.bgz'
         hl.export_vcf(mt, vcf_path, tabix=True)
         logging.info(f'Wrote new table to {vcf_path!r}')
 
     if out_format == 'ht':
-        table_path = f'{output_path}.ht'
+        table_path = f'{prefix}.ht'
         mt.rows().write(table_path, overwrite=True)
         logging.info(f'Wrote new HT to {table_path!r}')
 
@@ -217,7 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', help='Path to the input MatrixTable', required=True)
     parser.add_argument(
         '--out',
-        help='Prefix for MT/VCF name\n'
+        help='Full prefix for MT/VCF name\n'
         '("output" will become output.vcf.bgz or output.mt)',
         required=True,
     )
