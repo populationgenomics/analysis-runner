@@ -117,6 +117,7 @@ def copy_outputs_to_bucket(
             destination_gs_url = (
                 f'gs://{destination_bucket_name}/{destination_blob_name}'
             )
+            destination_gs_url.replace('counts.tsv.gz', 'coverage_counts.tsv.gz')
             if not dry_run:
                 print(f'Copying {source_blob.name} to {destination_gs_url}')
                 blob_copy = source_bucket.copy_blob(
