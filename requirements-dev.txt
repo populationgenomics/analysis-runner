@@ -1,8 +1,10 @@
 black
 bump2version
 cloudpathlib[all]
+coverage
 cpg-utils>=4.12.1
 pre-commit
 pylint
+pytest
 toml
 setuptools>=65.5.1 # not directly required, pinned by pip-audit to avoid a vulnerability
