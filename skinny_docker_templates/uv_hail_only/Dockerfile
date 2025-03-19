@@ -58,7 +58,7 @@ RUN uv pip --no-cache-dir install --system \
 
 FROM basic AS installer
 
-# wheel needs to have a descriptive name, e.g. hail-0.2.133-py3-none-any.whl
+# wheel needs to have a descriptive name, e.g. hail-0.2.134-py3-none-any.whl
 # but this isn't knowable exactly from the hash/branch, so we use a wildcard
 # this RUN command binds in the wheel from the build layer without copying it in permanently
 RUN --mount=type=bind,from=builder,source=/hail/hail/build/deploy/dist,target=/wheel \
