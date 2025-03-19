@@ -3,7 +3,7 @@ ARG PY_VER=${PY_VER:-3.10}
 
 FROM python:${PY_VER}-slim-bookworm AS basic
 
-ARG HAIL_SHA=${HAIL_SHA:-d85618aaf4d2bf667aa72c5c6a142e9bafaae9c8}
+ARG HAIL_SHA=${HAIL_SHA:-2bb197d63afd58f9452af306e0eb14d6924d0019}
 
 ENV HAIL_QUERY_BACKEND="service"
 
