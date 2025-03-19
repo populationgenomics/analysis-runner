@@ -178,7 +178,7 @@ def copy_outputs_to_bucket(
     print(f'{dataset} :: {sg_id} :: Copying outputs summary:')
     print(f'  Destination: gs://{destination_bucket_name}/sv_evidence/\n')
     for _, output in outputs.items():
-        for _, value in output.items():
+        for value in output.values():
             if value.endswith('scramble.vcf.gz'):
                 analysis_file_sizes['scramble'] = to_path(value).stat().st_size
             elif value.endswith('wham.vcf.gz'):
