@@ -123,8 +123,8 @@ def _add_cromwell_submit_args_to(
         required=False,
         action='append',
         help=(
-            'A directory which is used to search for workflow imports. You can specify this argument multiple times.'
-            'Note: the directories are zipped from the cwd with `zip -r {directory1} {directory2}`.'
+            'A directory which is used to search for workflow imports. You can specify this argument multiple times. '
+            'Note: the directories are zipped from the cwd with `zip -r {directory1} {directory2}`. '
             'Please raise an issue to change this behaviour'
         ),
     )

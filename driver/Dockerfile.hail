@@ -19,6 +19,7 @@ RUN apt-get update && \
         software-properties-common && \
     rm -r /var/lib/apt/lists/* && \
     rm -r /var/cache/apt/* && \
+    pip --no-cache-dir install build && \
     # Install phantomjs with a workaround for libssl_conf.so:
     # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
     cd /opt && \
@@ -33,7 +34,7 @@ RUN apt-get update && \
     cd hail && \
     # Install locally, avoiding the need for a pip package.
     # DEPLOY_REMOTE avoids a dev suffix being appended to dataproc initialization paths.
-    make install DEPLOY_REMOTE=1 && \
+    make install DEPLOY_REMOTE=1 HAIL_RELEASE_MODE=1 && \
     cd ../.. && \
     rm -rf hail && \
     pip --no-cache-dir install \

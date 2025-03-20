@@ -1,12 +1,28 @@
 #!/usr/bin/env python3
 # ruff: noqa: PLR2004
 """
-Takes a path to a Hail Table and an output name
-Writes data into the test bucket for the dataset
+Takes a path to a Hail Table and an output path
+
 
 Optionally a locus can be provided to reduce the output
 Optionally supply both --chr and --pos; subset to a specific locus
 The pos format can be a single int, or a "start-end"
+
+
+example usage:
+analysis-runner \
+    --dataset XXX \
+    --description 'subset table' \
+    --access-level full \
+    --output-dir not_used \
+    python3 scripts/subset_hail_table.py \
+        -i gs://cpg-project-main/ht/main.ht \
+        -o gs://cpg-project-main-analysis/ht/analysis
+
+The above invocation would copy the entire main.ht to the analysis bucket, called analysis.ht
+
+n.b. access level can be standard to copy from main to main-analysis
+     full is required to copy from main/main-analysis to test/test-analysis
 """
 
 import logging
@@ -15,27 +31,48 @@ from argparse import ArgumentParser
 
 import hail as hl
 
-from cpg_utils.config import output_path
 from cpg_utils.hail_batch import init_batch
+
+
+def subset_to_samples(ht: hl.Table, samples: set[str]) -> hl.Table:
+    """
+    Filter a Table to a subset of samples
+
+    Args:
+        ht (hl.Table): The input table to filter
+        samples (set[str]): The set of samples that the table should be filtered to
+
+    Raises:
+        AssertionError: If there are samples provided that are not in the Table, throw an error
+
+    Returns:
+        hl.Table: The filtered table
+    """
+    missing_samples = samples.difference(set(ht.s.collect()))
+
+    if missing_samples:
+        raise AssertionError(
+            f'Sample(s) missing from subset: {", ".join(missing_samples)}',
+        )
+
+    return ht.filter(hl.set(samples).contains(ht.s))
 
 
 def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
     """
     Subset the provided Table to a locus
 
-    Parameters
-    ----------
-    ht : the current Table
-    locus : a hail LocusExpression indicating the range of positions to select
+    Args:
+        ht (hl.Table): the current Table
+        locus (hl.IntervalExpression): hail LocusExpression indicating the range of positions to select
 
-    Returns
-    -------
-    The subset of the Table overlapping the indicated locus
+    Returns:
+        Table subset overlapping the indicated locus
     """
 
     ht = ht.filter(locus.contains(ht.locus))
     if ht.count() == 0:
-        raise ValueError(f'No rows remain after applying Locus filter {locus}')
+        raise ValueError(f"No rows remain after applying Locus filter {locus}")
     return ht
 
 
@@ -45,6 +82,7 @@ def main(
     locus: hl.IntervalExpression | None,
     out_format: str,
     biallelic: bool = False,
+    samples: set[str] | None = None,
 ):
     """
 
@@ -55,30 +93,36 @@ def main(
     locus : an optional parsed interval for locus-based selection
     out_format : the format(s) to write in - ht, vcf, both (default 'ht')
     biallelic : if True, filter the output MT to biallelic sites only
+    samples : a set of samples to reduce the joint-call to (this might not be valid on HTs)
     """
 
-    ht = hl.read_table(ht_path)
+    ht: hl.Table = hl.read_table(ht_path)
+
+    logging.info(ht.describe())
 
     if isinstance(locus, hl.IntervalExpression):
         ht = subset_to_locus(ht, locus=locus)
+
+    if samples:
+        ht = subset_to_samples(ht, samples)
 
     if biallelic:
         ht = ht.filter(hl.len(ht.alleles) == 2)
 
     # just in case
-    output_root = output_root.removesuffix('.ht')
+    output_root = output_root.removesuffix(".ht")
 
     # write data to a test output path
-    if out_format in ['ht', 'both']:
-        table_path = output_path(f'{output_root}.ht', test=True)
+    if out_format in ["ht", "both"]:
+        table_path = f"{output_root}.ht"
         ht.write(table_path, overwrite=True)
-        logging.info(f'Wrote new table to {table_path!r}')
+        logging.info(f"Wrote new table to {table_path!r}")
 
     # if VCF, export as a VCF as well
-    if out_format in ['vcf', 'both']:
-        vcf_path = output_path(f'{output_root}.vcf.bgz', test=True)
+    if out_format in ["vcf", "both"]:
+        vcf_path = f"{output_root}.vcf.bgz"
         hl.export_vcf(ht, vcf_path, tabix=True)
-        logging.info(f'Wrote new table to {vcf_path!r}')
+        logging.info(f"Wrote new table to {vcf_path!r}")
 
 
 def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
@@ -97,76 +141,83 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         return None
 
     if pos and not contig:
-        raise ValueError('Positional filtering requires a chromosome')
+        raise ValueError("Positional filtering requires a chromosome")
 
     start: int | str
     end: int | str
 
     if contig and not pos:
-        start = 'start'
-        end = 'end'
+        start = "start"
+        end = "end"
 
-    elif '-' in pos:
+    elif "-" in pos:
         assert (
-            pos.count('-') == 1
-        ), f'Positions must be one value, or a range between two values: {pos}'
-        start, end = pos.split('-')
-        if start != 'start':
-            assert int(start), f'start value could not be converted to an int: {start}'
+            pos.count("-") == 1
+        ), f"Positions must be one value, or a range between two values: {pos}"
+        start, end = pos.split("-")
+        if start != "start":
+            assert int(start), f"start value could not be converted to an int: {start}"
             if int(start) < 1:
                 start = 1
-        if end != 'end':
-            assert int(end), f'end value could not be converted to an int: {end}'
+        if end != "end":
+            assert int(end), f"end value could not be converted to an int: {end}"
             # adjust the end value if it is out of bounds
-            if int(end) > hl.get_reference('GRCh38').lengths[contig]:
-                end = hl.get_reference('GRCh38').lengths[contig]
+            if int(end) > hl.get_reference("GRCh38").lengths[contig]:
+                end = hl.get_reference("GRCh38").lengths[contig]
 
         # final check that numeric coordinates are ordered
-        if start != 'start' and end != 'end':
+        if start != "start" and end != "end":
             assert int(start) < int(end)
 
     else:
         assert int(
             pos,
-        ), f'if only one position is specified, it must be numerical: {pos}'
+        ), f"if only one position is specified, it must be numerical: {pos}"
         start = int(pos)
         end = int(pos) + 1
 
-    return hl.parse_locus_interval(f'{contig}:{start}-{end}', reference_genome='GRCh38')
+    return hl.parse_locus_interval(f"{contig}:{start}-{end}", reference_genome="GRCh38")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s %(levelname)s %(module)s:%(lineno)d - %(message)s',
-        datefmt='%Y-%M-%d %H:%M:%S',
+        format="%(asctime)s %(levelname)s %(module)s:%(lineno)d - %(message)s",
+        datefmt="%Y-%M-%d %H:%M:%S",
         stream=sys.stderr,
     )
 
     parser = ArgumentParser()
-    parser.add_argument('-i', help='Path to the input HailTable', required=True)
+    parser.add_argument("-i", help="Path to the input HailTable", required=True)
     parser.add_argument(
-        '--out',
-        help='output name',
+        "--out",
+        help='Full prefix for HT/VCF output\n'
+        '("output" will become output.vcf.bgz or output.mt)',
         required=True,
     )
-    parser.add_argument('--chr', help='Contig portion of a locus', required=False)
+    parser.add_argument("--chr", help="Contig portion of a locus", required=False)
     parser.add_argument(
-        '--pos',
+        "--pos",
         help='Pos portion of a locus. Can be "12345" or "12345-67890" for a range. '
         'Start and end values can be the strings "start" and "end"',
         required=False,
     )
     parser.add_argument(
-        '--biallelic',
-        help='Remove non-biallelic sites',
-        action='store_true',
+        "--biallelic",
+        help="Remove non-biallelic sites",
+        action="store_true",
     )
     parser.add_argument(
-        '--format',
-        help='Write output in this format',
-        default='ht',
-        choices=['both', 'ht', 'vcf'],
+        "--format",
+        help="Write output in this format",
+        default="ht",
+        choices=["both", "ht", "vcf"],
+    )
+    parser.add_argument(
+        "-s",
+        help="One or more sample IDs, whitespace delimited",
+        nargs="+",
+        default=[],
     )
     args, unknown = parser.parse_known_args()
 
@@ -182,4 +233,5 @@ if __name__ == '__main__':
         locus=locus_interval,
         biallelic=args.biallelic,
         out_format=args.format,
+        samples=set(args.s) if args.s else None,
     )

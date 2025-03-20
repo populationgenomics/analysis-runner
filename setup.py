@@ -18,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='3.0.0',
+    version='3.2.4',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
@@ -30,6 +30,10 @@ setuptools.setup(
     install_requires=[
         'cloudpathlib[all]',
         'cpg-utils>=5.0.0',
+        # Avoid dependency resolution backtracking caused by hail pinning an
+        # old version of protobuf and recent versions of grpcio-status requiring
+        # a much newer version
+        'grpcio-status>=1.48,<1.50',
         'hail',
         'requests',
         'tabulate',
