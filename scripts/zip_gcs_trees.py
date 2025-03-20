@@ -2,16 +2,14 @@
 
 """
 Create zip archives of the files in the specified GCS tree and
-upload them to the specified (already created) Zenodo deposit.
+write them to the specified output GCS location.
 
 Typical usage:
 
-analysis-runner --dataset DATASET --description 'Upload to Zenodo' \
-    --access-level standard --output-dir unused \
-    --env ZENODO_TOKEN=TOKEN --storage 10G \
-    python3 scripts/zip_to_zenodo.py \
-        --basedir gs://BUCKET/PATH --deposit ID \
-        ABC DEF GHI
+analysis-runner --dataset DATASET --description 'Zip some trees' \
+    --access-level standard --output-dir unused --storage 10G \
+    python3 scripts/zip_gcs_trees.py --output-base gs://BUCKET/PATH \
+        --basedir gs://BUCKET/PATH ABC DEF GHI
 
 The script will need storage space for one zip archive at a time,
 so storage should be set to the expected size of the largest archive.
@@ -22,7 +20,6 @@ import re
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 import click
-import requests
 from google.cloud import storage
 
 storage_client = storage.Client()
@@ -63,21 +60,24 @@ def zip_tree(
     print(f'Added {nfiles} files to {zip_fname}')
 
 
+def gcs_copy(gcs_path: str, local_path: str):
+    blob = storage.blob.Blob.from_uri(gcs_path, client=storage_client)
+
+    print(f'Writing {local_path} to {gcs_path}')
+    blob.upload_from_filename(local_path)
+    print(f'Wrote {os.path.getsize(local_path)} bytes')
+
+
 @click.command(no_args_is_help=True)
 @click.option(
     '--basedir',
     required=True,
-    help='Base of the GCS directory tree to upload',
+    help='Base of the GCS directory tree to zip',
 )
 @click.option(
-    '--deposit',
+    '--output-base',
     required=True,
-    help='Deposit ID to which files will be uploaded',
-)
-@click.option(
-    '--sandbox',
-    is_flag=True,
-    help='Upload to sandbox instead of real Zenodo',
+    help='GCS location where zip archives should be written',
 )
 @click.option(
     '--pattern',
@@ -89,43 +89,21 @@ def zip_tree(
     default=-1,
     help='Maximum number of files to add [for testing]',
 )
-@click.option(
-    '--timeout',
-    default=600.0,
-    help='Request timeout (in seconds)',
-)
-@click.option(
-    '--token',
-    envvar='ZENODO_TOKEN',
-    help='Authentication token for Zenodo',
-)
 @click.argument(
     'subsets',
     nargs=-1,
 )
 def main(
     basedir: str,
-    deposit: str,
-    sandbox: bool,
+    output_base: str,
     pattern: str,
     limit: int,
-    timeout: float,
-    token: str,
     subsets: tuple[str],
 ):
     """
     Each SUBSET specifies a subdirectory of BASEDIR whose contents will be individually zipped.
-    These zip archives are then uploaded to the specified Zenodo deposit.
-    The authentication token can also be specified via the ZENODO_TOKEN environment variable.
+    These zip archives are then written to OUTPUT-BASE.
     """
-    zenodo_host = 'sandbox.zenodo.org' if sandbox else 'zenodo.org'
-    params = {'access_token': token}
-
-    deposit_query = f'https://{zenodo_host}/api/deposit/depositions/{deposit}'
-    response = requests.get(deposit_query, params=params, timeout=timeout)
-    response.raise_for_status()
-    deposit_bucket = response.json()['links']['bucket']
-
     regex = re.compile(pattern)
 
     (bucket, prefix) = basedir.removeprefix('gs://').split('/', maxsplit=1)
@@ -133,16 +111,9 @@ def main(
         zip_fname = f'{subset}.zip'
         zip_tree(zip_fname, bucket, prefix, subset, regex, limit if limit > 0 else None)
 
-        with open(zip_fname, 'rb') as fp:
-            print(f'Uploading {zip_fname} to {zenodo_host}')
-            upload_url = f'{deposit_bucket}/{zip_fname}'
-            response = requests.put(upload_url, data=fp, params=params, timeout=timeout)
-
-        response.raise_for_status()
-        print(f'Uploaded {response.json()["size"]} bytes')
-        print()
-
+        gcs_copy(f'{output_base}/{zip_fname}', zip_fname)
         os.remove(zip_fname)
+        print()
 
 
 if __name__ == '__main__':
