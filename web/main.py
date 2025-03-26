@@ -5,13 +5,13 @@ import json
 import logging
 import mimetypes
 import os
-from typing import Optional
+from typing import Generator, Optional
 
 import google.auth.transport.requests
 import google.cloud.storage
 import google.oauth2.id_token
 from cachetools import TTLCache, cached
-from flask import Flask, abort, request, send_file
+from flask import Flask, abort, request
 
 from cpg_utils.cloud import read_secret
 from cpg_utils.membership import is_member_in_cached_group
@@ -74,7 +74,7 @@ def has_permission(email: str, dataset: str, access_file: str | None, bucket_nam
 
 
 @app.route('/<dataset>/<path:filename>')
-def handler(
+def handler(  # noqa: C901
     dataset: Optional[str] = None,
     filename: Optional[str] = None,
 ):
@@ -142,7 +142,10 @@ def handler(
     blob.download_to_file(file_obj)
     file_obj.seek(0)
 
-    return send_file(file_obj, mimetype=content_type)
+    def iterfile() -> Generator[bytes, None, None]:
+        yield from file_obj
+
+    return iterfile(), {'Content-Type': content_type}
 
 
 if __name__ == '__main__':
