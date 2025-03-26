@@ -31,7 +31,6 @@ class AnalysisRunnerConfigArgs:
 
 
 def add_config_routes(routes: web.RouteTableDef):
-
     @routes.post('/config')
     async def config(request: web.Request) -> web.Response:
         """
@@ -73,7 +72,6 @@ def get_args_from_params(
     email: str,
     server_config: dict,
 ) -> AnalysisRunnerConfigArgs:
-
     dataset = params['dataset']
     output_prefix = validate_output_dir(params['output'])
     access_level = params['accessLevel']

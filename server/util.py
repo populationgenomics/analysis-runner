@@ -310,7 +310,6 @@ def get_and_check_repository(
 
 
 def get_and_check_commit(params: dict, repo: str | None) -> str | None:
-
     commit = params.get('commit')
     if not commit and repo:
         raise web.HTTPBadRequest(reason='Missing commit parameter')

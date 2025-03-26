@@ -3,6 +3,7 @@
 Test script, to demonstrate how you can run a cromwell workflow
 from within a batch environment, and operate on the result(s)
 """
+
 from cpg_utils.config import get_config, output_path
 from cpg_utils.cromwell import (
     CromwellOutputType,
@@ -74,7 +75,7 @@ process_paths_job.call(process_paths_python, *workflow_outputs['out_paths'])
 # Here, we're showing that you can use the output of a
 # resource group that we defined earlier in different tasks.
 for idx, out in enumerate(workflow_outputs['texts']):
-    process_j = b.new_job(f'do-something-with-input-{idx+1}')
+    process_j = b.new_job(f'do-something-with-input-{idx + 1}')
 
     # For example:
     #   convert the .md5 file to uppercase and print it to the console
@@ -84,6 +85,6 @@ for idx, out in enumerate(workflow_outputs['texts']):
 cat {out.md5} | awk '{{print toupper($0)}}'
 cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}""",
     )
-    b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx+1}.txt')
+    b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx + 1}.txt')
 
 b.run(wait=False)
