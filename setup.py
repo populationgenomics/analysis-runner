@@ -34,6 +34,7 @@ setuptools.setup(
         # old version of protobuf and recent versions of grpcio-status requiring
         # a much newer version
         'grpcio-status>=1.48,<1.50',
+        'orjson~=3.9.15',  # pip wants to install 3.9.10 but that hits vuln PYSEC-2024-40 so need to explicitly list this
         'hail',
         'requests',
         'tabulate',
