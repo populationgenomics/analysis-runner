@@ -11,6 +11,7 @@ Test Hail Batch Workflow
       hello.py \
       --name-to-print $(whoami)
 """
+
 from shlex import quote
 
 import click

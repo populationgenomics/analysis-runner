@@ -34,7 +34,7 @@ setuptools.setup(
         # old version of protobuf and recent versions of grpcio-status requiring
         # a much newer version
         'grpcio-status>=1.48,<1.50',
-        'hail',
+        'hail>=0.2.134',
         'requests',
         'tabulate',
     ],
