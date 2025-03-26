@@ -5,25 +5,51 @@ on:
   push:
 
 jobs:
-  pip-audit:
+  pip-audit-package:
     runs-on: ubuntu-latest
-    name: Pip Audit
+    name: Pip Audit (Package)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
-      - name: Install packages
-        run: pip install -r requirements-dev.txt
-
+          cache-dependency-path: setup.py
       - name: Install from setup.py
         run: pip install .
 
       - uses: pypa/gh-action-pip-audit@v1.1.0
         with:
           summary: true
+
+
+  pip-audit-dev:
+    runs-on: ubuntu-latest
+    name: Pip Audit (Dev)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: requirements-dev.txt
+          summary: true
+
+  pip-audit-web:
+    runs-on: ubuntu-latest
+    name: Pip Audit (Web)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: web/requirements.txt
+          summary: true
+
+  pip-audit-server:
+    runs-on: ubuntu-latest
+    name: Pip Audit (Server)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: server/requirements.txt
+          summary: true
+
