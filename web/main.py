@@ -1,5 +1,6 @@
 """Web server which proxies requests to per-dataset "web" buckets."""
 
+import io
 import json
 import logging
 import mimetypes
@@ -9,7 +10,8 @@ from typing import Optional
 import google.auth.transport.requests
 import google.cloud.storage
 import google.oauth2.id_token
-from flask import Flask, Response, abort, request, stream_with_context
+from cachetools import TTLCache, cached
+from flask import Flask, abort, request, send_file
 
 from cpg_utils.cloud import read_secret
 from cpg_utils.membership import is_member_in_cached_group
@@ -109,12 +111,13 @@ def handler(  # noqa: C901
     if blob is None:
         return abort(404, 'File was not found')
 
-    # Stream the response to allow large files to be served.
-    response = Response(stream_with_context(blob.open('rb')))
-    response.headers['Content-Type'] = (
-        mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-    )
-    return response
+    content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+
+    file_obj = io.BytesIO()
+    blob.download_to_file(file_obj)
+    file_obj.seek(0)
+
+    return send_file(file_obj, mimetype=content_type)
 
 
 if __name__ == '__main__':
