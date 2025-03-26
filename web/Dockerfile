@@ -13,4 +13,4 @@ COPY main.py ./
 # we use an environment varaible to set the port,
 # so we can't use the JSON notation for the CMD
 # hadolint ignore=DL3025
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
+CMD exec gunicorn --bind :$PORT --workers 4 --threads 8 --timeout 0 main:app
