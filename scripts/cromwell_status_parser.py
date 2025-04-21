@@ -119,6 +119,9 @@ def parse_subworkflow_status_and_outputs(
         outputs[subworkflow_name] = outputs.get(subworkflow_name, {})
         if workflow_outputs := attempts[attempt_no].get('outputs', {}):
             for output_key, output_value in workflow_outputs.items():
+                if output_key == 'is_dragen_3_7_8':
+                    # Skip the is_dragen_3_7_8 output
+                    continue
                 if output_value.endswith(('cram', 'crai')):
                     continue
                 outputs[subworkflow_name][output_key] = output_value
