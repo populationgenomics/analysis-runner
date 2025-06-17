@@ -17,7 +17,7 @@ inputs = ['Hello, analysis-runner ;)', 'Hello, second output!']
 
 
 submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
-    b=get_batch(),
+    b=get_batch(default_python_image=config_retrieve(['workflow', 'driver_image'])),
     job_prefix='hello',
     workflow='hello_all_in_one_file.wdl',
     cwd='examples/cromwell',
@@ -72,7 +72,8 @@ process_paths_job.call(process_paths_python, *workflow_outputs['out_paths'])
 # Here, we're showing that you can use the output of a
 # resource group that we defined earlier in different tasks.
 for idx, out in enumerate(workflow_outputs['texts']):
-    process_j = get_batch().new_job(f'do-something-with-input-{idx + 1}')
+    process_j = get_batch().new_bash_job(f'do-something-with-input-{idx + 1}')
+    process_j.image(config_retrieve(['workflow', 'driver_image']))
 
     # For example:
     #   convert the .md5 file to uppercase and print it to the console
