@@ -17,7 +17,10 @@ inputs = ['Hello, analysis-runner ;)', 'Hello, second output!']
 
 
 submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
-    b=get_batch(default_python_image=config_retrieve(['workflow', 'driver_image'])),
+    b=get_batch(
+        default_image=config_retrieve(['workflow', 'driver_image']),
+        default_python_image=config_retrieve(['workflow', 'driver_image'])
+    ),
     job_prefix='hello',
     workflow='hello_all_in_one_file.wdl',
     cwd='examples/cromwell',
@@ -36,6 +39,7 @@ submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
     output_prefix=config_retrieve(['workflow', 'output_prefix']),
     dataset=config_retrieve(['workflow', 'dataset']),
     backend=CromwellBackend.batch,
+    driver_image=config_retrieve(['workflow', 'driver_image']),
 )
 print(workflow_outputs)
 # {
