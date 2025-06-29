@@ -193,12 +193,12 @@ def copy_outputs_to_bucket(
             destination_blob_name = (
                 f'sv_evidence/{blob_name.split("/")[-1]}'  # Copy to sv_evidence folder
             )
-            destination_gs_url = (
-                f'gs://{destination_bucket_name}/{destination_blob_name}'
-            )
-            destination_gs_url = destination_gs_url.replace(
+            destination_blob_name = destination_blob_name.replace(
                 'counts.tsv.gz',
                 'coverage_counts.tsv.gz',
+            )
+            destination_gs_url = (
+                f'gs://{destination_bucket_name}/{destination_blob_name}'
             )
             if not dry_run:
                 print(f'    Copying {source_blob.name} to {destination_gs_url}')
