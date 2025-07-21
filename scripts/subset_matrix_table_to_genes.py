@@ -48,23 +48,18 @@ def subset_to_samples(
             f'Sample(s) missing from subset: {", ".join(missing_samples)}',
         )
 
-    mt = mt.filter_cols(hl.set(samples).contains(mt.s))
-
-    return mt
+    return mt.filter_cols(hl.set(samples).contains(mt.s))
 
 
 def filter_to_gene_ids(
     mt: hl.MatrixTable,
     gene_ids: set[str],
 ) -> hl.MatrixTable:
-
     # turn the python set of Strings into a Hail Set Expression
     hl_gene_set = hl.set(gene_ids)
 
     # return rows where at least one of the query gene IDs is in the row annotation
-    mt = mt.filter_rows(hl.len(hl_gene_set.intersection(mt.geneIds) > 0))
-
-    return mt
+    return mt.filter_rows(hl.len(hl_gene_set.intersection(mt.geneIds) > 0))
 
 
 def main(
