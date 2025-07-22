@@ -50,4 +50,5 @@ RUN apt-get update && \
         metamist \
         'selenium>=3.8.0' \
         statsmodels && \
+    # Delete maven/pip/etc caches and /tmp scripts used only during the build
     rm -rf /root/.cache /tmp/tmp*
