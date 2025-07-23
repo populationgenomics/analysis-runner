@@ -59,7 +59,7 @@ def filter_to_gene_ids(
     hl_gene_set = hl.set(gene_ids)
 
     # return rows where at least one of the query gene IDs is in the row annotation
-    return mt.filter_rows(hl.len(hl_gene_set.intersection(mt.geneIds) > 0))
+    return mt.filter_rows(hl.len(hl_gene_set.intersection(mt.geneIds)) > 0)
 
 
 def main(
