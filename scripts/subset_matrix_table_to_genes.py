@@ -144,14 +144,7 @@ if __name__ == '__main__':
         default='mt',
         choices=['both', 'mt', 'vcf', 'ht'],
     )
-    args, unknown = parser.parse_known_args()
-
-    if unknown:
-        raise ValueError(f'Unknown args, could not parse: {unknown!r}')
-
-    assert not (
-        args.biallelic and args.keep_all_ref
-    ), 'choose one of --biallelic and --keep_all_ref'
+    args, unknown = parser.parse_args()
 
     init_batch()
 
