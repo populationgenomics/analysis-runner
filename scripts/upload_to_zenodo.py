@@ -28,7 +28,7 @@ def download_from_gcs(local_path: str, gcs_path: str):
     (bucket_name, path) = gcs_path.removeprefix('gs://').split('/', maxsplit=1)
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(path)
-    print(f'Downloading {gcs_path} into {local_path}')
+    print(f'Downloading {gcs_path} into {local_path}', flush=True)
     blob.download_to_filename(local_path)
 
 
@@ -90,7 +90,7 @@ def main(
             response = requests.put(upload_url, data=fp, params=params, timeout=timeout)
 
         response.raise_for_status()
-        print(f'Uploaded {response.json()["size"]} bytes')
+        print(f'Uploaded {response.json()["size"]} bytes', flush=True)
         print()
 
         os.remove(tmp_filename)
