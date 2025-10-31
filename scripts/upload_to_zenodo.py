@@ -85,12 +85,12 @@ def main(
         download_from_gcs(tmp_filename, file)
 
         with open(tmp_filename, 'rb') as fp:
-            print(f'Uploading {basename} to {zenodo_host}')
+            print(f'Uploading {basename} to {zenodo_host}', flush=True)
             upload_url = f'{deposit_bucket}/{basename}'
             response = requests.put(upload_url, data=fp, params=params, timeout=timeout)
 
         response.raise_for_status()
-        print(f'Uploaded {response.json()["size"]} bytes', flush=True)
+        print(f'Uploaded {response.json()["size"]} bytes')
         print()
 
         os.remove(tmp_filename)
