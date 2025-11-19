@@ -26,8 +26,7 @@ from cpg_utils.hail_batch import (
     help='Use filenames defined before each url',
 )
 @click.option('--presigned-url-file-path')
-@click.option('--non-preemptible-vm', is_flag=True, default=False, help='Use preemptible VMs')
-def main(presigned_url_file_path: str, filenames: bool, non_preemptible_vm: bool):
+def main(presigned_url_file_path: str, filenames: bool,):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
     If each signed url is prefixed by a filename and a space, use the --filenames flag
@@ -39,7 +38,10 @@ def main(presigned_url_file_path: str, filenames: bool, non_preemptible_vm: bool
     billing_project = env_config['hail']['billing_project']
     dataset = env_config['workflow']['dataset']
     output_prefix = env_config['workflow']['output_prefix']
+    preemptible_vm = env_config['workflow'].get('preemptible_vm', False)
+
     assert all({billing_project, cpg_driver_image, dataset, output_prefix})
+
     names = None
     with AnyPath(presigned_url_file_path).open() as file:
         if filenames:
@@ -66,7 +68,7 @@ def main(presigned_url_file_path: str, filenames: bool, non_preemptible_vm: bool
     for idx, url in enumerate(presigned_urls):
         filename = names[idx] if names else os.path.basename(url).split('?')[0]
         j = batch.new_job(f'URL {idx} ({filename})')
-        j.spot(is_spot=non_preemptible_vm)
+        j.spot(is_spot=preemptible_vm)
         quoted_url = quote(url)
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
