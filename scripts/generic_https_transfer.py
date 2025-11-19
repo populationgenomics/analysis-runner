@@ -26,7 +26,10 @@ from cpg_utils.hail_batch import (
     help='Use filenames defined before each url',
 )
 @click.option('--presigned-url-file-path')
-def main(presigned_url_file_path: str, filenames: bool,):
+def main(
+    presigned_url_file_path: str,
+    filenames: bool
+):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
     If each signed url is prefixed by a filename and a space, use the --filenames flag
