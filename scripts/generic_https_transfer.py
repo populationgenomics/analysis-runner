@@ -26,20 +26,17 @@ from cpg_utils.hail_batch import (
     help='Use filenames defined before each url',
 )
 @click.option('--presigned-url-file-path')
-def main(
-    presigned_url_file_path: str,
-    filenames: bool
-):
+def main(presigned_url_file_path: str, filenames: bool):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
     If each signed url is prefixed by a filename and a space, use the --filenames flag
     GCP suffix in target GCP bucket is defined using analysis-runner's --output
     """
 
-    cpg_driver_image = config_retrieve(['workflow','driver_image'])
-    dataset = config_retrieve(['workflow','dataset'])
-    output_prefix = config_retrieve(['workflow','output_prefix'])
-    preemptible_vm = config_retrieve(['workflow','preemptible_vm'], False)
+    cpg_driver_image = config_retrieve(['workflow', 'driver_image'])
+    dataset = config_retrieve(['workflow', 'dataset'])
+    output_prefix = config_retrieve(['workflow', 'output_prefix'])
+    preemptible_vm = config_retrieve(['workflow', 'preemptible_vm'], True)
 
     names = None
     with AnyPath(presigned_url_file_path).open() as file:
@@ -67,7 +64,11 @@ def main(
     for idx, url in enumerate(presigned_urls):
         filename = names[idx] if names else os.path.basename(url).split('?')[0]
         j = batch.new_job(f'URL {idx} ({filename})')
-        j.spot(is_spot=preemptible_vm)
+
+        # new_job sets is_spot automatically to True
+        if not preemptible_vm:
+            j.spot(is_spot=False)
+
         quoted_url = quote(url)
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
