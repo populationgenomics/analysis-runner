@@ -10,7 +10,7 @@ from shlex import quote
 import click
 from cloudpathlib import AnyPath
 
-from cpg_utils.config import get_config
+from cpg_utils.config import config_retrieve
 from cpg_utils.hail_batch import (
     authenticate_cloud_credentials_in_job,
     dataset_path,
@@ -33,12 +33,11 @@ def main(presigned_url_file_path: str, filenames: bool):
     GCP suffix in target GCP bucket is defined using analysis-runner's --output
     """
 
-    env_config = get_config()
-    cpg_driver_image = env_config['workflow']['driver_image']
-    billing_project = env_config['hail']['billing_project']
-    dataset = env_config['workflow']['dataset']
-    output_prefix = env_config['workflow']['output_prefix']
-    assert all({billing_project, cpg_driver_image, dataset, output_prefix})
+    cpg_driver_image = config_retrieve(['workflow', 'driver_image'])
+    dataset = config_retrieve(['workflow', 'dataset'])
+    output_prefix = config_retrieve(['workflow', 'output_prefix'])
+    preemptible_vm = config_retrieve(['workflow', 'preemptible_vm'], True)
+
     names = None
     with AnyPath(presigned_url_file_path).open() as file:
         if filenames:
@@ -65,6 +64,11 @@ def main(presigned_url_file_path: str, filenames: bool):
     for idx, url in enumerate(presigned_urls):
         filename = names[idx] if names else os.path.basename(url).split('?')[0]
         j = batch.new_job(f'URL {idx} ({filename})')
+
+        # new_job sets is_spot automatically to True
+        if not preemptible_vm:
+            j.spot(is_spot=False)
+
         quoted_url = quote(url)
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
