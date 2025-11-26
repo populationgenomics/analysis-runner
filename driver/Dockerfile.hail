@@ -3,7 +3,7 @@ FROM australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-base:1.5
 
 ARG HAIL_SHA
 
-ENV HAIL_QUERY_BACKEND service
+ENV HAIL_QUERY_BACKEND=service
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -40,7 +40,7 @@ RUN apt-get update && \
     pip --no-cache-dir install \
         analysis-runner \
         bokeh \
-        cloudpathlib[all] \
+        'cloudpathlib[all]' \
         cpg-utils \
         cpg-workflows \
         gcsfs \
@@ -48,5 +48,7 @@ RUN apt-get update && \
         pyarrow \
         sample-metadata \
         metamist \
-        selenium>=3.8.0 \
-        statsmodels
+        'selenium>=3.8.0' \
+        statsmodels && \
+    # Delete maven/pip/etc caches and /tmp scripts used only during the build
+    rm -rf /root/.cache /tmp/tmp*
