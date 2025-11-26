@@ -112,7 +112,7 @@ analysis-runner \
   --dataset fewgenomes \
   --access-level test \
   --description "test hail-batch to cromwell support" \
-  -o $OUTPUT_DIR \
+  -o 'test_output' \
   python examples/cromwell/cromwell_from_hail_batch.py
 ```
 

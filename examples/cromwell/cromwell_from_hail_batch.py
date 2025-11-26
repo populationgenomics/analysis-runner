@@ -4,24 +4,19 @@ Test script, to demonstrate how you can run a cromwell workflow
 from within a batch environment, and operate on the result(s)
 """
 
-from cpg_utils.config import get_config, output_path
+from cpg_utils.config import config_retrieve, output_path
 from cpg_utils.cromwell import (
+    CromwellBackend,
     CromwellOutputType,
     run_cromwell_workflow_from_repo_and_get_outputs,
 )
 from cpg_utils.hail_batch import get_batch
 
-_config = get_config()
-DATASET = _config['workflow']['dataset']
-OUTPUT_PATH = output_path('outputs')
-
-b = get_batch()
-
 inputs = ['Hello, analysis-runner ;)', 'Hello, second output!']
 
 
 submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
-    b=b,
+    b=get_batch(default_python_image=config_retrieve(['workflow', 'driver_image'])),
     job_prefix='hello',
     workflow='hello_all_in_one_file.wdl',
     cwd='examples/cromwell',
@@ -37,8 +32,9 @@ submit_j, workflow_outputs = run_cromwell_workflow_from_repo_and_get_outputs(
         ),
     },
     libs=[],  # hello_all_in_one_file is self-contained, so no dependencies
-    output_prefix=OUTPUT_PATH,
-    dataset=DATASET,
+    output_prefix=config_retrieve(['workflow', 'output_prefix']),
+    dataset=config_retrieve(['workflow', 'dataset']),
+    backend=CromwellBackend.batch,
 )
 print(workflow_outputs)
 # {
@@ -51,7 +47,7 @@ print(workflow_outputs)
 #   ]
 # }
 
-process_j = b.new_job('do-something-with-string-output')
+process_j = get_batch().new_bash_job('do-something-with-string-output')
 process_j.command(f"cat {workflow_outputs['joined_out']} | awk '{{print toupper($0)}}'")
 
 
@@ -69,13 +65,14 @@ def process_paths_python(*files: str):
 assert isinstance(workflow_outputs['out_paths'], list)
 assert isinstance(workflow_outputs['texts'], list)
 
-process_paths_job = b.new_python_job('process_paths')
+process_paths_job = get_batch().new_python_job('process_paths')
 process_paths_job.call(process_paths_python, *workflow_outputs['out_paths'])
 
 # Here, we're showing that you can use the output of a
 # resource group that we defined earlier in different tasks.
 for idx, out in enumerate(workflow_outputs['texts']):
-    process_j = b.new_job(f'do-something-with-input-{idx + 1}')
+    process_j = get_batch().new_bash_job(f'do-something-with-input-{idx + 1}')
+    process_j.image(config_retrieve(['workflow', 'driver_image']))
 
     # For example:
     #   convert the .md5 file to uppercase and print it to the console
@@ -85,6 +82,6 @@ for idx, out in enumerate(workflow_outputs['texts']):
 cat {out.md5} | awk '{{print toupper($0)}}'
 cat {out.txt} | awk '{{print toupper($0)}}' > {process_j.out}""",
     )
-    b.write_output(process_j.out, OUTPUT_PATH + f'file-{idx + 1}.txt')
+    get_batch().write_output(process_j.out, output_path(f'outputs/file-{idx + 1}.txt'))
 
-b.run(wait=False)
+get_batch().run(wait=False)
