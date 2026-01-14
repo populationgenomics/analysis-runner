@@ -13,7 +13,7 @@ RUN apt-get update && \
         gcc \
         libfontconfig \
         liblapack3 \
-        libopenblas-base \
+        libopenblas0 \
         openjdk-11-jdk-headless \
         rsync \
         software-properties-common && \
