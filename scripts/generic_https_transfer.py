@@ -25,7 +25,12 @@ from cpg_utils.hail_batch import (
     default=False,
     help='Use filenames defined before each url',
 )
-@click.option('--use-wget', is_flag=True, default=False, help='Use wget instead of curl')
+@click.option(
+    '--use-wget',
+    is_flag=True,
+    default=False,
+    help='Use wget instead of curl',
+)
 @click.option('--presigned-url-file-path')
 def main(presigned_url_file_path: str, filenames: bool, use_wget: bool):
     """
@@ -83,7 +88,7 @@ def main(presigned_url_file_path: str, filenames: bool, use_wget: bool):
         else:
             j.command(
                 f'curl -L {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}',
-        )
+            )
 
     batch.run(wait=False)
 
