@@ -25,8 +25,9 @@ from cpg_utils.hail_batch import (
     default=False,
     help='Use filenames defined before each url',
 )
+@click.option('--use-wget', is_flag=True, default=False, help='Use wget instead of curl')
 @click.option('--presigned-url-file-path')
-def main(presigned_url_file_path: str, filenames: bool):
+def main(presigned_url_file_path: str, filenames: bool, use_wget: bool):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
     If each signed url is prefixed by a filename and a space, use the --filenames flag
@@ -73,8 +74,15 @@ def main(presigned_url_file_path: str, filenames: bool):
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
         j.command('set -euxo pipefail')
-        j.command(
-            f'curl -L {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}',
+        # if not success, then wait and try again. Curl has ways to resume interrupted uploads: -C -
+        # Consider wGet as an alternative to curl if issues arise
+        if use_wget:
+            j.command(
+                f'wget -O - {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}',
+            )
+        else:
+            j.command(
+                f'curl -L {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}',
         )
 
     batch.run(wait=False)
