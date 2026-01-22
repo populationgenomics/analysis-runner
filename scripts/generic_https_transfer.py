@@ -80,14 +80,17 @@ def main(presigned_url_file_path: str, filenames: bool, mode: str):
         # catch errors during the cURL
         j.command('set -euxo pipefail')
 
-        if mode == 'wget':
-            j.command(
-                f'wget -O - {quoted_source_url} | gsutil cp - {quoted_output_url}',
-            )
-        else:
-            j.command(
-                f'curl -L {quoted_source_url} | gsutil cp - {quoted_output_url}',
-            )
+        match mode:
+            case 'wget':
+                j.command(
+                    f'wget -O - {quoted_source_url} | gsutil cp - {quoted_output_url}',
+                )
+            case 'curl':
+                j.command(
+                    f'curl -L {quoted_source_url} | gsutil cp - {quoted_output_url}',
+                )
+            case _:
+                raise ValueError(f'invalid mode: {mode}')
 
     batch.run(wait=False)
 
