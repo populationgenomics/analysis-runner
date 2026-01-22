@@ -79,8 +79,7 @@ def main(presigned_url_file_path: str, filenames: bool, use_wget: bool):
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
         j.command('set -euxo pipefail')
-        # if not success, then wait and try again. Curl has ways to resume interrupted uploads: -C -
-        # Consider wGet as an alternative to curl if issues arise
+        
         if use_wget:
             j.command(
                 f'wget -O - {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}',
