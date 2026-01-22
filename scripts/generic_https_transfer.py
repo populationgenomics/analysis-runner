@@ -29,7 +29,7 @@ from cpg_utils.hail_batch import (
     '--mode',
     type=click.Choice(['curl', 'wget'], case_sensitive=False),
     default='curl',
-    help='The download tool for the file. Default is curl.git',
+    help='The download tool for the file. Default is curl',
 )
 @click.option('--presigned-url-file-path')
 def main(presigned_url_file_path: str, filenames: bool, mode: str):
