@@ -26,19 +26,18 @@ from cpg_utils.hail_batch import (
     help='Use filenames defined before each url',
 )
 @click.option(
-    '--use-wget',
-    is_flag=True,
-    default=False,
-    help='Use wget instead of curl',
+    '--mode',
+    type=click.Choice(['curl', 'wget'], case_sensitive=False),
+    default='curl',
+    help='The download tool for the file. Default is curl.git',
 )
 @click.option('--presigned-url-file-path')
-def main(presigned_url_file_path: str, filenames: bool, use_wget: bool):
+def main(presigned_url_file_path: str, filenames: bool, mode: str):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
     If each signed url is prefixed by a filename and a space, use the --filenames flag
     GCP suffix in target GCP bucket is defined using analysis-runner's --output
     """
-
     cpg_driver_image = config_retrieve(['workflow', 'driver_image'])
     dataset = config_retrieve(['workflow', 'dataset'])
     output_prefix = config_retrieve(['workflow', 'output_prefix'])
@@ -81,7 +80,7 @@ def main(presigned_url_file_path: str, filenames: bool, use_wget: bool):
         # catch errors during the cURL
         j.command('set -euxo pipefail')
 
-        if use_wget:
+        if mode == 'wget':
             j.command(
                 f'wget -O - {quoted_source_url} | gsutil cp - {quoted_output_url}',
             )
