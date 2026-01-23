@@ -83,11 +83,11 @@ def main(presigned_url_file_path: str, filenames: bool, mode: str):
         match mode:
             case 'wget':
                 j.command(
-                    f'wget -O - {quoted_source_url} | gsutil cp - {quoted_output_url}',
+                    f'wget -O - {quoted_source_url} | gcloud storage cp - {quoted_output_url}',
                 )
             case 'curl':
                 j.command(
-                    f'curl -L {quoted_source_url} | gsutil cp - {quoted_output_url}',
+                    f'curl -L {quoted_source_url} | gcloud storage cp - {quoted_output_url}',
                 )
             case _:
                 raise ValueError(f'invalid mode: {mode}')
