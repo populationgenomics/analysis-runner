@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ruff: noqa: S603,S607
+# ruff: noqa: S607
 """
 wrapper script for the un-tar script
 wrapped to modulate the batch job storage
@@ -50,24 +50,40 @@ def get_path_components_from_path(path: str):
     return bucket_name, subdir
 
 
-def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int]]:
+def get_tarballs_from_path(
+    bucket_name: str, subdir: str, single_path: bool
+) -> list[tuple[str, int]]:
     """
     Checks a gs://bucket/subdir/ path for .tar and .tar.gz files
+    If single_path == True, only returns the first tarball found in the path, otherwise returns all tarballs found
     Returns a list of:
         - .tar and .tar.gz blob paths found in the subdirectory
         - the size of image to use when unpacking the tarball
     """
-
+    object_prefixes = ('.tar', '.tar.gz', '.tar.bz2')
     blob_details = []
-    for blob in CLIENT.list_blobs(bucket_name, prefix=(subdir + '/'), delimiter='/'):
-        if not blob.name.endswith(('.tar', '.tar.gz', '.tar.bz2')):
-            continue
+    if not single_path:
+        for blob in CLIENT.list_blobs(
+            bucket_name, prefix=(subdir + '/'), delimiter='/'
+        ):
+            if not blob.name.endswith(object_prefixes):
+                continue
 
-        # image size is double and a half the tar size in GB, or 30GB
-        # whichever is larger
-        job_gb = max([30, int((blob.size // GB) * 2.5)])
+            # image size is double and a half the tar size in GB, or 30GB
+            # whichever is larger
+            job_gb = max([30, int((blob.size // GB) * 2.5)])
 
-        blob_details.append((blob.name, job_gb))
+            blob_details.append((blob.name, job_gb))
+    else:
+        blob = CLIENT.bucket(bucket_name).get_blob(subdir)
+
+        if blob and blob.name.endswith(object_prefixes):
+            job_gb = max(30, int((blob.size / GB) * 2.5))
+            blob_details.append((blob.name, job_gb))
+        else:
+            logging.warning(
+                f'Specified path gs://{bucket_name}/{subdir} is not a valid tarball.'
+            )
 
     logging.info(f'{len(blob_details)} tar files found in {subdir} of {bucket_name}')
 
@@ -81,20 +97,23 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
     help='GCP bucket/directory to search',
     required=True,
 )
-def main(search_path: str):
+@click.option(
+    '--single-path', '-s', is_flag=True, help='Restrict unzipping to a single tar ball'
+)
+def main(search_path: str, single_path: bool):
     """
     Who runs the world? main()
 
     Args:
         search_path (str): path to find tarballs in
+        single_path (bool): whether to restrict unzipping to a single tar ball
     """
 
     config = get_config()
-    output_dir = config['workflow']['output_prefix']
 
     bucket_name, subdir = get_path_components_from_path(search_path)
 
-    blobs = get_tarballs_from_path(bucket_name, subdir)
+    blobs = get_tarballs_from_path(bucket_name, subdir, single_path)
 
     if len(blobs) == 0:
         logging.info('Nothing to do, quitting')
