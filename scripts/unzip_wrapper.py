@@ -30,7 +30,13 @@ UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
 
 
 def get_commit_hash():
-    return subprocess.check_output(['git', 'describe', '--always']).strip().decode()
+    return (
+        subprocess.check_output(
+            ['git', 'describe', '--always'],  # noqa: S603
+        )
+        .strip()
+        .decode()
+    )
 
 
 def get_path_components_from_path(path: str):
@@ -51,7 +57,9 @@ def get_path_components_from_path(path: str):
 
 
 def get_tarballs_from_path(
-    bucket_name: str, subdir: str, single_path: bool
+    bucket_name: str,
+    subdir: str,
+    single_path: bool,
 ) -> list[tuple[str, int]]:
     """
     Checks a gs://bucket/subdir/ path for .tar and .tar.gz files
@@ -64,7 +72,9 @@ def get_tarballs_from_path(
     blob_details = []
     if not single_path:
         for blob in CLIENT.list_blobs(
-            bucket_name, prefix=(subdir + '/'), delimiter='/'
+            bucket_name,
+            prefix=(subdir + '/'),
+            delimiter='/',
         ):
             if not blob.name.endswith(object_prefixes):
                 continue
@@ -82,7 +92,7 @@ def get_tarballs_from_path(
             blob_details.append((blob.name, job_gb))
         else:
             logging.warning(
-                f'Specified path gs://{bucket_name}/{subdir} is not a valid tarball.'
+                f'Specified path gs://{bucket_name}/{subdir} is not a valid tarball.',
             )
 
     logging.info(f'{len(blob_details)} tar files found in {subdir} of {bucket_name}')
@@ -98,7 +108,7 @@ def get_tarballs_from_path(
     required=True,
 )
 @click.option(
-    '--single-path', '-s', is_flag=True, help='Restrict unzipping to a single tar ball'
+    '--single-path', '-s', is_flag=True, default=False, help='Restrict unzipping to a single tar ball',
 )
 def main(search_path: str, single_path: bool):
     """
@@ -108,8 +118,6 @@ def main(search_path: str, single_path: bool):
         search_path (str): path to find tarballs in
         single_path (bool): whether to restrict unzipping to a single tar ball
     """
-
-    config = get_config()
 
     bucket_name, subdir = get_path_components_from_path(search_path)
 
@@ -141,7 +149,7 @@ def main(search_path: str, single_path: bool):
                 --bucket {bucket_name} \
                 --subdir {subdir} \
                 --blob_name {blobname} \
-                --outdir {output_dir}
+                --outdir {output_dir} # noqa: F821
         """,
         )
 
