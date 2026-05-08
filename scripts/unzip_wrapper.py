@@ -33,7 +33,7 @@ UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
 def get_commit_hash():
     return (
         subprocess.check_output(
-            ['git', 'describe', '--always'],
+            ['git', 'describe', '--always'],  # noqa: S603
         )
         .strip()
         .decode()
