@@ -145,6 +145,18 @@ def main(search_path: str, single_path: str):
 
 
 def create_job(blobname: str, blobsize: int, bucket_name: str, subdir: str, output_dir: str, driver_image: str):
+    """
+    Creates and configures a Hail Batch job to decompress a single tarball
+    Sets job resources based on blob size, authenticates cloud credentials, and runs the untar script
+
+    Args:
+        blobname (str): path to the tarball blob within the bucket
+        blobsize (int): size of the tarball in GB, used to allocate job storage
+        bucket_name (str): GCS bucket containing the tarball
+        subdir (str): subdirectory within the bucket where the tarball resides
+        output_dir (str): destination path for decompressed output
+        driver_image (str): Docker image to use for the batch job
+    """
 
     job = get_batch().new_job(name=f'decompress {blobname}')
     job.image(driver_image)
