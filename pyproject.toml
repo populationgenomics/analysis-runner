@@ -9,7 +9,7 @@ quote-style = "single"
 # ignore pydocstyle, flake8-boolean-trap (FBT)
 select = ["A", "B", "C",  "E", "F", "G", "I", "N", "Q", "S", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "ERA", "EXE", "ICN", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "UP", "YTT"]
 
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "ERA", "EXE", "FBT", "ICN", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "UP", "YTT"]
+fixable = ["ALL"]
 
 ignore = [
     "ANN101",  # Missing type annotation for self in method
@@ -29,25 +29,21 @@ ignore = [
     "S101",    # Use of assert detected
 ]
 
-
 [tool.ruff.lint.isort]
-
 section-order = ["future", "standard-library", "third-party", "hail", "cpg", "first-party", "local-folder"]
 
 [tool.ruff.lint.isort.sections]
-hail = [
-    "hail",
-    "hailtop",
-]
+hail = ["hail", "hailtop"]
+cpg = ["cpg_flow", "cpg_utils", "cpg_infra", "metamist", "analysis_runner"]
 # Adjust these for each repository, e.g., removing those that should be
 # local rather than CPG. Also fill in extend_skip below if there are any
 # subdirectories that should be ignored.
-cpg = [
-    "analysis_runner",
-    "cpg_infra",
-    "cpg_utils",
-    "cpg_workflows",
-    "gnomad",
-    "hail_scripts",
-    "metamist",
-]
+# cpg = [
+#     "analysis_runner",
+#     "cpg_infra",
+#     "cpg_utils",
+#     "cpg_workflows",
+#     "gnomad",
+#     "hail_scripts",
+#     "metamist",
+# ]
