@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ruff: noqa: S603,S607
+# ruff: noqa: S607
 """
 wrapper script for the un-tar script
 wrapped to modulate the batch job storage
@@ -14,7 +14,8 @@ import sys
 import click
 from google.cloud import storage
 
-from cpg_utils.config import get_config
+from cpg_utils import to_path
+from cpg_utils.config import config_retrieve
 from cpg_utils.hail_batch import (
     authenticate_cloud_credentials_in_job,
     copy_common_env,
@@ -30,7 +31,13 @@ UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
 
 
 def get_commit_hash():
-    return subprocess.check_output(['git', 'describe', '--always']).strip().decode()
+    return (
+        subprocess.check_output(
+            ['git', 'describe', '--always'],  # noqa: S603
+        )
+        .strip()
+        .decode()
+    )
 
 
 def get_path_components_from_path(path: str):
@@ -50,16 +57,24 @@ def get_path_components_from_path(path: str):
     return bucket_name, subdir
 
 
-def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int]]:
+def get_tarballs_from_path(
+    bucket_name: str,
+    subdir: str,
+) -> list[tuple[str, int]]:
     """
     Checks a gs://bucket/subdir/ path for .tar and .tar.gz files
+    If single_path == True, only returns the first tarball found in the path, otherwise returns all tarballs found
     Returns a list of:
         - .tar and .tar.gz blob paths found in the subdirectory
         - the size of image to use when unpacking the tarball
     """
-
     blob_details = []
-    for blob in CLIENT.list_blobs(bucket_name, prefix=(subdir + '/'), delimiter='/'):
+
+    for blob in CLIENT.list_blobs(
+        bucket_name,
+        prefix=(subdir + '/'),
+        delimiter='/',
+    ):
         if not blob.name.endswith(('.tar', '.tar.gz', '.tar.bz2')):
             continue
 
@@ -79,54 +94,97 @@ def get_tarballs_from_path(bucket_name: str, subdir: str) -> list[tuple[str, int
     '--search-path',
     '-p',
     help='GCP bucket/directory to search',
-    required=True,
+    required=False,
 )
-def main(search_path: str):
+@click.option(
+    '--single-path',
+    '-s',
+    type=str,
+    required=False,
+    help='Provide a single path to a tarball, rather than a directory.',
+)
+def main(search_path: str, single_path: str):
     """
     Who runs the world? main()
 
     Args:
         search_path (str): path to find tarballs in
+        single_path (str): whether to restrict unzipping to a single tar ball
     """
+    config = config_retrieve(['workflow'])
+    output_dir = config.get('output_prefix')
+    driver_image = config.get('driver_image')
 
-    config = get_config()
-    output_dir = config['workflow']['output_prefix']
+    if search_path:
+        bucket_name, subdir = get_path_components_from_path(search_path)
 
-    bucket_name, subdir = get_path_components_from_path(search_path)
+        blobs = get_tarballs_from_path(bucket_name, subdir)
 
-    blobs = get_tarballs_from_path(bucket_name, subdir)
+        if len(blobs) == 0:
+            logging.info('Nothing to do, quitting')
+            sys.exit(0)
 
-    if len(blobs) == 0:
-        logging.info('Nothing to do, quitting')
-        sys.exit(0)
+        # iterate over targets, set each one off in parallel
+        for blobname, blobsize in blobs:
+            # create and config job
+            create_job(
+                blobname, blobsize, bucket_name, subdir, output_dir, driver_image
+            )
 
-    # iterate over targets, set each one off in parallel
-    for blobname, blobsize in blobs:
-        # create and config job
-        job = get_batch().new_job(name=f'decompress {blobname}')
-        job.image(get_config()['workflow']['driver_image'])
-        job.cpu(4)
-        job.storage(f'{blobsize}Gi')
-        authenticate_cloud_credentials_in_job(job)
-        copy_common_env(job)
-        prepare_git_job(
-            job,
-            organisation='populationgenomics',
-            repo_name='analysis-runner',
-            commit=get_commit_hash(),
-        )
-        job.command('cd /io')
-        job.command(
-            f"""
-            python3 {UNZIP_SCRIPT} \
-                --bucket {bucket_name} \
-                --subdir {subdir} \
-                --blob_name {blobname} \
-                --outdir {output_dir}
-        """,
-        )
+    elif single_path:
+        file_path = to_path(single_path)
+        blobsize = file_path.stat().st_size
+        bucket = file_path.bucket
+        subdir = '/'.join(file_path.parts[2:-1])
+        blobname = f'{subdir}/{file_path.name}'
+        create_job(blobname, blobsize, bucket, subdir, output_dir, driver_image)
 
     get_batch().run(wait=False)
+
+
+def create_job(
+    blobname: str,
+    blobsize: int,
+    bucket_name: str,
+    subdir: str,
+    output_dir: str,
+    driver_image: str,
+):
+    """
+    Creates and configures a Hail Batch job to decompress a single tarball
+    Sets job resources based on blob size, authenticates cloud credentials, and runs the untar script
+
+    Args:
+        blobname (str): path to the tarball blob within the bucket
+        blobsize (int): size of the tarball in GB, used to allocate job storage
+        bucket_name (str): GCS bucket containing the tarball
+        subdir (str): subdirectory within the bucket where the tarball resides
+        output_dir (str): destination path for decompressed output
+        driver_image (str): Docker image to use for the batch job
+    """
+
+    job = get_batch().new_job(name=f'decompress {blobname}')
+    job.image(driver_image)
+    job.cpu(4)
+    job.storage(f'{blobsize}Gi')
+    authenticate_cloud_credentials_in_job(job)
+    copy_common_env(job)
+    prepare_git_job(
+        job,
+        organisation='populationgenomics',
+        repo_name='analysis-runner',
+        commit=get_commit_hash(),
+    )
+    job.command('cd /io')
+    job.command(
+        f"""
+        python3 {UNZIP_SCRIPT} \
+            --bucket {bucket_name} \
+            --subdir {subdir} \
+            --blob_name {blobname} \
+            --outdir {output_dir}
+    """,
+    )
 
 
 if __name__ == '__main__':
