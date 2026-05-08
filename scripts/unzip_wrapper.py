@@ -108,7 +108,11 @@ def get_tarballs_from_path(
     required=True,
 )
 @click.option(
-    '--single-path', '-s', is_flag=True, default=False, help='Restrict unzipping to a single tar ball',
+    '--single-path',
+    '-s',
+    is_flag=True,
+    default=False,
+    help='Restrict unzipping to a single tar ball',
 )
 def main(search_path: str, single_path: bool):
     """
@@ -118,6 +122,8 @@ def main(search_path: str, single_path: bool):
         search_path (str): path to find tarballs in
         single_path (bool): whether to restrict unzipping to a single tar ball
     """
+    config = get_config()
+    output_dir = config['workflow']['output_prefix']
 
     bucket_name, subdir = get_path_components_from_path(search_path)
 
@@ -149,7 +155,7 @@ def main(search_path: str, single_path: bool):
                 --bucket {bucket_name} \
                 --subdir {subdir} \
                 --blob_name {blobname} \
-                --outdir {output_dir} # noqa: F821
+                --outdir {output_dir}
         """,
         )
 
