@@ -12,22 +12,15 @@ select = ["A", "B", "C",  "E", "F", "G", "I", "N", "Q", "S", "W", "ANN", "ARG", 
 fixable = ["ALL"]
 
 ignore = [
-    "ANN101",  # Missing type annotation for self in method
-    "ANN201",  # Missing return type annotation for public function
-    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-    "E501",    # Line length too long
-    "E731",    # Do not assign a lambda expression, use a def
-    "E741",    # Ambiguous variable name
-    "G004",    # Logging statement uses f-string
-    "PLR0911", # Too many return statements
-    "PLR0912", # Too many branches
-    "PLR0913", # Too many arguments to function call
-    "PLR0915", # Too many statements
-    "PLW0603", # Using the global statement to update `<VAR>` is discouraged
-    "PT018",   # Assertion should be broken down into multiple parts
-    "Q000",    # Single quotes found but double quotes preferred
-    "S101",    # Use of assert detected
+    "COM812",  # Missing trailing comma (formatter conflict)
+    "ISC001",  # Implicit string concatenation (formatter conflict)
+    "Q000",    # Handled by format.quote-style = "single"
+    "Q003",    # Handled by format.quote-style = "single"
+    "ANN101", "ANN201", "ANN401", "E501", "E731", "E741", "G004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLW0603", "PT018", "S101",
 ]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
 
 [tool.ruff.lint.isort]
 section-order = ["future", "standard-library", "third-party", "hail", "cpg", "first-party", "local-folder"]

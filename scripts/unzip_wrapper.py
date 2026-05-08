@@ -7,7 +7,6 @@ wrapped to modulate the batch job storage
 
 import logging
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
@@ -15,6 +14,7 @@ import sys
 import click
 from google.cloud import storage
 
+from cpg_utils import to_path
 from cpg_utils.config import config_retrieve
 from cpg_utils.hail_batch import (
     authenticate_cloud_credentials_in_job,
@@ -22,7 +22,6 @@ from cpg_utils.hail_batch import (
     get_batch,
     prepare_git_job,
 )
-from cpg_utils import Path, to_path
 
 CLIENT = storage.Client()
 RMATCH_STR = r'gs://(?P<bucket>[\w-]+)/(?P<suffix>.+)/'
@@ -61,7 +60,6 @@ def get_path_components_from_path(path: str):
 def get_tarballs_from_path(
     bucket_name: str,
     subdir: str,
-    single_path: bool,
 ) -> list[tuple[str, int]]:
     """
     Checks a gs://bucket/subdir/ path for .tar and .tar.gz files
@@ -72,21 +70,19 @@ def get_tarballs_from_path(
     """
     blob_details = []
 
-    if not single_path:
-        for blob in CLIENT.list_blobs(
-            bucket_name,
-            prefix=(subdir + '/'),
-            delimiter='/',
-        ):
-            if not blob.name.endswith(('.tar', '.tar.gz', '.tar.bz2')):
-                continue
+    for blob in CLIENT.list_blobs(
+        bucket_name,
+        prefix=(subdir + '/'),
+        delimiter='/',
+    ):
+        if not blob.name.endswith(('.tar', '.tar.gz', '.tar.bz2')):
+            continue
 
-            # image size is double and a half the tar size in GB, or 30GB
-            # whichever is larger
-            job_gb = max([30, int((blob.size // GB) * 2.5)])
+        # image size is double and a half the tar size in GB, or 30GB
+        # whichever is larger
+        job_gb = max([30, int((blob.size // GB) * 2.5)])
 
-            blob_details.append((blob.name, job_gb))
-
+        blob_details.append((blob.name, job_gb))
 
     logging.info(f'{len(blob_details)} tar files found in {subdir} of {bucket_name}')
 
@@ -122,7 +118,7 @@ def main(search_path: str, single_path: str):
     if search_path:
         bucket_name, subdir = get_path_components_from_path(search_path)
 
-        blobs = get_tarballs_from_path(bucket_name, subdir, search_path)
+        blobs = get_tarballs_from_path(bucket_name, subdir)
 
         if len(blobs) == 0:
             logging.info('Nothing to do, quitting')
@@ -131,7 +127,9 @@ def main(search_path: str, single_path: str):
         # iterate over targets, set each one off in parallel
         for blobname, blobsize in blobs:
             # create and config job
-            create_job(blobname, blobsize, bucket_name, subdir, output_dir, driver_image)
+            create_job(
+                blobname, blobsize, bucket_name, subdir, output_dir, driver_image
+            )
 
     elif single_path:
         file_path = to_path(single_path)
@@ -144,7 +142,14 @@ def main(search_path: str, single_path: str):
     get_batch().run(wait=False)
 
 
-def create_job(blobname: str, blobsize: int, bucket_name: str, subdir: str, output_dir: str, driver_image: str):
+def create_job(
+    blobname: str,
+    blobsize: int,
+    bucket_name: str,
+    subdir: str,
+    output_dir: str,
+    driver_image: str,
+):
     """
     Creates and configures a Hail Batch job to decompress a single tarball
     Sets job resources based on blob size, authenticates cloud credentials, and runs the untar script
@@ -180,6 +185,7 @@ def create_job(blobname: str, blobsize: int, bucket_name: str, subdir: str, outp
             --outdir {output_dir}
     """,
     )
+
 
 if __name__ == '__main__':
     logging.basicConfig(
