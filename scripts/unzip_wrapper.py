@@ -33,7 +33,7 @@ UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
 def get_commit_hash():
     return (
         subprocess.check_output(
-            ['git', 'describe', '--always'],  # noqa: S603
+            ['git', 'describe', '--always'],
         )
         .strip()
         .decode()
@@ -133,7 +133,9 @@ def main(search_path: str, single_path: str):
 
     elif single_path:
         file_path = to_path(single_path)
-        blobsize = file_path.stat().st_size
+        raw_size_bytes = file_path.stat().st_size
+        blobsize = max([30, int((raw_size_bytes // GB) * 2.5)])
+
         bucket = file_path.bucket
         subdir = '/'.join(file_path.parts[2:-1])
         blobname = f'{subdir}/{file_path.name}'
