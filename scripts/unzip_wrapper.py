@@ -138,14 +138,14 @@ def main(search_path: str, single_path: str):
         blobsize = file_path.stat().st_size
         bucket = file_path.bucket
         subdir = '/'.join(file_path.parts[2:-1])
-        blobname = file_path.name
+        blobname = f'{subdir}/{file_path.name}'
         create_job(blobname, blobsize, bucket, subdir, output_dir, driver_image)
 
     get_batch().run(wait=False)
 
 
 def create_job(blobname: str, blobsize: int, bucket_name: str, subdir: str, output_dir: str, driver_image: str):
-    
+
     job = get_batch().new_job(name=f'decompress {blobname}')
     job.image(driver_image)
     job.cpu(4)
