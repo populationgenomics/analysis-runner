@@ -181,6 +181,7 @@ def get_analysis_runner_metadata(
     config_path: str,
     cwd: str | None,
     environment: str,
+    audience_api_url: str | None = None,
     **kwargs: Any,
 ) -> dict:
     """
@@ -205,6 +206,7 @@ def get_analysis_runner_metadata(
         'configPath': config_path,
         'cwd': cwd,
         'environment': environment,
+        'audienceApiUrl': audience_api_url,
         **kwargs,
     }
 

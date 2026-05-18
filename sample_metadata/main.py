@@ -7,18 +7,24 @@ in the Sample-Metadata database.
 
 import base64
 import json
+import os
 from typing import Any, Dict, Literal
 from urllib.parse import urlencode
 
 import requests
-
-AUDIENCE = 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
 
 
 def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
     """Puts analysis in sample-metadata"""
 
     metadata = json.loads(base64.b64decode(data['data']).decode('utf-8'))
+
+    # Extract audienceApiUrl with fallback chain: payload -> env var -> default
+    audience = (
+        metadata.pop('audienceApiUrl', None)
+        or os.getenv('AUDIENCE_URL')
+        or 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
+    )
 
     # remove them from the metadata object so we can pass the remaining values as meta
     project = metadata.pop('dataset')
@@ -61,9 +67,9 @@ def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
     q = urlencode(query_params)
 
     try:
-        token = get_identity_token()
+        token = get_identity_token(audience)
         r = requests.put(
-            f'{AUDIENCE}/api/v1/analysis-runner/{project}/?' + q,
+            f'{audience}/api/v1/analysis-runner/{project}/?' + q,
             json=meta,
             headers={'Authorization': f'Bearer {token}'},
             timeout=60,
@@ -77,13 +83,13 @@ def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
         raise err
 
 
-def get_identity_token() -> str:
+def get_identity_token(audience: str) -> str:
     """
     Get identity token
     Source: https://cloud.google.com/functions/docs/securing/function-identity#identity_tokens
     """
     meta_url = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity'
-    url = f'{meta_url}?audience={AUDIENCE}&format=full'
+    url = f'{meta_url}?audience={audience}&format=full'
     r = requests.get(url=url, headers={'Metadata-Flavor': 'Google'}, timeout=30)
     r.raise_for_status()
     return r.text

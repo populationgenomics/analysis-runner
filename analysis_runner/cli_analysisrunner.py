@@ -104,6 +104,12 @@ def add_analysis_runner_args(
         action='store_true',
     )
 
+    parser.add_argument(
+        '--audience-api-url',
+        required=False,
+        help='Custom AUDIENCE API URL for testing (overrides default metamist API endpoint)',
+    )
+
     parser.add_argument('script', nargs=argparse.REMAINDER, default=[])
 
     return parser
@@ -143,6 +149,7 @@ def run_analysis_runner(
     use_test_server: bool = False,
     server_url: str | None = None,
     skip_repo_checkout: bool = False,
+    audience_api_url: str | None = None,
 ):
     """
     Main function that drives the CLI.
@@ -170,6 +177,9 @@ def run_analysis_runner(
         'storage': storage,
         'preemptible': preemptible,
     }
+
+    if audience_api_url:
+        server_args['audienceApiUrl'] = audience_api_url
 
     if not skip_repo_checkout:
         repo_info = get_repository_specific_information(

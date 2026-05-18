@@ -65,6 +65,9 @@ class AnalysisRunnerJobArgs:
     hail_token: str
     gcp_project: str
 
+    # optional overrides
+    audience_url: str | None = None
+
     def is_test(self) -> bool:
         return self.access_level == 'test'
 
@@ -171,6 +174,11 @@ def add_analysis_runner_routes(routes: web.RouteTableDef):
             config_path=config_path,
             cwd=job_config.cwd,
             environment=job_config.cloud_environment,
+            **(
+                {'audienceApiUrl': job_config.audience_url}
+                if job_config.audience_url
+                else {}
+            ),
         )
 
         extra_batch_params = {}
@@ -259,6 +267,8 @@ def prepare_inputs_from_request_json(
         storage=params.get('storage'),
         environment_variables=params.get('environmentVariables'),
         preemptible=params.get('preemptible', True),
+        # optional overrides
+        audience_url=params.get('audienceApiUrl'),
         # other
         hail_token=get_hail_token(
             dataset=dataset,

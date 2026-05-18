@@ -97,6 +97,66 @@ class TestCliAnalysisRunner(unittest.TestCase):
         mock_post.assert_called()
         mock_identity_token.assert_called()
 
+    @patch(IMPORT_AR_IDENTITY_TOKEN_PATH)
+    @patch(REQUEST_POST_PATH)
+    def test_audience_api_url_flag(
+        self, mock_post: MagicMock, mock_identity_token: MagicMock
+    ):
+        """Test that --audience-api-url flag is parsed and included in request payload"""
+        apply_mock_behaviour(
+            mock_post=mock_post,
+            mock_identity_token=mock_identity_token,
+        )
+
+        custom_url = 'https://custom-api.example.com'
+        # Flag must come before script positional arg (before 'echo')
+        args = [
+            '--dataset',
+            'fewgenomes',
+            '--access-level',
+            'test',
+            '--description',
+            'mock-test',
+            '--output-dir',
+            'hello-world-test',
+            '--audience-api-url',
+            custom_url,
+            'echo',
+            'hello-world',
+        ]
+        main_from_args(args)
+
+        mock_post.assert_called()
+        # Get the json argument from the POST call
+        call_kwargs = mock_post.call_args[1]
+        request_json = call_kwargs['json']
+
+        # Verify audienceApiUrl is in the request
+        self.assertIn('audienceApiUrl', request_json)
+        self.assertEqual(request_json['audienceApiUrl'], custom_url)
+
+    @patch(IMPORT_AR_IDENTITY_TOKEN_PATH)
+    @patch(REQUEST_POST_PATH)
+    def test_audience_api_url_not_provided(
+        self, mock_post: MagicMock, mock_identity_token: MagicMock
+    ):
+        """Test that audienceApiUrl is not in request when flag not provided"""
+        apply_mock_behaviour(
+            mock_post=mock_post,
+            mock_identity_token=mock_identity_token,
+        )
+
+        # Don't provide the flag
+        main_from_args(self.ANALYSIS_RUNNER_ARGS)
+
+        mock_post.assert_called()
+        # Get the json argument from the POST call
+        call_kwargs = mock_post.call_args[1]
+        request_json = call_kwargs['json']
+
+        # Verify audienceApiUrl is NOT in the request
+        self.assertNotIn('audienceApiUrl', request_json)
+
 
 class TestCliCromwell(unittest.TestCase):
     @patch(IMPORT_CR_IDENTITY_TOKEN_PATH)
