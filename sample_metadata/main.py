@@ -6,18 +6,29 @@ in the Sample-Metadata database.
 # ruff: noqa: ARG001
 import base64
 import json
+import logging
 import os
+import sys
 from typing import Any, Dict, Literal
 from urllib.parse import urlencode
 
 import requests
+from google.cloud import logging_v2 as cloud_logging
 
 DEFAULT_AUDIENCE_URL = 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
 
+base_logger = logging.getLogger('google')
+base_logger.addHandler(logging.StreamHandler())
+base_logger.setLevel(logging.INFO)
 
-def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
+logger = base_logger.getChild('metamist_ar_meta_handler')
+logger.info('Handler entered')
+
+
+def main(data: Dict[Literal['data'], str], unused_context: Any):
     """Puts analysis in sample-metadata"""
 
+    logger.info('Main function entered with data: %s', data)
     metadata = json.loads(base64.b64decode(data['data']).decode('utf-8'))
 
     # Extract audienceApiUrl with fallback chain: payload -> env var -> default
@@ -77,10 +88,10 @@ def sample_metadata(data: Dict[Literal['data'], str], unused_context: Any):
         )
         r.raise_for_status()
         analysis_id = r.text
-        print(f'Created analysis with ID = {analysis_id}')
+        logger.info(f'Created analysis with ID = {analysis_id}')
         return analysis_id
     except requests.exceptions.HTTPError as err:
-        print(f'Failed with response: {err.response.text}')
+        logger.error(f'Failed with response: {err.response.text}')
         raise err
 
 
