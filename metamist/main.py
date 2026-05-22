@@ -8,27 +8,28 @@ import base64
 import json
 import logging
 import os
-import sys
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 from urllib.parse import urlencode
 
+import google.cloud.logging
 import requests
-from google.cloud import logging_v2 as cloud_logging
+
+# 1. Initialize the Cloud Logging client
+client = google.cloud.logging.Client()
+client.setup_logging(
+    log_level=logging.INFO,
+    format='%(levelname)s %(message)s',
+    force=True,
+)
 
 DEFAULT_AUDIENCE_URL = 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
 
-base_logger = logging.getLogger('google')
-base_logger.addHandler(logging.StreamHandler())
-base_logger.setLevel(logging.INFO)
 
-logger = base_logger.getChild('metamist_ar_meta_handler')
-logger.info('Handler entered')
-
-
-def main(data: Dict[Literal['data'], str], unused_context: Any):
+def main(data: dict[Literal['data'], str], unused_context: Any):
     """Puts analysis in sample-metadata"""
 
-    logger.info('Main function entered with data: %s', data)
+    logging.getLogger('metamist_ar_meta_handler')
+    logging.info('Main function entered with data: %s', data)
     metadata = json.loads(base64.b64decode(data['data']).decode('utf-8'))
 
     # Extract audienceApiUrl with fallback chain: payload -> env var -> default
@@ -88,10 +89,10 @@ def main(data: Dict[Literal['data'], str], unused_context: Any):
         )
         r.raise_for_status()
         analysis_id = r.text
-        logger.info(f'Created analysis with ID = {analysis_id}')
+        logging.info(f'Created analysis with ID = {analysis_id}')
         return analysis_id
     except requests.exceptions.HTTPError as err:
-        logger.error(f'Failed with response: {err.response.text}')
+        logging.exception(f'Failed with response: {err.response.text}')
         raise err
 
 
