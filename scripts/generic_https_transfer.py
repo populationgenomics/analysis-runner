@@ -10,7 +10,7 @@ from shlex import quote
 import click
 from cloudpathlib import AnyPath
 
-from cpg_utils.config import get_config
+from cpg_utils.config import config_retrieve
 from cpg_utils.hail_batch import (
     authenticate_cloud_credentials_in_job,
     dataset_path,
@@ -25,20 +25,24 @@ from cpg_utils.hail_batch import (
     default=False,
     help='Use filenames defined before each url',
 )
+@click.option(
+    '--mode',
+    type=click.Choice(['curl', 'wget'], case_sensitive=False),
+    default='curl',
+    help='The download tool for the file. Default is curl',
+)
 @click.option('--presigned-url-file-path')
-def main(presigned_url_file_path: str, filenames: bool):
+def main(presigned_url_file_path: str, filenames: bool, mode: str):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
     If each signed url is prefixed by a filename and a space, use the --filenames flag
     GCP suffix in target GCP bucket is defined using analysis-runner's --output
     """
+    cpg_driver_image = config_retrieve(['workflow', 'driver_image'])
+    dataset = config_retrieve(['workflow', 'dataset'])
+    output_prefix = config_retrieve(['workflow', 'output_prefix'])
+    preemptible_vm = config_retrieve(['workflow', 'preemptible_vm'], True)
 
-    env_config = get_config()
-    cpg_driver_image = env_config['workflow']['driver_image']
-    billing_project = env_config['hail']['billing_project']
-    dataset = env_config['workflow']['dataset']
-    output_prefix = env_config['workflow']['output_prefix']
-    assert all({billing_project, cpg_driver_image, dataset, output_prefix})
     names = None
     with AnyPath(presigned_url_file_path).open() as file:
         if filenames:
@@ -65,13 +69,28 @@ def main(presigned_url_file_path: str, filenames: bool):
     for idx, url in enumerate(presigned_urls):
         filename = names[idx] if names else os.path.basename(url).split('?')[0]
         j = batch.new_job(f'URL {idx} ({filename})')
-        quoted_url = quote(url)
+
+        # new_job sets is_spot automatically to True
+        if not preemptible_vm:
+            j.spot(is_spot=False)
+
+        quoted_source_url = quote(url)
+        quoted_output_url = quote(os.path.join(output_path, filename))
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
         j.command('set -euxo pipefail')
-        j.command(
-            f'curl -L {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}',
-        )
+
+        match mode:
+            case 'wget':
+                j.command(
+                    f'wget -O - {quoted_source_url} | gcloud storage cp - {quoted_output_url}',
+                )
+            case 'curl':
+                j.command(
+                    f'curl -L {quoted_source_url} | gcloud storage cp - {quoted_output_url}',
+                )
+            case _:
+                raise ValueError(f'invalid mode: {mode}')
 
     batch.run(wait=False)
 
