@@ -33,6 +33,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+hail = [
+    # Mirrors the hail pin in [project] dependencies — keep the two in sync.
+    # Today hail is installed unconditionally; when Hail Batch is dropped,
+    # remove hail from [project] dependencies and this extra becomes the
+    # explicit opt-in, so consumers already depending on
+    # analysis-runner[hail] see no change.
+    "hail>=0.2.134",
+]
 test = [
     "pytest>=9.0.2",
     "pytest-mock>=3.15.1",
@@ -51,6 +59,54 @@ Repository = "https://github.com/populationgenomics/analysis-runner"
 
 [project.scripts]
 analysis-runner = "analysis_runner.cli:main_from_args"
+
+[dependency-groups]
+# `base` mirrors [project] dependencies minus hail — PEP 735 groups cannot
+# reference [project] dependencies, so keep the two lists in sync. It is the
+# install target for hail-free images.
+base = [
+    "cloudpathlib[all]",
+    "cpg-utils>=5.0.0",
+    "requests",
+    "tabulate",
+]
+web = [
+    { include-group = "base" },
+    "cachetools~=5.3",
+    "cryptography>=44.0.2", # floor to avoid vuln: GHSA-79v4-65xg-pq4g
+    "flask~=3.1",
+    "google-api-python-client~=2.113",
+    "google-cloud-secret-manager~=2.17",
+    "google-cloud-storage~=2.14",
+    "gunicorn~=23.0",
+]
+# The server image builds FROM the Hail driver image, which supplies hail
+# itself — hail's version is coupled to the deployed Hail Batch service, so
+# it is deliberately not declared here. Everything else the server code
+# imports is declared explicitly; the aiohttp/grpcio-status/protobuf bounds
+# must stay compatible with the image's hail.
+server = [
+    { include-group = "base" },
+    "aiohttp>=3.9,<4", # match hail's bound on the driver image
+    "cachetools",
+    "google-api-python-client",
+    "google-auth",
+    "google-cloud-appengine-logging",
+    "google-cloud-audit-log",
+    "google-cloud-logging",
+    "google-cloud-pubsub",
+    "google-cloud-secret-manager",
+    "grpcio-status>=1.48,<1.50", # match hail's protobuf on the driver image
+    "gunicorn",
+    "nest-asyncio",
+    "protobuf==3.20.2", # match hail's pin on the driver image
+    "toml",
+]
+# Cloud Function (--runtime python311); kept minimal, so no base include.
+metamist = [
+    "google-cloud-logging",
+    "requests",
+]
 
 [tool.setuptools]
 packages = ["analysis_runner"]
