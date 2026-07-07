@@ -61,9 +61,10 @@ Repository = "https://github.com/populationgenomics/analysis-runner"
 analysis-runner = "analysis_runner.cli:main_from_args"
 
 [dependency-groups]
-# `base` mirrors [project] dependencies minus hail — PEP 735 groups cannot
-# reference [project] dependencies, so keep the two lists in sync. It is the
-# install target for hail-free images.
+# `base` mirrors [project] dependencies minus hail and minus the
+# hail-motivated grpcio-status pin (both leave together when Hail Batch is
+# dropped) — PEP 735 groups cannot reference [project] dependencies, so keep
+# the lists in sync. It is the install target for hail-free images.
 base = [
     "cloudpathlib[all]",
     "cpg-utils>=5.0.0",
