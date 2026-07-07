@@ -6,9 +6,9 @@ compile-requirements:
 		pip install pip-tools; \
 		pip-compile --extra dev --output-file requirements-dev.txt pyproject.toml;\
 	'
-	# Deployment lockfiles from the pyproject.toml dependency groups. Set
-	# UPGRADE=--upgrade for a full pin refresh; without it uv keeps existing
-	# pins that still satisfy the group constraints.
+# Deployment lockfiles from the pyproject.toml dependency groups. Set
+# UPGRADE=--upgrade for a full pin refresh; without it uv keeps existing
+# pins that still satisfy the group constraints.
 	uv pip compile --group web --universal --python-version 3.10 $(UPGRADE) -o web/requirements.txt
 	uv pip compile --group server --universal --python-version 3.10 $(UPGRADE) -o server/requirements.txt
 	uv pip compile --group metamist --universal --python-version 3.11 $(UPGRADE) -o metamist/requirements.txt
