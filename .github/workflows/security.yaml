@@ -52,3 +52,13 @@ jobs:
         with:
           inputs: server/requirements.txt
           summary: true
+
+  pip-audit-metamist:
+    runs-on: ubuntu-latest
+    name: Pip Audit (Metamist)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: metamist/requirements.txt
+          summary: true
