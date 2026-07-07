@@ -50,7 +50,7 @@ dev = [
     "bump2version",
     "pre-commit",
     "pylint",
-    "ruff~=0.11",
+    "ruff~=0.15",
     "toml",
 ]
 

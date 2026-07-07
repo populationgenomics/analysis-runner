@@ -331,7 +331,7 @@ rich==12.6.0
     #   typer
 rsa==4.9
     # via google-auth
-ruff==0.11.2
+ruff==0.15.20
     # via analysis-runner (pyproject.toml)
 s3transfer==0.11.4
     # via boto3
