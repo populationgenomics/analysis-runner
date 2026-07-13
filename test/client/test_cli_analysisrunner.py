@@ -74,7 +74,7 @@ def test_run_analysis_runner_accept_full_access(
         lambda prompt: 'y',  # noqa: ARG005
     )
     run_analysis_runner(**args)
-    assert len(posted_requests) == 4  # noqa:PLR2004  # headers, json, timeout, url
+    assert posted_requests.keys() == {'headers', 'json', 'timeout', 'url'}
     assert posted_requests['json']['accessLevel'] == 'full'
     assert posted_requests['headers']['Authorization'] == 'Bearer fake-token'
     assert 'Request submitted successfully: ok' in caplog.text
