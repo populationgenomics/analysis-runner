@@ -258,7 +258,7 @@ def add_cromwell_routes(routes: web.RouteTableDef):
             return web.json_response(req.json())
         except web.HTTPError:
             raise
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             raise web.HTTPInternalServerError(reason=str(e)) from e
 
 

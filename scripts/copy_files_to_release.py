@@ -20,7 +20,7 @@ from cpg_utils.config import get_config
 client = storage.Client()
 
 
-def check_paths_exist(paths: list[str]):
+def check_paths_exist(paths: list[str]) -> bool:
     """
     Checks a list of gs:// paths to see if they point to an existing blob
     Logs the invalid paths if any are found
@@ -40,9 +40,7 @@ def check_paths_exist(paths: list[str]):
         logging.info(f'Invalid path: {path}')
         invalid_paths = True
 
-    if invalid_paths:
-        return False
-    return True
+    return not invalid_paths
 
 
 def copy_to_release(project: str, billing_project: str, paths: list[str]):

@@ -336,7 +336,7 @@ def visualise_cromwell_metadata(
 
 def try_parse_value(value: str | None):
     """Try parse value from command line string"""
-    if value is None or value == 'None' or value == 'null':
+    if value in {None, 'None', 'null'}:
         return value
 
     if isinstance(value, list):

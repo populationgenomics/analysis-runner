@@ -31,7 +31,7 @@ def get_project_id_from_service_account_email(service_account_email: str) -> str
     'tob-wgs'
     """
     # quick and dirty
-    return service_account_email.split('@')[-1].split('.')[0]
+    return service_account_email.rsplit('@', maxsplit=1)[-1].split('.', maxsplit=1)[0]
 
 
 def add_general_args(parser: argparse.ArgumentParser):

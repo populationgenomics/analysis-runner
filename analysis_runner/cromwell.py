@@ -8,6 +8,6 @@ from cpg_utils.cromwell import CromwellOutputType
 
 @deprecated('Use cpg_utils.cromwell.run_cromwell_workflow_from_repo_and_get_outputs')
 def run_cromwell_workflow_from_repo_and_get_outputs(*args, **kwargs):
-    from cpg_utils.cromwell import run_cromwell_workflow_from_repo_and_get_outputs as f
+    from cpg_utils.cromwell import run_cromwell_workflow_from_repo_and_get_outputs as f  # noqa: PLC0415, I001
 
     return f(*args, **kwargs)

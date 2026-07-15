@@ -5,20 +5,20 @@ from deprecated import deprecated
 
 @deprecated(reason='Use cpg_utils.dataproc.setup_dataproc instead')
 def setup_dataproc(*args, **kwargs):  # noqa: ANN002, ANN003
-    from cpg_utils.dataproc import setup_dataproc as _setup_dataproc
+    from cpg_utils.dataproc import setup_dataproc as _setup_dataproc  # noqa: PLC0415
 
     return _setup_dataproc(*args, **kwargs)
 
 
 @deprecated(reason='Use cpg_utils.dataproc.hail_dataproc_job instead')
 def hail_dataproc_job(*args, **kwargs):  # noqa: ANN002, ANN003
-    from cpg_utils.dataproc import hail_dataproc_job as _hail_dataproc_job
+    from cpg_utils.dataproc import hail_dataproc_job as _hail_dataproc_job  # noqa: PLC0415, I001
 
     return _hail_dataproc_job(*args, **kwargs)
 
 
 @deprecated(reason='Use cpg_utils.dataproc._add_submit_job instead')
 def _add_submit_job(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
-    from cpg_utils.dataproc import _add_submit_job as __add_submit_job
+    from cpg_utils.dataproc import _add_submit_job as __add_submit_job  # noqa: PLC0415
 
     return __add_submit_job(*args, **kwargs)

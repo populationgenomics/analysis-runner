@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# ruff: noqa: PLR2004
 
 """
 Takes a path to a MatrixTable and a name prefix

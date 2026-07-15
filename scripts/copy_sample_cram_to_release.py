@@ -18,12 +18,12 @@ from metamist.apis import AnalysisApi
 from metamist.models import AnalysisType
 
 
-def check_paths_exist(paths: list[str]):
+def check_paths_exist(paths: list[str]) -> bool:
     """
     Checks a list of gs:// paths to see if they point to an existing blob
     Logs the invalid paths if any are found
     """
-    invalid_paths = False
+    invalid_paths: bool = False
     for path in paths:
         # gsutil ls <path> returns '<path>\n' if path exists
         result = subprocess.run(
@@ -38,9 +38,7 @@ def check_paths_exist(paths: list[str]):
         logging.info(f'Invalid path: {path}')
         invalid_paths = True
 
-    if invalid_paths:
-        return False
-    return True
+    return not invalid_paths
 
 
 def copy_to_release(project: str, billing_project: str, paths: list[str]):

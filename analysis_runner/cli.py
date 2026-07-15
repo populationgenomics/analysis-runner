@@ -7,7 +7,7 @@ See README.md for more information.
 
 import argparse
 import sys
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
 
 from analysis_runner._version import __version__
 from analysis_runner.cli_analysisrunner import (
