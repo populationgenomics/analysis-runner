@@ -38,7 +38,6 @@ test = [
     "pytest-mock>=3.15.1",
 ]
 dev = [
-    "analysis-runner[test]",
     "bump2version",
     "mypy~=2.1.0",
     "pre-commit",
