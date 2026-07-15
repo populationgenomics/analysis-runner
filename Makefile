@@ -1,18 +1,23 @@
-.PHONY: compile-requirements lint install-dev
+.PHONY: lock install-dev lint
 
-compile-requirements:
-	docker run --platform linux/amd64 -v $$(pwd):/opt/deps python:3.10 /bin/bash -c '\
-		cd /opt/deps; \
-		pip install pip-tools; \
-		pip-compile requirements-dev.in;\
-		pip-compile web/requirements.in;\
-	'
+# Re-resolve every package lockfile. Each package is an independent uv project,
+# so lock them individually; the metamist Cloud Function additionally needs a
+# requirements.txt exported from its lock (Cloud Functions build from pip).
+lock:
+	uv lock
+	uv lock --project packages/analysis-runner
+	uv lock --project packages/server
+	uv lock --project packages/web
+	uv lock --project packages/metamist-consumer
+	uv export --project packages/metamist-consumer --no-dev --no-hashes --no-emit-project \
+		-o packages/metamist-consumer/requirements.txt
+
+
+# Install the repo-wide dev tooling (ruff, pre-commit, pylint).
+install-dev:
+	uv sync
 
 
 lint:
-	ruff check
-	ruff format
-
-
-install-dev:
-	pip install --no-deps -r requirements-dev.txt
+	uv run ruff check
+	uv run ruff format

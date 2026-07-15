@@ -148,16 +148,43 @@ cluster.add_job('examples/dataproc/query.py', job_name='example')
 
 You can ignore this section if you just want to run the tool.
 
-To set up a development environment for the analysis runner using pip, run
-the following:
+This repository is a monorepo of independent [`uv`](https://docs.astral.sh/uv/)
+projects under [`packages/`](packages):
+
+- [`packages/analysis-runner`](packages/analysis-runner) — the published CLI (the
+  only distributed package).
+- [`packages/server`](packages/server) — the analysis-runner backend (Cloud Run).
+- [`packages/web`](packages/web) — the web-bucket proxy server (Cloud Run).
+- [`packages/metamist-consumer`](packages/metamist-consumer) — the Pub/Sub
+  Cloud Function that records submissions in metamist.
+
+Each package has its own `pyproject.toml`, `uv.lock` and virtual environment, and
+is resolved independently — this is **not** a `uv` workspace, so run `uv` commands
+from within the relevant package directory rather than using `uv run --package`.
+
+Install the repo-wide dev tooling (ruff, pre-commit, pylint) at the root:
 
 ```bash
-pip install -r requirements-dev.txt
-pip install --editable .
+uv sync            # or: make install-dev
+```
+
+To work on a specific package, sync it from its own directory, e.g.:
+
+```bash
+cd packages/analysis-runner
+uv sync
+uv run python -m unittest tests/test_analysis_runner.py
+```
+
+Re-resolve every package's lockfile (and regenerate the metamist Cloud Function's
+`requirements.txt`) with:
+
+```bash
+make lock
 ```
 
 ### Deployment
 
 The server can be deployed by manually running the [`deploy_server.yaml`](https://github.com/populationgenomics/analysis-runner/actions/workflows/deploy_server.yaml) GitHub action. This will also deploy the driver image.
 
-The CLI tool is shipped as a pip package, this happens automatically on pushes to `main.py`. To build a new version, you should add a [bump2version](https://pypi.org/project/bump2version/) commit to your branch.
+The CLI tool is shipped as a pip package, this happens automatically on pushes to `main`. To build a new version, bump the version in [`packages/analysis-runner/pyproject.toml`](packages/analysis-runner/pyproject.toml) with `uv version` (e.g. `uv version --bump patch` run from that directory) and commit the change.

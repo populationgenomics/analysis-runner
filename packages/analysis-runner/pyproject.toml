@@ -1,0 +1,41 @@
+[project]
+name = "analysis-runner"
+# Bumped with `uv version` (e.g. `uv version --bump patch`).
+version = "3.2.6"
+description = "Analysis runner to help make analysis results reproducible"
+readme = "src/analysis_runner/README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = ["bioinformatics"]
+dependencies = [
+    "cloudpathlib[all]",
+    "cpg-utils>=5.0.0",
+    # Avoid dependency resolution backtracking caused by hail pinning an
+    # old version of protobuf and recent versions of grpcio-status requiring
+    # a much newer version
+    "grpcio-status>=1.48,<1.50",
+    "hail>=0.2.134",
+    "requests",
+    "tabulate",
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[project.urls]
+Homepage = "https://github.com/populationgenomics/analysis-runner"
+
+[project.scripts]
+analysis-runner = "analysis_runner.cli:main_from_args"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"

@@ -1,0 +1,12 @@
+[project]
+name = "metamist-consumer"
+version = "0"
+description = "Cloud Function that stores analysis-runner submission metadata in metamist"
+# Deployed as a Cloud Function with --runtime python311.
+requires-python = ">=3.11"
+# Deployed application, not a published package — no [build-system].
+dependencies = [
+    "google-cloud-logging",
+    "metamist>=7.14.0",
+    "requests",
+]

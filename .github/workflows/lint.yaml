@@ -11,18 +11,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip'
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
 
-    - name: Install packages
-      run: |
-        pip install .
-        pip install -r requirements-dev.txt
+    - name: Install dev tooling
+      run: uv sync
 
     - name: pre-commit
-      run: pre-commit run --all-files
+      run: uv run pre-commit run --all-files
 
-    - name: Run-tests
-      run: python -m unittest test/test_analysis_runner.py
+    - name: Run tests
+      working-directory: packages/analysis-runner
+      run: uv run python -m unittest tests/test_analysis_runner.py

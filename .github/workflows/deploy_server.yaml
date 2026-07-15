@@ -77,7 +77,7 @@ jobs:
           --build-arg DRIVER_IMAGE=$DRIVER_IMAGE:latest \
           --tag $SERVER_IMAGE:latest \
           --tag $SERVER_IMAGE:$IMAGE_TAG \
-          server
+          packages/server
 
     - name: "push server image"
       run: |
@@ -96,7 +96,7 @@ jobs:
         URL=$(gcloud run services describe server-test --region australia-southeast1 --platform managed --format "value(status.url)")
         TOKEN=$(gcloud auth print-identity-token --impersonate-service-account="server-deploy@analysis-runner.iam.gserviceaccount.com" --audiences="$URL" --include-email)
 
-        req_obj='{"output": "ci-test-batch/v42", "dataset": "fewgenomes", "accessLevel": "test", "repo": "analysis-runner", "commit": "${{ github.sha }}", "cwd": "test", "script": ["./main.py"], "description": "analysis-runner-test", "wait": true}'
+        req_obj='{"output": "ci-test-batch/v42", "dataset": "fewgenomes", "accessLevel": "test", "repo": "analysis-runner", "commit": "${{ github.sha }}", "cwd": "packages/analysis-runner/tests", "script": ["./main.py"], "description": "analysis-runner-test", "wait": true}'
 
         # sometimes the container takes about 3-4 minutes to load the first time
         # this causes a timeout because we're waiting, so we retry a few times

@@ -14,30 +14,23 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+        working-directory: packages/analysis-runner
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      # Needed until setup-python's image contains a PEP625-compliant setuptools
-      - name: Upgrade setuptools
-        run: pip install --upgrade 'setuptools>=69.3.0'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Build
-        run: python setup.py sdist
-
-      - name: Test install
-        run: pip install dist/*
+        run: uv build
 
       - name: Run tests
-        run: python -m unittest test/test_analysis_runner.py
+        run: uv run python -m unittest tests/test_analysis_runner.py
 
       - uses: actions/upload-artifact@v4
         with:
-          name: sdist
-          path: dist/*
+          name: dist
+          path: packages/analysis-runner/dist/*
           retention-days: 2
 
   upload_pypi:
@@ -52,7 +45,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: sdist
+          name: dist
           path: dist
 
       # `skip_existing: true` makes sure that the package will be published

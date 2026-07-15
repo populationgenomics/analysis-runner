@@ -1,0 +1,17 @@
+[project]
+name = "analysis-runner-web"
+version = "0"
+description = "Web server proxying requests to per-dataset web buckets (Flask, Cloud Run)"
+requires-python = ">=3.10"
+# Deployed application, not a published package — no [build-system].
+dependencies = [
+    "cachetools~=5.3",
+    "cpg-utils~=5.1",
+    "cryptography~=44.0", # specified explicitly to avoid vuln: GHSA-79v4-65xg-pq4g
+    "flask~=3.1",
+    "gunicorn~=23.0",
+    "google-api-python-client==2.113.0",
+    "google-cloud-storage==2.14.0",
+    "google-cloud-secret-manager==2.17.0",
+    "requests~=2.32",
+]

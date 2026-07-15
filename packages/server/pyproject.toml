@@ -1,0 +1,27 @@
+[project]
+name = "analysis-runner-server"
+version = "0"
+description = "Analysis-runner backend server (aiohttp, deployed to Cloud Run)"
+# The server image builds FROM the Hail driver image (see Dockerfile), which runs
+# Python 3.11.
+requires-python = ">=3.11"
+# NOTE: this is a deployed application, not a published package, so there is
+# deliberately no [build-system].
+#
+# These dependencies are layered ON TOP OF the driver base image, which already
+# provides hail, cpg-utils, aiohttp, nest_asyncio and analysis-runner. Those are
+# intentionally NOT re-declared here — re-pinning them could conflict with the
+# custom Hail build baked into the base image. Only the extra libraries the server
+# needs beyond the base image are listed below.
+dependencies = [
+    "google-api-python-client==2.101.0",
+    "google-auth==2.23.2",
+    "google-cloud-appengine-logging==1.3.2",
+    "google-cloud-audit-log==0.2.5",
+    "google-cloud-logging==3.7.0",
+    "google-cloud-pubsub==2.18.4",
+    "google-cloud-secret-manager==2.16.4",
+    "grpcio-status==1.48.2",
+    "protobuf==3.20.2",
+    "gunicorn",
+]

@@ -1,3 +1,29 @@
+# Thin, non-package root project.
+#
+# This repo is a monorepo of INDEPENDENT uv projects living under `packages/`
+# (the analysis-runner CLI plus the server/web/metamist-consumer services). It is
+# deliberately NOT a uv workspace: each package has its own pyproject.toml, its own
+# uv.lock and its own virtual environment, and commands are run from within the
+# relevant package directory (so `uv run --package` is intentionally unavailable).
+#
+# This root project exists only to provide a repo-wide dev environment (linting,
+# pre-commit) and to hold the shared ruff configuration that every package inherits.
+[project]
+name = "analysis-runner-repo"
+version = "0"
+requires-python = ">=3.10"
+
+[tool.uv]
+# Never build or install this root project itself; it only carries dev tooling.
+package = false
+
+[dependency-groups]
+dev = [
+    "ruff~=0.11",
+    "pre-commit",
+    "pylint",
+]
+
 [tool.ruff]
 line-length = 88
 
