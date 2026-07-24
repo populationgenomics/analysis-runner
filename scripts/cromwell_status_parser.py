@@ -18,15 +18,15 @@ def get_workflow_metadata_from_file(workflow_metadata_file_path: str):
         with open(workflow_metadata_file_path) as f:
             return json.load(f)
     except FileNotFoundError as e:
-        print(f"Error opening workflow metadata file: {e!r}")
+        print(f'Error opening workflow metadata file: {e!r}')
         sys.exit(1)
     except json.JSONDecodeError as e:
-        print(f"Error decoding workflow metadata JSON: {e!r}")
+        print(f'Error decoding workflow metadata JSON: {e!r}')
         sys.exit(1)
 
 
 def get_workflow_metadata_from_api(workflow_id: str):
-    url = f"{CROMWELL_URL}/api/workflows/v1/{workflow_id}/metadata"
+    url = f'{CROMWELL_URL}/api/workflows/v1/{workflow_id}/metadata'
     headers = {
         'accept': 'application/json',
         'Authorization': f'Bearer {get_cromwell_oauth_token()}',
@@ -36,7 +36,7 @@ def get_workflow_metadata_from_api(workflow_id: str):
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        print(f"Error fetching workflow metadata: {e!r}")
+        print(f'Error fetching workflow metadata: {e!r}')
         sys.exit(1)
 
 
@@ -48,7 +48,7 @@ def print_parsed_workflow_summary(
     outputs: dict,
 ):
     """Prints the execution status and outputs of the sub-workflows."""
-    print(f"\n{dataset} :: {sg_id} :: {wf_id} :: Workflow Summary:\n")
+    print(f'\n{dataset} :: {sg_id} :: {wf_id} :: Workflow Summary:\n')
     for subworkflow in [
         'CollectCounts',
         'CollectSVEvidence',
@@ -56,27 +56,27 @@ def print_parsed_workflow_summary(
         'Whamg',
         'Manta',
     ]:
-        print(f"  {subworkflow}:")
+        print(f'  {subworkflow}:')
         if not status_dict.get(subworkflow):
-            print("    No attempts found")
+            print('    No attempts found')
             continue
 
         execution_status = status_dict[subworkflow]
         if isinstance(execution_status, dict):
-            print(f"    {len(execution_status)} attempt(s):")
+            print(f'    {len(execution_status)} attempt(s):')
             for attempt, status in execution_status.items():
-                print(f"      {attempt}: {status}")
+                print(f'      {attempt}: {status}')
                 continue
         else:
-            print(f"    {execution_status}")
+            print(f'    {execution_status}')
             continue
 
         if not outputs.get(subworkflow):
-            print("    No outputs found")
+            print('    No outputs found')
             continue
-        print("    Outputs:")
+        print('    Outputs:')
         for key, value in outputs[subworkflow].items():
-            print(f"      {key}: {value}")
+            print(f'      {key}: {value}')
     print()
 
 
@@ -109,9 +109,9 @@ def parse_subworkflow_status_and_outputs(
                 'message',
                 'Unknown failure',
             )
-            status[subworkflow_name][
-                f'attempt {attempt_no + 1}'
-            ] = f"{execution_status}: {failure_message}"
+            status[subworkflow_name][f'attempt {attempt_no + 1}'] = (
+                f'{execution_status}: {failure_message}'
+            )
         else:
             status[subworkflow_name][f'attempt {attempt_no + 1}'] = execution_status
 
@@ -119,6 +119,9 @@ def parse_subworkflow_status_and_outputs(
         outputs[subworkflow_name] = outputs.get(subworkflow_name, {})
         if workflow_outputs := attempts[attempt_no].get('outputs', {}):
             for output_key, output_value in workflow_outputs.items():
+                if output_key == 'is_dragen_3_7_8':
+                    # Skip the is_dragen_3_7_8 output
+                    continue
                 if output_value.endswith(('cram', 'crai')):
                     continue
                 outputs[subworkflow_name][output_key] = output_value
@@ -155,7 +158,7 @@ def parse_workflow_status_and_outputs(wf_id: str, json_data: dict):
             outputs.update(subworkflow_outputs)
 
     if not sg_id:
-        raise ValueError("SG ID not found in metadata")
+        raise ValueError('SG ID not found in metadata')
     print_parsed_workflow_summary(wf_id, sg_id, dataset, status, outputs)
     return {sg_id.upper(): {'dataset': dataset, 'status': status, 'outputs': outputs}}
 
@@ -190,12 +193,12 @@ def copy_outputs_to_bucket(
             destination_blob_name = (
                 f'sv_evidence/{blob_name.split("/")[-1]}'  # Copy to sv_evidence folder
             )
-            destination_gs_url = (
-                f'gs://{destination_bucket_name}/{destination_blob_name}'
-            )
-            destination_gs_url = destination_gs_url.replace(
+            destination_blob_name = destination_blob_name.replace(
                 'counts.tsv.gz',
                 'coverage_counts.tsv.gz',
+            )
+            destination_gs_url = (
+                f'gs://{destination_bucket_name}/{destination_blob_name}'
             )
             if not dry_run:
                 print(f'    Copying {source_blob.name} to {destination_gs_url}')
@@ -204,10 +207,10 @@ def copy_outputs_to_bucket(
                     destination_bucket,
                     destination_blob_name,
                 )
-                print(f"    Blob {blob_copy.name} copied")
+                print(f'    Blob {blob_copy.name} copied')
             else:
                 print(
-                    f"    DRY RUN: Would have copied gs://{source_bucket_name}/{source_blob.name} to {destination_gs_url}",
+                    f'    DRY RUN: Would have copied gs://{source_bucket_name}/{source_blob.name} to {destination_gs_url}',
                 )
             print()
 
@@ -237,12 +240,12 @@ def get_analyses_to_create(
             type='sv',
             output=str(output_path),
             meta={
-                "stage": "GatherSampleEvidence",
-                "sequencing_type": "genome",
-                "dataset": dataset,
-                "sequencing_group": sg_id,
-                "participant_id": participant_eid,
-                "size": analysis_file_sizes[analysis_type],
+                'stage': 'GatherSampleEvidence',
+                'sequencing_type': 'genome',
+                'dataset': dataset,
+                'sequencing_group': sg_id,
+                'participant_id': participant_eid,
+                'size': analysis_file_sizes[analysis_type],
             },
             status=AnalysisStatus('completed'),
             sequencing_group_ids=[sg_id],
@@ -362,9 +365,9 @@ def main(dataset: list[str], workflow_id: list[str], dry_run: bool = False):
         print()
         for sg_id, sg_dataset in sg_datasets.items():
             print(
-                f"{sg_dataset} :: {sg_id} :: DRY RUN: Would have created: {len(sg_analyses[sg_id])} SV analyses",
+                f'{sg_dataset} :: {sg_id} :: DRY RUN: Would have created: {len(sg_analyses[sg_id])} SV analyses',
             )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()  # pylint: disable=no-value-for-parameter

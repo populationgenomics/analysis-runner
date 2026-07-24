@@ -1,9 +1,9 @@
 # This image adds Hail and some other Python-based stats libraries to the base image.
-FROM australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-base:1.5
+FROM australia-southeast1-docker.pkg.dev/analysis-runner/images/driver-base:1.6
 
 ARG HAIL_SHA
 
-ENV HAIL_QUERY_BACKEND service
+ENV HAIL_QUERY_BACKEND=service
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -13,12 +13,11 @@ RUN apt-get update && \
         gcc \
         libfontconfig \
         liblapack3 \
-        libopenblas-base \
+        libopenblas0 \
         openjdk-11-jdk-headless \
+        openjdk-17-jre-headless \
         rsync \
         software-properties-common && \
-    rm -r /var/lib/apt/lists/* && \
-    rm -r /var/cache/apt/* && \
     pip --no-cache-dir install build && \
     # Install phantomjs with a workaround for libssl_conf.so:
     # https://github.com/bazelbuild/rules_closure/issues/351#issuecomment-854628326
@@ -34,19 +33,20 @@ RUN apt-get update && \
     cd hail && \
     # Install locally, avoiding the need for a pip package.
     # DEPLOY_REMOTE avoids a dev suffix being appended to dataproc initialization paths.
-    make install DEPLOY_REMOTE=1 HAIL_RELEASE_MODE=1 && \
+    make install DEPLOY_REMOTE=1 HAIL_BUILD_MODE=Release && \
+    DEBIAN_FRONTEND=noninteractive apt-get purge -y openjdk-17-jre-headless && \
     cd ../.. && \
     rm -rf hail && \
     pip --no-cache-dir install \
         analysis-runner \
         bokeh \
-        cloudpathlib[all] \
+        'cloudpathlib[all]' \
         cpg-utils \
-        cpg-workflows \
         gcsfs \
         hail \
         pyarrow \
-        sample-metadata \
         metamist \
-        selenium>=3.8.0 \
-        statsmodels
+        'selenium>=3.8.0' \
+        statsmodels && \
+    # Delete apt/maven/pip/etc caches and /tmp scripts used only during the build
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/* /root/.cache /tmp/tmp*

@@ -18,7 +18,7 @@ def read_file(filename: str) -> str:
 setuptools.setup(
     name=PKG,
     # This tag is automatically updated by bump2version
-    version='3.2.4',
+    version='3.2.6',
     description='Analysis runner to help make analysis results reproducible',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
@@ -34,7 +34,7 @@ setuptools.setup(
         # old version of protobuf and recent versions of grpcio-status requiring
         # a much newer version
         'grpcio-status>=1.48,<1.50',
-        'hail',
+        'hail>=0.2.134',
         'requests',
         'tabulate',
     ],

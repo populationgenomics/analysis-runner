@@ -7,8 +7,12 @@ Upload files (usually zip archives) from GCS paths to the specified
 Typical usage:
 
 analysis-runner --dataset DATASET --description 'Upload to Zenodo' \
-    --access-level standard --output-dir unused --env ZENODO_TOKEN=TOKEN \
+    --access-level standard --output-dir unused --storage SIZE \
+    --env ZENODO_TOKEN=TOKEN \
     python3 scripts/upload_to_zenodo.py --deposit ID GCSFILE...
+
+Each GCSFILE may optionally be suffixed with #NEWNAME to give the file
+a different name when it is attached to the Zenodo deposit.
 
 The script will need storage space for one zip archive at a time,
 so storage should be set sufficient for the size of the largest archive.
@@ -28,7 +32,7 @@ def download_from_gcs(local_path: str, gcs_path: str):
     (bucket_name, path) = gcs_path.removeprefix('gs://').split('/', maxsplit=1)
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(path)
-    print(f'Downloading {gcs_path} into {local_path}')
+    print(f'Downloading {gcs_path} into {local_path}', flush=True)
     blob.download_to_filename(local_path)
 
 
@@ -78,15 +82,20 @@ def main(
 
     tmpdir = os.environ.get('BATCH_TMPDIR') or tempfile.gettempdir()
 
-    for file in files:
+    for file_newname in files:
+        file, _, newname = file_newname.partition('#')
         basename = file.rsplit('/', maxsplit=1)[-1]
         tmp_filename = os.path.join(tmpdir, basename)
 
         download_from_gcs(tmp_filename, file)
 
         with open(tmp_filename, 'rb') as fp:
-            print(f'Uploading {basename} to {zenodo_host}')
-            upload_url = f'{deposit_bucket}/{basename}'
+            if newname:
+                print(f'Uploading {basename} to {zenodo_host} as {newname}', flush=True)
+                upload_url = f'{deposit_bucket}/{newname}'
+            else:
+                print(f'Uploading {basename} to {zenodo_host}', flush=True)
+                upload_url = f'{deposit_bucket}/{basename}'
             response = requests.put(upload_url, data=fp, params=params, timeout=timeout)
 
         response.raise_for_status()

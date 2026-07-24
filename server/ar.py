@@ -274,7 +274,6 @@ def prepare_job_from_config(
     job_config: AnalysisRunnerJobArgs,
     config_path: str,
 ) -> hb.batch.job.Job:
-
     job = batch.new_job(name='driver')
     job.env('CPG_CONFIG_PATH', config_path)
 
@@ -290,7 +289,7 @@ def prepare_job_from_config(
         job.storage(job_config.storage)
     if job_config.memory:
         job.memory(job_config.memory)
-    job._preemptible = job_config.preemptible  # noqa: SLF001
+    job.spot(job_config.preemptible)
 
     if job_config.environment_variables:
         add_environment_variables(job, job_config.environment_variables)
@@ -306,7 +305,6 @@ def prepare_job_from_config(
 
 
 def prepare_job_with_repo(job: hb.batch.job.BashJob, config: AnalysisRunnerJobArgs):
-
     if not config.repo or not config.commit:
         raise ValueError('Internal error: missing repo or commit')
 

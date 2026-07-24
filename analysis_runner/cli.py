@@ -4,6 +4,7 @@
 CLI for interfacing with deployed analysis runner.
 See README.md for more information.
 """
+
 import argparse
 import sys
 from typing import Callable, Sequence

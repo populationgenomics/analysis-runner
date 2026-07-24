@@ -6,7 +6,6 @@ Given a project ID and one or more family IDs, copies cram and gvcf
 files for each individual in the family into the project test bucket.
 """
 
-
 import logging
 import subprocess
 import sys

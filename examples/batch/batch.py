@@ -3,6 +3,7 @@
 """
 Example of running Batch script with analysis-runner.
 """
+
 import os
 
 import click
