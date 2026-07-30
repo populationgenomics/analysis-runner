@@ -25,14 +25,19 @@ from cpg_utils.hail_batch import (
     default=False,
     help='Use filenames defined before each url',
 )
+@click.option(
+    '--mode',
+    type=click.Choice(['curl', 'wget'], case_sensitive=False),
+    default='curl',
+    help='The download tool for the file. Default is curl',
+)
 @click.option('--presigned-url-file-path')
-def main(presigned_url_file_path: str, filenames: bool):
+def main(presigned_url_file_path: str, filenames: bool, mode: str):
     """
     Given a list of presigned URLs, download the files and upload them to GCS.
     If each signed url is prefixed by a filename and a space, use the --filenames flag
     GCP suffix in target GCP bucket is defined using analysis-runner's --output
     """
-
     cpg_driver_image = config_retrieve(['workflow', 'driver_image'])
     dataset = config_retrieve(['workflow', 'dataset'])
     output_prefix = config_retrieve(['workflow', 'output_prefix'])
@@ -69,13 +74,23 @@ def main(presigned_url_file_path: str, filenames: bool):
         if not preemptible_vm:
             j.spot(is_spot=False)
 
-        quoted_url = quote(url)
+        quoted_source_url = quote(url)
+        quoted_output_url = quote(os.path.join(output_path, filename))
         authenticate_cloud_credentials_in_job(job=j)
         # catch errors during the cURL
         j.command('set -euxo pipefail')
-        j.command(
-            f'curl -L {quoted_url} | gsutil cp - {os.path.join(output_path, filename)}',
-        )
+
+        match mode:
+            case 'wget':
+                j.command(
+                    f'wget -O - {quoted_source_url} | gcloud storage cp - {quoted_output_url}',
+                )
+            case 'curl':
+                j.command(
+                    f'curl -L {quoted_source_url} | gcloud storage cp - {quoted_output_url}',
+                )
+            case _:
+                raise ValueError(f'invalid mode: {mode}')
 
     batch.run(wait=False)
 
