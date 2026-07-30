@@ -23,6 +23,7 @@ client.setup_logging(
     force=True,
 )
 
+
 def main(data: dict[Literal['data'], str], unused_context: Any):
     """Puts analysis in sample-metadata"""
 
