@@ -30,8 +30,8 @@ def main(data: dict[Literal['data'], str], unused_context: Any):
     logging.info('Main function entered with data: %s', data)
     metadata = json.loads(base64.b64decode(data['data']).decode('utf-8'))
 
-    project = metadata['dataset']
-    access_level = metadata['accessLevel']
+    project = metadata.get('dataset')
+    access_level = metadata.get('accessLevel')
     if access_level == 'test':
         project += '-test'
 
