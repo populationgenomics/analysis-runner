@@ -23,22 +23,12 @@ client.setup_logging(
     force=True,
 )
 
-DEFAULT_AUDIENCE_URL = 'https://sample-metadata-api-mnrpw3mdza-ts.a.run.app'
-
-
 def main(data: dict[Literal['data'], str], unused_context: Any):
     """Puts analysis in sample-metadata"""
 
     logging.getLogger('metamist_ar_meta_handler')
     logging.info('Main function entered with data: %s', data)
     metadata = json.loads(base64.b64decode(data['data']).decode('utf-8'))
-
-    # Extract audienceApiUrl with fallback chain: payload -> env var -> default
-    audience = (
-        metadata.pop('audienceApiUrl', None)
-        or os.getenv('AUDIENCE_URL')
-        or DEFAULT_AUDIENCE_URL
-    )
 
     project = metadata['dataset']
     access_level = metadata['accessLevel']
@@ -47,25 +37,24 @@ def main(data: dict[Literal['data'], str], unused_context: Any):
 
     kwargs = {
         'project': project,
-        'ar_guid': metadata.get('ar-guid', ''),
-        'access_level': access_level,
-        'repository': metadata.get('repo', ''),
-        'commit': metadata.get('commit', ''),
-        'script': metadata.get('script', ''),
-        'description': metadata.get('description', ''),
-        'driver_image': metadata.get('driverImage', ''),
-        'config_path': metadata.get('configPath', ''),
-        'environment': metadata.get('environment', ''),
-        'batch_url': metadata.get('batch_url', ''),
-        'submitting_user': metadata.get('user', ''),
-        'output_path': metadata.get('output', ''),
-        'request_body': metadata.get('meta', {}),
-        'cwd': metadata.get('cwd'),
-        'hail_version': metadata.get('hailVersion'),
+        'ar_guid': str(metadata.get('ar-guid')),
+        'access_level': str(access_level),
+        'repository': str(metadata.get('repo')),
+        'commit': str(metadata.get('commit')),
+        'script': str(metadata.get('script')),
+        'description': str(metadata.get('description')),
+        'driver_image': str(metadata.get('driverImage')),
+        'config_path': str(metadata.get('configPath')),
+        'environment': str(metadata.get('environment')),
+        'batch_url': str(metadata.get('batch_url')),
+        'submitting_user': str(metadata.get('user')),
+        'output_path': str(metadata.get('output')),
+        'request_body': metadata.get('meta', {}) or {},
+        'hail_version': str(metadata.get('hailVersion')),
+        'cwd': str(metadata.get('cwd')),
     }
 
-    api_client = ApiClient(Configuration(host=audience))
-    ar_api = AnalysisRunnerApi(api_client)
+    ar_api = AnalysisRunnerApi()
 
     try:
         analysis_id = ar_api.create_analysis_runner_log(**kwargs)
