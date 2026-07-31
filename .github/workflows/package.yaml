@@ -32,7 +32,9 @@ jobs:
         run: pip install dist/*
 
       - name: Run tests
-        run: python -m unittest test/test_analysis_runner.py
+        run: |
+          pip install pytest
+          pytest -v
 
       - uses: actions/upload-artifact@v4
         with:
