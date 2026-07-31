@@ -33,7 +33,7 @@ UNZIP_SCRIPT = os.path.join(os.path.dirname(__file__), 'untar_gz_files.py')
 def get_commit_hash():
     return (
         subprocess.check_output(
-            ['git', 'describe', '--always'],  # noqa: S603
+            ['git', 'describe', '--always'],
         )
         .strip()
         .decode()
@@ -157,7 +157,7 @@ def main(search_path: str, single_path: str, spot: bool):
     get_batch().run(wait=False)
 
 
-def create_job(
+def create_job(  # noqa: PLR0917
     blobname: str,
     blobsize: int,
     bucket_name: str,

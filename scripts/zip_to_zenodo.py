@@ -28,7 +28,7 @@ from google.cloud import storage
 storage_client = storage.Client()
 
 
-def zip_tree(
+def zip_tree(  # noqa: PLR0917
     zip_fname: str,
     bucket: str,
     prefix: str,
@@ -103,7 +103,7 @@ def zip_tree(
     'subsets',
     nargs=-1,
 )
-def main(
+def main(  # noqa: PLR0917
     basedir: str,
     deposit: str,
     sandbox: bool,

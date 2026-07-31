@@ -89,7 +89,7 @@ def parse_subworkflow_status_and_outputs(
     """
     status: dict = {}
     outputs: dict[str, dict] = {}
-    subworkflow_name = subworkflow.split('.')[-1]
+    subworkflow_name = subworkflow.rsplit('.', maxsplit=1)[-1]
     if not attempts:
         status[subworkflow_name] = 'Not Started'
         return status, outputs
@@ -163,7 +163,7 @@ def parse_workflow_status_and_outputs(wf_id: str, json_data: dict):
     return {sg_id.upper(): {'dataset': dataset, 'status': status, 'outputs': outputs}}
 
 
-def copy_outputs_to_bucket(
+def copy_outputs_to_bucket(  # noqa: PLR0917
     sg_id: str,
     dataset: str,
     outputs: dict,

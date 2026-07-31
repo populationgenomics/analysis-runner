@@ -76,7 +76,7 @@ def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
     return ht
 
 
-def main(
+def main(  # noqa: PLR0917
     ht_path: str,
     output_root: str,
     locus: hl.IntervalExpression | None,
@@ -151,9 +151,9 @@ def clean_locus(contig: str, pos: str) -> hl.IntervalExpression | None:
         end = 'end'
 
     elif '-' in pos:
-        assert (
-            pos.count('-') == 1
-        ), f'Positions must be one value, or a range between two values: {pos}'
+        assert pos.count('-') == 1, (
+            f'Positions must be one value, or a range between two values: {pos}'
+        )
         start, end = pos.split('-')
         if start != 'start':
             assert int(start), f'start value could not be converted to an int: {start}'
