@@ -40,3 +40,6 @@ cpg = ["cpg_flow", "cpg_utils", "cpg_infra", "metamist", "analysis_runner"]
 #     "hail_scripts",
 #     "metamist",
 # ]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
