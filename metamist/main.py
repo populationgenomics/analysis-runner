@@ -7,13 +7,11 @@ in the Sample-Metadata database.
 import base64
 import json
 import logging
-import os
 from typing import Any, Literal
 
 import google.cloud.logging
-from metamist.api_client import ApiClient
+
 from metamist.apis import AnalysisRunnerApi
-from metamist.configuration import Configuration
 
 # 1. Initialize the Cloud Logging client
 client = google.cloud.logging.Client()
