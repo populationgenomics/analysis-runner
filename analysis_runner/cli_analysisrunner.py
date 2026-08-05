@@ -154,11 +154,13 @@ def run_analysis_runner(
     _perform_version_check()
 
     # if this method is accessed directly, allow the CLI confirmation to be skipped
-    if not no_confirm:
-        if access_level == 'full' and not confirm_choice(
+    if access_level == 'full' and not (
+        no_confirm
+        or confirm_choice(
             'Full access increases the risk of accidental data loss. Continue?',
-        ):
-            raise SystemExit
+        )
+    ):
+        raise SystemExit
 
     _script = list(script)
     server_args: dict[str, Any] = {
