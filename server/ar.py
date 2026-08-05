@@ -9,6 +9,7 @@ from util import (
     PUBSUB_TOPIC,
     _get_hail_version,
     add_environment_variables,
+    check_branch_contains_commit,
     check_dataset_and_group,
     generate_ar_guid,
     get_analysis_runner_metadata,
@@ -115,6 +116,13 @@ def add_analysis_runner_routes(routes: web.RouteTableDef):
             email=email,
             server_config=server_config,
         )
+
+        if job_config.commit and not job_config.is_test():
+            on_main = await check_branch_contains_commit(
+                repo=job_config.repo, commit=job_config.commit, branch='main'
+            )
+            if not on_main:
+                raise web.HTTPBadRequest(reason='Commit is not present on main branch')
 
         hail_bucket = f'cpg-{job_config.dataset}-hail'
         backend = hb.ServiceBackend(
