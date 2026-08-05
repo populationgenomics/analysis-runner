@@ -143,6 +143,7 @@ def run_analysis_runner(
     use_test_server: bool = False,
     server_url: str | None = None,
     skip_repo_checkout: bool = False,
+    no_confirm: bool = False,
 ):
     """
     Main function that drives the CLI.
@@ -152,10 +153,12 @@ def run_analysis_runner(
 
     _perform_version_check()
 
-    if access_level == 'full' and not confirm_choice(
-        'Full access increases the risk of accidental data loss. Continue?',
-    ):
-        raise SystemExit
+    # if this method is accessed directly, allow the CLI confirmation to be skipped
+    if not no_confirm:
+        if access_level == 'full' and not confirm_choice(
+            'Full access increases the risk of accidental data loss. Continue?',
+        ):
+            raise SystemExit
 
     _script = list(script)
     server_args: dict[str, Any] = {
