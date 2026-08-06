@@ -12,7 +12,7 @@ import toml
 from aiohttp import ClientSession, web
 from cachetools.func import ttl_cache
 from cloudpathlib import AnyPath
-from google.cloud import pubsub_v1, secretmanager
+from google.cloud import pubsub_v1
 
 import hailtop.batch as hb
 from hailtop.config import get_deploy_config
@@ -42,7 +42,6 @@ DEFAULT_STATUS_REPORTER = 'metamist'
 
 ALLOWED = 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/datasets/{}/repositories.yaml'
 
-secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
 
 
@@ -322,8 +321,10 @@ async def check_branch_contains_commit(
     """
     # Selecting page 2 reduces the response size by omitting the list of changed files.
     url = f'https://api.github.com/repos/{owner}/{repo}/compare/{commit}...{branch}?page=2&per_page=1'
+    github_token = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'github-token')
+    headers = {'Authorization': f'Bearer {github_token}'} if github_token else None
 
-    async with ClientSession() as session, session.get(url) as resp:
+    async with ClientSession(headers=headers) as session, session.get(url) as resp:
         if resp.status == web.HTTPNotFound.status_code:  # i.e., 404
             # A non-existent (possibly unpushed) commit is certainly not present on main.
             return False
