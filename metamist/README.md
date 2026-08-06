@@ -14,8 +14,8 @@ gcloud functions deploy sample_metadata \
      --service-account sample-metadata@analysis-runner.iam.gserviceaccount.com
 ```
 
-To create a cloud function with a different audience url (like a development
-metamist server) use the following command
+To create a cloud function with a different Metamist url (like a development
+metamist server) use the following command, where `SM_URL` is the custom Metamist url.
 
 ```bash
 gcloud functions deploy metamist-dev \
@@ -26,7 +26,7 @@ gcloud functions deploy metamist-dev \
      --source . \
      --trigger-topic submissions \
      --service-account sample-metadata@analysis-runner.iam.gserviceaccount.com \
-     --set-env-vars "AUDIENCE_URL=$AUDIENCE_URL"
+     --set-env-vars "SM_URL=$SM_URL"
 ```
 
 Note: Permissions
