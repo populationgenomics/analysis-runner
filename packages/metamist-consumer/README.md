@@ -2,7 +2,7 @@
 
 This Cloud Function listens to the Pub/Sub topic of analysis-runner submissions and updates the corresponding sample-metadata project.
 
-To deploy, run:
+To deploy, run from `packages/metamist-consumer`:
 
 ```bash
 gcloud config set project analysis-runner
