@@ -12,6 +12,9 @@ repos:
       - id: detect-private-key
       - id: debug-statements
       - id: check-added-large-files
+        # uv.lock resolves hail/pyspark's dependency tree and is legitimately
+        # large (~700 KB); it's generated, not authored.
+        exclude: '(^|/)uv\.lock$'
 
   - repo: https://github.com/populationgenomics/pre-commits
     rev: "v0.1.3"

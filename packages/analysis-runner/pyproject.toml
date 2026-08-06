@@ -1,0 +1,60 @@
+[project]
+name = "analysis-runner"
+# Bumped with `uv version` (e.g. `uv version --bump patch`).
+version = "3.3.0"
+description = "Analysis runner to help make analysis results reproducible"
+readme = "src/analysis_runner/README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["bioinformatics"]
+dependencies = [
+    "cloudpathlib[all]",
+    "cpg-utils>=5.0.0",
+    # Avoid dependency resolution backtracking caused by hail pinning an
+    # old version of protobuf and recent versions of grpcio-status requiring
+    # a much newer version
+    "grpcio-status>=1.48,<1.50",
+    "hail>=0.2.134",
+    "requests",
+    "tabulate",
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[project.urls]
+Homepage = "https://github.com/populationgenomics/analysis-runner"
+
+[project.scripts]
+analysis-runner = "analysis_runner.cli:main_from_args"
+
+[dependency-groups]
+dev = ["pytest"]
+
+# Stay on setuptools (Dan, SET-1223): matches metamist and keeps the published
+# METADATA as close as possible to the setup.py-built package.
+[build-system]
+requires = ["setuptools>=69.3.0"]
+build-backend = "setuptools.build_meta"
+
+# setuptools' pyproject.toml-native mode defaults include-package-data to
+# True, which would silently pull README.md into the wheel as package data
+# (setup.py never did this, absent a MANIFEST.in). Disable it to keep the
+# wheel's file set identical to the setup.py-built package.
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
