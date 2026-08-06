@@ -27,8 +27,6 @@ repos:
     rev: v0.16.1
     hooks:
       - id: ruff
-        # Temporary until the SET-1223 restructure PR: ruff 0.16 stabilised rules that flag package files we must keep byte-identical in this PR.
-        exclude: ^analysis_runner/
       - id: ruff-format
 
 
