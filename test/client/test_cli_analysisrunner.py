@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterator  # noqa: TC003
+from collections.abc import Iterator  # noqa: TCH003
 from typing import TypedDict
 
 import pytest

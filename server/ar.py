@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 import dataclasses
 import datetime
 import json

@@ -14,9 +14,12 @@ jobs:
         with:
           python-version: '3.10'
           cache: 'pip'
-          cache-dependency-path: pyproject.toml
-      - name: Install from pyproject.toml
-        run: pip install .
+          cache-dependency-path: setup.py
+      - name: Install from setup.py
+       # match setuptools version in package workflow
+        run: |
+          pip install --upgrade 'setuptools>=69.3.0'
+          pip install .
 
       - uses: pypa/gh-action-pip-audit@v1.1.0
         with:

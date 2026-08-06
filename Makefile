@@ -4,7 +4,7 @@ compile-requirements:
 	docker run --platform linux/amd64 -v $$(pwd):/opt/deps python:3.10 /bin/bash -c '\
 		cd /opt/deps; \
 		pip install pip-tools; \
-		pip-compile --extra dev --output-file requirements-dev.txt pyproject.toml;\
+		pip-compile requirements-dev.in;\
 		pip-compile web/requirements.in;\
 	'
 

@@ -30,7 +30,7 @@ class CliRunMocks(NamedTuple):
     config: MagicMock
 
 
-@pytest.fixture
+@pytest.fixture()
 def cli_run_mocks(mocker: MockerFixture) -> CliRunMocks:
     return CliRunMocks(
         analysis_runner=mocker.patch(
@@ -41,7 +41,7 @@ def cli_run_mocks(mocker: MockerFixture) -> CliRunMocks:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def posted_requests(monkeypatch) -> dict[str, str]:  # noqa: ANN001
     calls: dict[str, str] = {}
 

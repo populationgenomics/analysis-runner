@@ -1,6 +1,6 @@
-from analysis_runner.cli import main_from_args
-
 from test.client.conftest import CliRunMocks
+
+from analysis_runner.cli import main_from_args
 
 ARGS = [
     '--dataset',
