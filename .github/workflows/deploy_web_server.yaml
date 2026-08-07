@@ -36,7 +36,7 @@ jobs:
 
     - name: "build image"
       run: |
-        docker build --tag $DOCKER_IMAGE web
+        docker build --tag $DOCKER_IMAGE packages/web
 
     - name: "push image"
       run: |
