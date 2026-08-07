@@ -12,6 +12,6 @@ executed through the analysis-runner.
 ### [Dataproc](dataproc.py)
 
 Provides a wrapper for starting a Dataproc cluster from within Hail Batch and
-submitting a Query script to it ([example](../examples/dataproc)). This is
+submitting a Query script to it ([example](../../../../examples/dataproc)). This is
 particularly useful as an intermediate solution before all Hail Query features
 are supported by the `ServiceBackend`.

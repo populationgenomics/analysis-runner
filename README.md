@@ -16,6 +16,12 @@ By default, we run your script in a driver image, that contains a number of comm
 
 The analysis-runner is also integrated with our Cromwell server to run WDL based workflows.
 
+## Repository Layout
+
+This repository uses a multi-package structure in the `packages/` directory. Each package (analysis-runner, server, web, metamist-consumer) is an independent `uv` project with its own dependencies—deliberately not a uv workspace, to allow divergent versions and dependencies across packages.
+
+Development workflow uses Makefile targets: `make install-dev` to install repository-wide development tooling (ruff, pre-commit), `make lock` to update dependency locks, `make lint` for code quality checks, and `make test` to run the analysis-runner package test suite.
+
 ## CLI
 
 The analysis-runner CLI is used to start pipelines based on a GitHub repository, commit, and command to run.
@@ -134,7 +140,7 @@ b = get_batch(name='do-some-analysis')
 
 # starts up a cluster, and submits a script to the cluster,
 # see the definition for more information about how you can configure the cluster
-# https://github.com/populationgenomics/analysis-runner/blob/main/analysis_runner/dataproc.py#L80
+# https://github.com/populationgenomics/analysis-runner/blob/main/packages/analysis-runner/src/analysis_runner/dataproc.py#L80
 cluster = dataproc.setup_dataproc(
     b,
     max_age='1h',
