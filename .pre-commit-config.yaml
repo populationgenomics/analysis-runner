@@ -34,6 +34,10 @@ repos:
     rev: v2.3.0
     hooks:
       - id: mypy
+        # examples/dataproc/main.py collides with packages/metamist-consumer/main.py
+        # as a duplicate top-level module "main"; exclude the example stub, keep
+        # type-checking the real Cloud Function.
+        exclude: '^examples/dataproc/main\.py$'
         args:
           [
             --pretty,
