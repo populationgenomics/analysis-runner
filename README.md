@@ -154,16 +154,21 @@ cluster.add_job('examples/dataproc/query.py', job_name='example')
 
 You can ignore this section if you just want to run the tool.
 
-To set up a development environment for the analysis runner using pip, run
-the following:
+To set up a development environment for the analysis runner, run the following:
 
 ```bash
-pip install -r requirements-dev.txt
-pip install --editable .
+make install-dev
+cd packages/analysis-runner && uv sync
+```
+
+Alternatively, for a plain pip editable install:
+
+```bash
+cd packages/analysis-runner && pip install -e .
 ```
 
 ### Deployment
 
 The server can be deployed by manually running the [`deploy_server.yaml`](https://github.com/populationgenomics/analysis-runner/actions/workflows/deploy_server.yaml) GitHub action. This will also deploy the driver image.
 
-The CLI tool is shipped as a pip package, this happens automatically on pushes to `main.py`. To build a new version, you should add a [bump2version](https://pypi.org/project/bump2version/) commit to your branch.
+The CLI tool is shipped as a pip package, this happens automatically on pushes to the `main` branch. To build a new version, run `uv version --bump patch` (or `minor`/`major`) inside `packages/analysis-runner`, which updates the version in its pyproject.toml.
