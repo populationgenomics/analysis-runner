@@ -152,9 +152,7 @@ def main(search_path: str, single_path: str, spot: bool):
         bucket = file_path.bucket
         subdir = '/'.join(file_path.parts[2:-1])
         blobname = f'{subdir}/{file_path.name}'
-        create_job(
-            blobname, blobsize, bucket, subdir, output_dir, driver_image, spot
-        )
+        create_job(blobname, blobsize, bucket, subdir, output_dir, driver_image, spot)
 
     get_batch().run(wait=False)
 
