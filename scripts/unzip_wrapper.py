@@ -103,7 +103,13 @@ def get_tarballs_from_path(
     required=False,
     help='Provide a single path to a tarball, rather than a directory.',
 )
-def main(search_path: str, single_path: str):
+@click.option(
+    '--not-preemptible',
+    is_flag=True,
+    default=False,
+    help='Do not use preemptible VMs for the job. Flag absent=preemptible, flag present=not preemptible',
+)
+def main(search_path: str, single_path: str, not_preemptible: bool):
     """
     Who runs the world? main()
 
@@ -114,6 +120,7 @@ def main(search_path: str, single_path: str):
     config = config_retrieve(['workflow'])
     output_dir = config.get('output_prefix')
     driver_image = config.get('driver_image')
+    preemptible = not not_preemptible
 
     if search_path:
         bucket_name, subdir = get_path_components_from_path(search_path)
@@ -128,7 +135,7 @@ def main(search_path: str, single_path: str):
         for blobname, blobsize in blobs:
             # create and config job
             create_job(
-                blobname, blobsize, bucket_name, subdir, output_dir, driver_image
+                blobname, blobsize, bucket_name, subdir, output_dir, driver_image, preemptible
             )
 
     elif single_path:
@@ -139,7 +146,7 @@ def main(search_path: str, single_path: str):
         bucket = file_path.bucket
         subdir = '/'.join(file_path.parts[2:-1])
         blobname = f'{subdir}/{file_path.name}'
-        create_job(blobname, blobsize, bucket, subdir, output_dir, driver_image)
+        create_job(blobname, blobsize, bucket, subdir, output_dir, driver_image, preemptible)
 
     get_batch().run(wait=False)
 
@@ -151,6 +158,7 @@ def create_job(
     subdir: str,
     output_dir: str,
     driver_image: str,
+    preemptible: bool = True,
 ):
     """
     Creates and configures a Hail Batch job to decompress a single tarball
@@ -163,12 +171,14 @@ def create_job(
         subdir (str): subdirectory within the bucket where the tarball resides
         output_dir (str): destination path for decompressed output
         driver_image (str): Docker image to use for the batch job
+        preemptible (bool): whether to use preemptible VMs for the job
     """
 
     job = get_batch().new_job(name=f'decompress {blobname}')
     job.image(driver_image)
     job.cpu(4)
     job.storage(f'{blobsize}Gi')
+    job.spot(preemptible)
     authenticate_cloud_credentials_in_job(job)
     copy_common_env(job)
     prepare_git_job(
