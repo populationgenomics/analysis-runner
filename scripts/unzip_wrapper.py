@@ -104,23 +104,23 @@ def get_tarballs_from_path(
     help='Provide a single path to a tarball, rather than a directory.',
 )
 @click.option(
-    '--not-preemptible',
+    '--spot',
     is_flag=True,
-    default=False,
-    help='Do not use preemptible VMs for the job. Flag absent=preemptible, flag present=not preemptible',
+    default=True,
+    help='Use preemptible VMs for the job. Flag absent=not preemptible, flag present=preemptible',
 )
-def main(search_path: str, single_path: str, not_preemptible: bool):
+def main(search_path: str, single_path: str, spot: bool):
     """
     Who runs the world? main()
 
     Args:
         search_path (str): path to find tarballs in
         single_path (str): whether to restrict unzipping to a single tar ball
+        spot (bool): whether to use preemptible VMs for the job. spot=preemptible.
     """
     config = config_retrieve(['workflow'])
     output_dir = config.get('output_prefix')
     driver_image = config.get('driver_image')
-    preemptible = not not_preemptible
 
     if search_path:
         bucket_name, subdir = get_path_components_from_path(search_path)
@@ -141,7 +141,7 @@ def main(search_path: str, single_path: str, not_preemptible: bool):
                 subdir,
                 output_dir,
                 driver_image,
-                preemptible,
+                spot,
             )
 
     elif single_path:
@@ -153,7 +153,7 @@ def main(search_path: str, single_path: str, not_preemptible: bool):
         subdir = '/'.join(file_path.parts[2:-1])
         blobname = f'{subdir}/{file_path.name}'
         create_job(
-            blobname, blobsize, bucket, subdir, output_dir, driver_image, preemptible
+            blobname, blobsize, bucket, subdir, output_dir, driver_image, spot
         )
 
     get_batch().run(wait=False)
@@ -166,7 +166,7 @@ def create_job(
     subdir: str,
     output_dir: str,
     driver_image: str,
-    preemptible: bool = True,
+    spot: bool = True,
 ):
     """
     Creates and configures a Hail Batch job to decompress a single tarball
@@ -179,14 +179,14 @@ def create_job(
         subdir (str): subdirectory within the bucket where the tarball resides
         output_dir (str): destination path for decompressed output
         driver_image (str): Docker image to use for the batch job
-        preemptible (bool): whether to use preemptible VMs for the job
+        spot (bool): whether to use preemptible VMs for the job
     """
 
     job = get_batch().new_job(name=f'decompress {blobname}')
     job.image(driver_image)
     job.cpu(4)
     job.storage(f'{blobsize}Gi')
-    job.spot(preemptible)
+    job.spot(spot)
     authenticate_cloud_credentials_in_job(job)
     copy_common_env(job)
     prepare_git_job(
