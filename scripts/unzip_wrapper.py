@@ -135,7 +135,13 @@ def main(search_path: str, single_path: str, not_preemptible: bool):
         for blobname, blobsize in blobs:
             # create and config job
             create_job(
-                blobname, blobsize, bucket_name, subdir, output_dir, driver_image, preemptible
+                blobname,
+                blobsize,
+                bucket_name,
+                subdir,
+                output_dir,
+                driver_image,
+                preemptible,
             )
 
     elif single_path:
@@ -146,7 +152,9 @@ def main(search_path: str, single_path: str, not_preemptible: bool):
         bucket = file_path.bucket
         subdir = '/'.join(file_path.parts[2:-1])
         blobname = f'{subdir}/{file_path.name}'
-        create_job(blobname, blobsize, bucket, subdir, output_dir, driver_image, preemptible)
+        create_job(
+            blobname, blobsize, bucket, subdir, output_dir, driver_image, preemptible
+        )
 
     get_batch().run(wait=False)
 
