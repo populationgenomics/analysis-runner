@@ -24,7 +24,11 @@ jobs:
 
       - name: Install locked dependencies
         working-directory: packages/${{ matrix.package }}
-        run: uv sync --frozen
+        # uv venvs don't include pip, but the pip-audit action drives the venv
+        # via `python -m pip`; --seed preinstalls pip so the audit can run.
+        run: |
+          uv venv --seed
+          uv sync --frozen
 
       - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
