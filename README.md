@@ -171,4 +171,4 @@ cd packages/analysis-runner && pip install -e .
 
 The server can be deployed by manually running the [`deploy_server.yaml`](https://github.com/populationgenomics/analysis-runner/actions/workflows/deploy_server.yaml) GitHub action. This will also deploy the driver image.
 
-The CLI tool is shipped as a pip package, this happens automatically on pushes to the `main` branch. To build a new version, run `uv version --bump patch` (or `minor`/`major`) inside `packages/analysis-runner`, which updates the version in its pyproject.toml.
+The CLI tool is shipped as a pip package, this happens automatically on pushes to the `main` branch. To build a new version, run `uv version --bump patch` (or `minor`/`major`) inside `packages/analysis-runner`, which updates the version in its pyproject.toml. (For the first post-restructure release, also bump the legacy version stub at `analysis_runner/_version.py` to nudge old clients onto the new version.)
