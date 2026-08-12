@@ -106,7 +106,7 @@ def get_tarballs_from_path(
 @click.option(
     '--spot',
     is_flag=True,
-    default=True,
+    default=False,
     help='Use preemptible VMs for the job. Flag absent=not preemptible, flag present=preemptible',
 )
 def main(search_path: str, single_path: str, spot: bool):
