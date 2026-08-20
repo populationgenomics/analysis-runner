@@ -1,12 +1,3 @@
-# Thin, non-package root project.
-#
-# This repo is a monorepo of INDEPENDENT uv projects living under `packages/`
-# (the analysis-runner CLI plus the server/web/metamist-consumer services). It is
-# deliberately NOT a uv workspace: each package has its own pyproject.toml, its own
-# uv.lock and its own virtual environment, and commands are run from within the
-# relevant package directory. This root project exists only to provide a repo-wide
-# dev environment (linting, pre-commit) and to hold the shared ruff configuration
-# that every package inherits.
 [project]
 name = "analysis-runner-dev"
 version = "0"
@@ -69,9 +60,8 @@ cpg = ["cpg_flow", "cpg_utils", "cpg_infra", "metamist", "analysis_runner"]
 # ]
 
 [tool.ruff.lint.per-file-ignores]
-# Rules stabilised in ruff 0.16 that flag package files this migration must
-# keep byte-identical (SET-1223). Real fixes (e.g. PLC0415 import hoisting —
-# the CLI defers heavy imports deliberately) are follow-up work.
+# Long-standing patterns in the published package that aren't worth code churn
+# to satisfy (e.g. the CLI deliberately defers heavy imports, PLC0415).
 "packages/analysis-runner/src/analysis_runner/*" = [
     "PLR0917",
     "PLC0415",

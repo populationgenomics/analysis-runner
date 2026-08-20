@@ -1,6 +1,4 @@
 # Deployed as a Cloud Function with --runtime python311.
-#
-# Deployed application, not a published package — no [build-system].
 [project]
 name = "metamist-consumer"
 version = "0"

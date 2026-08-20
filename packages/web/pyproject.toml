@@ -1,4 +1,3 @@
-# Deployed application, not a published package — no [build-system].
 [project]
 name = "analysis-runner-web"
 version = "0"

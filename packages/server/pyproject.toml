@@ -1,8 +1,5 @@
 # The server image builds FROM the Hail driver image (see Dockerfile), which runs
 # Python 3.11.
-#
-# NOTE: this is a deployed application, not a published package, so there is
-# deliberately no [build-system].
 [project]
 name = "analysis-runner-server"
 version = "0"
