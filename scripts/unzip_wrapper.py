@@ -157,7 +157,7 @@ def main(search_path: str, single_path: str, spot: bool):
     get_batch().run(wait=False)
 
 
-def create_job(  # noqa: PLR0917
+def create_job(
     blobname: str,
     blobsize: int,
     bucket_name: str,

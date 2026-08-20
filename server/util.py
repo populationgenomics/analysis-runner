@@ -230,7 +230,7 @@ def write_config(ar_guid: str, config: dict, environment: str) -> str:
     return str(config_path)
 
 
-def get_baseline_run_config(  # noqa: PLR0917
+def get_baseline_run_config(
     ar_guid: str,
     environment: str,
     gcp_project_id: str,

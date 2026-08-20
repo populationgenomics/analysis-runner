@@ -76,7 +76,7 @@ def subset_to_locus(ht: hl.Table, locus: hl.IntervalExpression) -> hl.Table:
     return ht
 
 
-def main(  # noqa: PLR0917
+def main(
     ht_path: str,
     output_root: str,
     locus: hl.IntervalExpression | None,

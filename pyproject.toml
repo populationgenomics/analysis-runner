@@ -19,6 +19,9 @@ ignore = [
     "ANN101", "ANN201", "ANN401", "E501", "E731", "E741", "G004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLW0603", "PT018", "S101",
 ]
 
+[tool.ruff.lint.pylint]
+max-positional-args = 8
+
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
 

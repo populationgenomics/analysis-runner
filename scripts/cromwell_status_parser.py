@@ -163,7 +163,7 @@ def parse_workflow_status_and_outputs(wf_id: str, json_data: dict):
     return {sg_id.upper(): {'dataset': dataset, 'status': status, 'outputs': outputs}}
 
 
-def copy_outputs_to_bucket(  # noqa: PLR0917
+def copy_outputs_to_bucket(
     sg_id: str,
     dataset: str,
     outputs: dict,
