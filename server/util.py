@@ -12,13 +12,14 @@ import toml
 from aiohttp import ClientSession, web
 from cachetools.func import ttl_cache
 from cloudpathlib import AnyPath
-from google.cloud import pubsub_v1, secretmanager
+from google.cloud import pubsub_v1
 
 import hailtop.batch as hb
 from hailtop.config import get_deploy_config
 
 from cpg_utils.cloud import email_from_id_token, read_secret
 from cpg_utils.config import AR_GUID_NAME, get_cpg_namespace, update_dict
+from cpg_utils.constants import DEFAULT_GITHUB_ORGANISATION
 from cpg_utils.membership import is_member_in_cached_group
 
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
@@ -41,7 +42,6 @@ DEFAULT_STATUS_REPORTER = 'metamist'
 
 ALLOWED = 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/datasets/{}/repositories.yaml'
 
-secret_manager = secretmanager.SecretManagerServiceClient()
 publisher = pubsub_v1.PublisherClient()
 
 
@@ -307,6 +307,31 @@ def get_and_check_repository(
         dataset=dataset,
     )
     return repo
+
+
+async def check_branch_contains_commit(
+    repo: str,
+    branch: str,
+    commit: str,
+    owner: str = DEFAULT_GITHUB_ORGANISATION,
+) -> bool:
+    """
+    Return whether GitHub reports that the specified commit is present on the
+    specifed branch. An exception will be raised if the GitHub API is unavailable.
+    """
+    # Selecting page 2 reduces the response size by omitting the list of changed files.
+    url = f'https://api.github.com/repos/{owner}/{repo}/compare/{commit}...{branch}?page=2&per_page=1'
+    github_token = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'github-token')
+    headers = {'Authorization': f'Bearer {github_token}'} if github_token else None
+
+    async with ClientSession(headers=headers) as session, session.get(url) as resp:
+        if resp.status == web.HTTPNotFound.status_code:  # i.e., 404
+            # A non-existent (possibly unpushed) commit is certainly not present on main.
+            return False
+        resp.raise_for_status()
+        compare = json.loads(await resp.text())
+
+    return compare.get('status', 'missing') in ('identical', 'ahead')
 
 
 def get_and_check_commit(params: dict, repo: str | None) -> str | None:

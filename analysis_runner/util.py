@@ -5,6 +5,7 @@
 import argparse
 import logging
 import re
+import sys
 
 import requests
 
@@ -106,7 +107,11 @@ def add_general_args(parser: argparse.ArgumentParser):
 def confirm_choice(choice: str):
     """
     Confirm 'choice' with user input: y/n
+    Always returns True from a non-interactive terminal, e.g., when running from a script.
     """
+    if not sys.stdin.isatty():
+        return True
+
     choice += ' (y/n): '
     while True:
         confirmation = str(input(choice)).lower()

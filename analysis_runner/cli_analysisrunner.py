@@ -100,6 +100,7 @@ def add_analysis_runner_args(
     parser.add_argument(
         '--skip-repo-checkout',
         required=False,
+        help="Don't check out a repository of code to be run.",
         action='store_true',
     )
 
