@@ -12,6 +12,9 @@ repos:
       - id: detect-private-key
       - id: debug-statements
       - id: check-added-large-files
+        # uv.lock resolves hail/pyspark's dependency tree and is legitimately
+        # large (~700 KB); it's generated, not authored.
+        exclude: '(^|/)uv\.lock$'
 
   - repo: https://github.com/populationgenomics/pre-commits
     rev: "v0.1.3"
@@ -24,8 +27,6 @@ repos:
     rev: v0.16.1
     hooks:
       - id: ruff
-        # Temporary until the SET-1223 restructure PR: ruff 0.16 stabilised rules that flag package files we must keep byte-identical in this PR.
-        exclude: ^analysis_runner/
       - id: ruff-format
 
 
@@ -33,6 +34,10 @@ repos:
     rev: v2.3.0
     hooks:
       - id: mypy
+        # examples/dataproc/main.py collides with packages/metamist-consumer/main.py
+        # as a duplicate top-level module "main"; exclude the example stub, keep
+        # type-checking the real Cloud Function.
+        exclude: '^examples/dataproc/main\.py$'
         args:
           [
             --pretty,

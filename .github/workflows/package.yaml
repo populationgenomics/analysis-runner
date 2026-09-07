@@ -14,32 +14,26 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+        working-directory: packages/analysis-runner
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: '3.10'
-
-      # Needed until setup-python's image contains a PEP625-compliant setuptools
-      - name: Upgrade setuptools
-        run: pip install --upgrade 'setuptools>=69.3.0'
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Build
-        run: python setup.py sdist
+        run: uv build
 
-      - name: Test install
-        run: pip install dist/*
-
-      - name: Run tests
+      - name: Test install and run suite
         run: |
-          pip install pytest
-          pytest -v
+          uv run --with dist/*.whl --no-project python -c "import analysis_runner"
+          uv sync
+          uv run pytest -v
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: sdist
-          path: dist/*
+          name: dist
+          path: packages/analysis-runner/dist/*
           retention-days: 2
 
   upload_pypi:
@@ -54,7 +48,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: sdist
+          name: dist
           path: dist
 
       # `skip_existing: true` makes sure that the package will be published

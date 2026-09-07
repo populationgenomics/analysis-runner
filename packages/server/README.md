@@ -15,7 +15,7 @@ Deployment happens continuously using the [`hail_update` workflow](https://githu
 Hail service account [tokens](../tokens) need to be copied to a Secret Manager secret
 separately, after the stacks have been set up.
 
-The Cloud Run HTTPS deployment endpoint is hardcoded in the [CLI tool](../analysis_runner).
+The Cloud Run HTTPS deployment endpoint is hardcoded in the [CLI tool](../analysis-runner/src/analysis_runner).
 
 ## Testing locally
 

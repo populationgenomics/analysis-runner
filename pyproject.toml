@@ -1,3 +1,18 @@
+[project]
+name = "analysis-runner-dev"
+version = "0"
+requires-python = ">=3.10"
+
+# Never build or install this root project itself; it only carries dev tooling.
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "ruff~=0.16",
+    "pre-commit",
+]
+
 [tool.ruff]
 line-length = 88
 
@@ -44,5 +59,13 @@ cpg = ["cpg_flow", "cpg_utils", "cpg_infra", "metamist", "analysis_runner"]
 #     "metamist",
 # ]
 
-[tool.pytest.ini_options]
-testpaths = ["test"]
+[tool.ruff.lint.per-file-ignores]
+# Long-standing patterns in the published package that aren't worth code churn
+# to satisfy (e.g. the CLI deliberately defers heavy imports, PLC0415).
+"packages/analysis-runner/src/analysis_runner/*" = [
+    "PLR0917",
+    "PLC0415",
+    "PLR1714",
+    "UP035",
+    "PLC0207",
+]
