@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Pip Audit (Package)
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -21,7 +21,7 @@ jobs:
           pip install --upgrade 'setuptools>=69.3.0'
           pip install .
 
-      - uses: pypa/gh-action-pip-audit@v1.1.0
+      - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
           summary: true
 
@@ -30,8 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Pip Audit (Dev)
     steps:
-      - uses: actions/checkout@v4
-      - uses: pypa/gh-action-pip-audit@v1.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
           inputs: requirements-dev.txt
           summary: true
@@ -40,8 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Pip Audit (Web)
     steps:
-      - uses: actions/checkout@v4
-      - uses: pypa/gh-action-pip-audit@v1.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
           inputs: web/requirements.txt
           summary: true
@@ -50,8 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Pip Audit (Server)
     steps:
-      - uses: actions/checkout@v4
-      - uses: pypa/gh-action-pip-audit@v1.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
           inputs: server/requirements.txt
           summary: true

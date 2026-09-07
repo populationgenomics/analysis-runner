@@ -1,6 +1,6 @@
 # ruff: noqa: S105
 import unittest
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from analysis_runner._version import __version__
@@ -48,8 +48,8 @@ class MockResponse:
 
 def apply_mock_behaviour(
     *,
-    mock_post: Optional[MagicMock] = None,
-    mock_identity_token: Optional[MagicMock] = None,
+    mock_post: MagicMock | None = None,
+    mock_identity_token: MagicMock | None = None,
 ):
     if mock_post:
         mock_post.return_value = MockResponse(text='<mocked-url>')

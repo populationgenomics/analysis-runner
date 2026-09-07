@@ -89,7 +89,7 @@ def parse_subworkflow_status_and_outputs(
     """
     status: dict = {}
     outputs: dict[str, dict] = {}
-    subworkflow_name = subworkflow.split('.')[-1]
+    subworkflow_name = subworkflow.rsplit('.', maxsplit=1)[-1]
     if not attempts:
         status[subworkflow_name] = 'Not Started'
         return status, outputs

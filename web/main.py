@@ -5,7 +5,7 @@ import json
 import logging
 import mimetypes
 import os
-from typing import Generator, Optional
+from collections.abc import Generator
 
 import google.auth.transport.requests
 import google.cloud.storage
@@ -75,8 +75,8 @@ def has_permission(email: str, dataset: str, access_file: str | None, bucket_nam
 
 @app.route('/<dataset>/<path:filename>')
 def handler(  # noqa: C901
-    dataset: Optional[str] = None,
-    filename: Optional[str] = None,
+    dataset: str | None = None,
+    filename: str | None = None,
 ):
     """Main entry point for serving."""
 
@@ -149,4 +149,4 @@ def handler(  # noqa: C901
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=int(os.environ.get('PORT', 8080)))
+    app.run(host='127.0.0.1', port=int(os.environ.get('PORT', '8080')))

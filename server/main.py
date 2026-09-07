@@ -1,6 +1,5 @@
 """The analysis-runner server, running Hail Batch pipelines on users' behalf."""
 
-# ruff: noqa: E402
 import json
 import logging
 import traceback
