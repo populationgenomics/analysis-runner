@@ -5,7 +5,11 @@ ARG HAIL_SHA
 
 ENV HAIL_QUERY_BACKEND=service
 
-RUN apt-get update && \
+# bullseye's LTS ended 2026-08-31, so its Release files no longer get refreshed
+# and apt rejects them as expired; accept them until the base image moves off
+# bullseye.
+RUN echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99bullseye-eol && \
+    apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential \
         curl \
