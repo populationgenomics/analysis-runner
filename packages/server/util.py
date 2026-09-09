@@ -25,7 +25,10 @@ from cpg_utils.membership import is_member_in_cached_group
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 GITHUB_ORG = 'populationgenomics'
 METADATA_PREFIX = '/$TMPDIR/metadata'
-PUBSUB_TOPIC = f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions'
+PUBSUB_TOPIC = os.getenv(
+    'PUBSUB_TOPIC',
+    f'projects/{ANALYSIS_RUNNER_PROJECT_ID}/topics/submissions',
+)
 ALLOWED_CONTAINER_IMAGE_PREFIXES = (
     'australia-southeast1-docker.pkg.dev/analysis-runner/',
     'australia-southeast1-docker.pkg.dev/cpg-common/images/',
