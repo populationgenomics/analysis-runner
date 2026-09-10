@@ -5,6 +5,9 @@ ARG HAIL_SHA
 
 ENV HAIL_QUERY_BACKEND=service
 
+# Use mill's JVM launcher: its native binary needs a newer glibc than bullseye's.
+ENV MILL_VERSION=1.0.6-jvm
+
 # bullseye is EOL (2026-08-31): fetch from the permanent archive, whose Release
 # files never refresh, and drop bullseye-security, which is no longer served.
 RUN echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99bullseye-eol && \
