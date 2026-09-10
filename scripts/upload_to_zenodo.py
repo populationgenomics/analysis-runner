@@ -2,7 +2,7 @@
 
 """
 Upload files (usually zip archives) from GCS paths to the specified
-(already created) Zenodo deposit.
+(already created, unpublished) Zenodo deposit.
 
 Typical usage:
 
@@ -16,12 +16,20 @@ a different name when it is attached to the Zenodo deposit.
 
 The script will need storage space for one zip archive at a time,
 so storage should be set sufficient for the size of the largest archive.
+
+Uploads use the InvenioRDM multipart transfer (Zenodo runs on InvenioRDM):
+the file is registered once with a declared part count, each part is PUT
+independently (in parallel, with per-part retries), then committed. A dropped
+connection only costs the part in flight rather than the whole archive.
 """
 
 import hashlib
+import math
 import os
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 import click
 import requests
@@ -30,8 +38,6 @@ from requests.adapters import HTTPAdapter, Retry
 
 storage_client = storage.Client()
 
-# Zenodo intermittently drops long-running uploads (SSLEOFError / connection reset),
-# so each upload is retried from the start and verified against a local MD5.
 RETRYABLE_STATUSES = (429, 500, 502, 503, 504)
 RETRYABLE_ERRORS = (
     requests.ConnectionError,
@@ -39,23 +45,94 @@ RETRYABLE_ERRORS = (
     requests.exceptions.ChunkedEncodingError,
 )
 MD5_CHUNK = 8 * 1024 * 1024
+MIB = 1024 * 1024
+
+# Zenodo may compute the checksum of a committed multipart file asynchronously.
+CHECKSUM_POLL_INTERVAL = 10
+CHECKSUM_POLL_LIMIT = 600
 
 
-def make_session() -> requests.Session:
-    """Session with automatic retries for the small metadata calls."""
-    retry = Retry(
-        total=5,
-        connect=5,
-        read=3,
-        status=5,
-        backoff_factor=2,
-        status_forcelist=RETRYABLE_STATUSES,
-        allowed_methods=frozenset({'GET'}),
-        raise_on_status=False,
-    )
-    session = requests.Session()
-    session.mount('https://', HTTPAdapter(max_retries=retry))
-    return session
+class ZenodoClient:
+    """Thin wrapper over the InvenioRDM draft-files API for one record."""
+
+    def __init__(self, host: str, record_id: str, token: str, timeout: float) -> None:
+        self.timeout = timeout
+        self.session = requests.Session()
+        self.session.headers['Authorization'] = f'Bearer {token}'
+        retry = Retry(
+            total=5,
+            connect=5,
+            read=3,
+            status=5,
+            backoff_factor=2,
+            status_forcelist=RETRYABLE_STATUSES,
+            allowed_methods=frozenset({'GET', 'DELETE', 'POST'}),
+            raise_on_status=False,
+        )
+        self.session.mount('https://', HTTPAdapter(max_retries=retry))
+
+        draft_url = f'https://{host}/api/records/{record_id}/draft'
+        response = self.session.get(draft_url, timeout=timeout)
+        response.raise_for_status()
+        self.files_url = response.json()['links']['files']
+
+    def _json(self, method: str, url: str, **kwargs: Any) -> dict:
+        response = self.session.request(method, url, timeout=self.timeout, **kwargs)
+        if not response.ok:
+            raise RuntimeError(
+                f'{method} {url} -> HTTP {response.status_code}: {response.text[:500]}'
+            )
+        return response.json() if response.content else {}
+
+    def existing_keys(self) -> set[str]:
+        body = self._json('GET', self.files_url)
+        return {entry['key'] for entry in body.get('entries', [])}
+
+    def delete_file(self, key: str):
+        print(f'Removing existing draft file {key}', flush=True)
+        self._json('DELETE', f'{self.files_url}/{key}')
+
+    def init_multipart(self, key: str, size: int, parts: int, part_size: int) -> dict:
+        """Register the file; returns the file entry (with links.parts and links.commit)."""
+        payload = [
+            {
+                'key': key,
+                'size': size,
+                'transfer': {'type': 'M', 'parts': parts, 'part_size': part_size},
+            },
+        ]
+        body = self._json('POST', self.files_url, json=payload)
+        entry = next(e for e in body['entries'] if e['key'] == key)
+        links = entry['links']
+        if 'parts' not in links:
+            raise RuntimeError(
+                f'Server did not return multipart part links for {key}: {links}'
+            )
+        return entry
+
+    def put_part(self, url: str, data: bytes):
+        """Single attempt at one part. Bare request so retries are controlled by the caller."""
+        response = requests.put(
+            url,
+            data=data,
+            headers={
+                'Authorization': self.session.headers['Authorization'],
+                'Content-Type': 'application/octet-stream',
+                'Content-Length': str(len(data)),
+            },
+            timeout=self.timeout,
+        )
+        if response.status_code in RETRYABLE_STATUSES:
+            raise requests.ConnectionError(
+                f'HTTP {response.status_code}: {response.text[:200]}'
+            )
+        response.raise_for_status()
+
+    def commit(self, entry: dict) -> dict:
+        return self._json('POST', entry['links']['commit'])
+
+    def file_entry(self, key: str) -> dict:
+        return self._json('GET', f'{self.files_url}/{key}')
 
 
 def md5_of(path: str) -> str:
@@ -75,79 +152,117 @@ def download_from_gcs(local_path: str, gcs_path: str):
     blob.download_to_filename(local_path)
 
 
-def attempt_upload(
-    url: str,
+def read_part(local_path: str, part_no: int, part_size: int) -> bytes:
+    """Read the bytes for 1-indexed part_no."""
+    with open(local_path, 'rb') as fh:
+        fh.seek((part_no - 1) * part_size)
+        return fh.read(part_size)
+
+
+def upload_part_with_retries(
+    client: ZenodoClient,
     local_path: str,
-    params: dict,
-    timeout: float,
-    local_md5: str,
-) -> tuple[int | None, str | None]:
-    """
-    One upload attempt. Returns (size, None) on verified success, or
-    (None, problem) when the attempt should be retried.
-
-    Raises on non-retryable HTTP errors (4xx), which won't improve on retry.
-    Uses a bare requests.put, not the retrying session, so attempts aren't
-    multiplied and the file is always re-sent from the start.
-    """
-    try:
-        with open(local_path, 'rb') as fp:
-            response = requests.put(url, data=fp, params=params, timeout=timeout)
-    except RETRYABLE_ERRORS as exc:
-        return None, f'connection error: {exc}'
-
-    if response.status_code in RETRYABLE_STATUSES:
-        return None, f'HTTP {response.status_code}: {response.text[:200]}'
-
-    response.raise_for_status()
-    body = response.json()
-    remote_md5 = body.get('checksum', '').removeprefix('md5:')
-    if remote_md5 != local_md5:
-        return None, (
-            f'checksum mismatch (local {local_md5}, '
-            f'Zenodo {remote_md5 or "absent"})'
+    part_no: int,
+    part_size: int,
+    url: str,
+    attempts: int,
+):
+    data = read_part(local_path, part_no, part_size)
+    for attempt in range(1, attempts + 1):
+        try:
+            client.put_part(url, data)
+            return part_no
+        except RETRYABLE_ERRORS as exc:
+            problem = str(exc)
+        if attempt == attempts:
+            raise RuntimeError(
+                f'Part {part_no} failed after {attempts} attempts; last: {problem}'
+            )
+        delay = 5 * 2**attempt
+        print(
+            f'Part {part_no} attempt {attempt} failed ({problem}); retrying in {delay}s',
+            flush=True,
         )
-    return body['size'], None
+        time.sleep(delay)
+    raise AssertionError('unreachable')  # pragma: no cover
 
 
-def upload_with_retries(
-    url: str,
+def wait_for_checksum(client: ZenodoClient, key: str, committed: dict) -> str:
+    """Return the md5 hex Zenodo reports, polling if it is computed asynchronously."""
+    deadline = time.monotonic() + CHECKSUM_POLL_LIMIT
+    entry = committed
+    while True:
+        checksum = (entry.get('checksum') or '').removeprefix('md5:')
+        if checksum:
+            return checksum
+        if time.monotonic() > deadline:
+            raise RuntimeError(
+                f'No checksum reported for {key} after {CHECKSUM_POLL_LIMIT}s'
+            )
+        print('Waiting for Zenodo to compute checksum', flush=True)
+        time.sleep(CHECKSUM_POLL_INTERVAL)
+        entry = client.file_entry(key)
+
+
+def multipart_upload(
+    client: ZenodoClient,
     local_path: str,
-    params: dict,
-    timeout: float,
+    key: str,
+    part_size: int,
+    workers: int,
     attempts: int,
 ) -> int:
-    """
-    Upload a file to a Zenodo bucket URL, retrying on dropped connections.
-
-    The bucket API overwrites by filename, so retrying a partial upload is
-    safe. Returns the size Zenodo reports once the MD5 matches the local file.
-    """
+    """Upload local_path as key using the multipart transfer. Returns the verified size."""
     print(f'Computing MD5 of {local_path}', flush=True)
     local_md5 = md5_of(local_path)
 
-    for attempt in range(1, attempts + 1):
-        print(f'Upload attempt {attempt}/{attempts}', flush=True)
-        size, problem = attempt_upload(url, local_path, params, timeout, local_md5)
-        if problem is None:
-            print(f'Checksum verified ({local_md5})', flush=True)
-            return size
-        if attempt == attempts:
-            raise RuntimeError(
-                f'Upload failed after {attempts} attempts; last: {problem}'
-            )
-        delay = 5 * 2**attempt
-        print(f'Attempt {attempt} failed ({problem}); retrying in {delay}s', flush=True)
-        time.sleep(delay)
+    size = os.path.getsize(local_path)
+    parts = max(1, math.ceil(size / part_size))
+    print(f'{size} bytes in {parts} part(s) of {part_size} bytes', flush=True)
 
-    raise AssertionError('unreachable')  # pragma: no cover
+    if key in client.existing_keys():
+        client.delete_file(key)
+
+    entry = client.init_multipart(key, size, parts, part_size)
+    part_urls = {p['part']: p['url'] for p in entry['links']['parts']}
+    missing = set(range(1, parts + 1)) - part_urls.keys()
+    if missing:
+        raise RuntimeError(f'Server returned no upload URL for parts {sorted(missing)}')
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [
+            pool.submit(
+                upload_part_with_retries,
+                client,
+                local_path,
+                n,
+                part_size,
+                part_urls[n],
+                attempts,
+            )
+            for n in range(1, parts + 1)
+        ]
+        for done, future in enumerate(as_completed(futures), start=1):
+            future.result()  # re-raise the first failure; remaining futures finish or fail on their own
+            if done % 10 == 0 or done == parts:
+                print(f'{done}/{parts} parts uploaded', flush=True)
+
+    print('Committing', flush=True)
+    committed = client.commit(entry)
+    remote_md5 = wait_for_checksum(client, key, committed)
+    if remote_md5 != local_md5:
+        raise RuntimeError(
+            f'Checksum mismatch for {key} (local {local_md5}, Zenodo {remote_md5})'
+        )
+    print(f'Checksum verified ({local_md5})', flush=True)
+    return int(committed.get('size') or size)
 
 
 @click.command(no_args_is_help=True)
 @click.option(
     '--deposit',
     required=True,
-    help='Deposit ID to which files will be uploaded',
+    help='Deposit (record) ID to which files will be uploaded',
 )
 @click.option(
     '--sandbox',
@@ -157,12 +272,22 @@ def upload_with_retries(
 @click.option(
     '--timeout',
     default=600.0,
-    help='Request timeout (in seconds)',
+    help='Request timeout (in seconds), applied per part',
 )
 @click.option(
     '--attempts',
     default=5,
-    help='Maximum upload attempts per file',
+    help='Maximum upload attempts per part',
+)
+@click.option(
+    '--part-size-mib',
+    default=100,
+    help='Multipart part size in MiB',
+)
+@click.option(
+    '--workers',
+    default=4,
+    help='Parallel part uploads (memory use is roughly workers * part size)',
 )
 @click.option(
     '--token',
@@ -178,6 +303,8 @@ def main(
     sandbox: bool,
     timeout: float,
     attempts: int,
+    part_size_mib: int,
+    workers: int,
     token: str,
     files: tuple[str],
 ):
@@ -186,13 +313,8 @@ def main(
     The authentication token can also be specified via the ZENODO_TOKEN environment variable.
     """
     zenodo_host = 'sandbox.zenodo.org' if sandbox else 'zenodo.org'
-    params = {'access_token': token}
-    session = make_session()
-
-    deposit_query = f'https://{zenodo_host}/api/deposit/depositions/{deposit}'
-    response = session.get(deposit_query, params=params, timeout=timeout)
-    response.raise_for_status()
-    deposit_bucket = response.json()['links']['bucket']
+    client = ZenodoClient(zenodo_host, deposit, token, timeout)
+    part_size = part_size_mib * MIB
 
     tmpdir = os.environ.get('BATCH_TMPDIR') or tempfile.gettempdir()
 
@@ -203,16 +325,9 @@ def main(
 
         download_from_gcs(tmp_filename, file)
 
-        if newname:
-            print(f'Uploading {basename} to {zenodo_host} as {newname}', flush=True)
-            upload_url = f'{deposit_bucket}/{newname}'
-        else:
-            print(f'Uploading {basename} to {zenodo_host}', flush=True)
-            upload_url = f'{deposit_bucket}/{basename}'
-
-        size = upload_with_retries(
-            upload_url, tmp_filename, params, timeout, attempts
-        )
+        key = newname or basename
+        print(f'Uploading {basename} to {zenodo_host} as {key}', flush=True)
+        size = multipart_upload(client, tmp_filename, key, part_size, workers, attempts)
         print(f'Uploaded {size} bytes', flush=True)
         print(flush=True)
 
