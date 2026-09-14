@@ -127,11 +127,11 @@ def _perform_version_check() -> None:
     current_version = __version__
 
     # with this URL, we're looking for a line with format:
-    #   __version__ = '<version>'
-    # match it with regex: r"__version__ = '(.+)'$"
+    #   version = "<version>"
+    # match it with regex: r"version = ['\"](.+)['\"]$"
     version_url = (
         'https://raw.githubusercontent.com/populationgenomics/'
-        'analysis-runner/main/analysis_runner/_version.py'
+        'analysis-runner/main/packages/analysis-runner/pyproject.toml'
     )
     try:
         resp = requests.get(version_url, timeout=20)
@@ -144,10 +144,10 @@ def _perform_version_check() -> None:
         )
         return
     for line in data.splitlines(keepends=False):
-        if not line.startswith('__version__ = '):
+        if not line.startswith('version = '):
             continue
 
-        match = re.match("__version__ = '(.+)'$", line)
+        match = re.match('version = [\'"](.+)[\'"]$', line)
         if match:
             latest_version = match.groups()[0]
             if current_version != latest_version:
