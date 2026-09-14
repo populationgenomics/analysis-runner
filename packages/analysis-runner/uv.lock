@@ -191,6 +191,7 @@ dependencies = [
     { name = "hail" },
     { name = "requests" },
     { name = "tabulate" },
+    { name = "toml" },
 ]
 
 [package.dev-dependencies]
@@ -206,6 +207,7 @@ requires-dist = [
     { name = "hail", specifier = ">=0.2.134" },
     { name = "requests" },
     { name = "tabulate" },
+    { name = "toml" },
 ]
 
 [package.metadata.requires-dev]

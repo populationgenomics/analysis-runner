@@ -1,13 +1,11 @@
 """Utility function"""
 
-# ruff: noqa: ERA001
-
 import argparse
 import logging
-import re
 import sys
 
 import requests
+import toml
 
 from analysis_runner._version import __version__
 
@@ -126,9 +124,6 @@ def confirm_choice(choice: str):
 def _perform_version_check() -> None:
     current_version = __version__
 
-    # with this URL, we're looking for a line with format:
-    #   version = "<version>"
-    # match it with regex: r"version = ['\"](.+)['\"]$"
     version_url = (
         'https://raw.githubusercontent.com/populationgenomics/'
         'analysis-runner/main/packages/analysis-runner/pyproject.toml'
@@ -136,30 +131,23 @@ def _perform_version_check() -> None:
     try:
         resp = requests.get(version_url, timeout=20)
         resp.raise_for_status()
-        data = resp.text
-    except requests.HTTPError as e:
+        latest_version = toml.loads(resp.text)['project']['version']
+    except (requests.HTTPError, toml.TomlDecodeError, KeyError) as e:
         logger.debug(
             f'An error occurred when fetching version '
             f'information about the analysis-runner: {e}',
         )
         return
-    for line in data.splitlines(keepends=False):
-        if not line.startswith('version = '):
-            continue
 
-        match = re.match('version = [\'"](.+)[\'"]$', line)
-        if match:
-            latest_version = match.groups()[0]
-            if current_version != latest_version:
-                message = (
-                    f'Your version of analysis-runner is out of date: '
-                    f'{current_version} != {latest_version} (current vs latest).\n'
-                    f'Your analysis will still be submitted, but may not work as expected.'
-                    f' You can update the analysis-runner by running '
-                    f'"pip install analysis-runner=={latest_version}".'
-                )
-                logger.warning(message)
-        return
+    if current_version != latest_version:
+        message = (
+            f'Your version of analysis-runner is out of date: '
+            f'{current_version} != {latest_version} (current vs latest).\n'
+            f'Your analysis will still be submitted, but may not work as expected.'
+            f' You can update the analysis-runner by running '
+            f'"pip install analysis-runner=={latest_version}".'
+        )
+        logger.warning(message)
 
 
 class AnsiiColors:
