@@ -9,4 +9,4 @@
 # Maintenance: bump the line below ONCE, when the first post-restructure
 # release ships, so old clients are nudged onto it. Do not track further
 # releases here.
-__version__ = '3.3.0'
+__version__ = '3.3.1'

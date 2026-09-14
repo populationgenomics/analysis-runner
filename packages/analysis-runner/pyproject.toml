@@ -1,7 +1,7 @@
 [project]
 name = "analysis-runner"
 # Bumped with `uv version` (e.g. `uv version --bump patch`).
-version = "3.3.0"
+version = "3.3.1"
 description = "Analysis runner to help make analysis results reproducible"
 readme = "src/analysis_runner/README.md"
 requires-python = ">=3.10"

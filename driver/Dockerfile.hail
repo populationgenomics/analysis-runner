@@ -5,7 +5,12 @@ ARG HAIL_SHA
 
 ENV HAIL_QUERY_BACKEND=service
 
-RUN apt-get update && \
+# bullseye is EOL (2026-08-31): fetch from the permanent archive, whose Release
+# files never refresh, and drop bullseye-security, which is no longer served.
+RUN echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99bullseye-eol && \
+    sed -i -e 's|http://deb.debian.org|http://archive.debian.org|g' \
+        -e '/debian-security/d' /etc/apt/sources.list && \
+    apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential \
         curl \
