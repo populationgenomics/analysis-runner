@@ -5,6 +5,12 @@ on:
     branches: [main]
     tags: ['v*']
 
+env:
+  WORKLOAD_IDENTITY_PROVIDER: projects/379228030003/locations/global/workloadIdentityPools/github/providers/github-actions
+  DTRACK_SERVICE_ACCOUNT: dtrack-ci@devops-tools-433123.iam.gserviceaccount.com
+  DTRACK_TOKEN_AUDIENCE: 379228030003-nug7attglk5fht4gmp6v8s2b88epnmsq.apps.googleusercontent.com
+  DTRACK_URL: https://dtrack.popgen.rocks
+
 jobs:
   sbom:
     runs-on: ubuntu-latest
@@ -50,10 +56,10 @@ jobs:
         id: auth
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
-          workload_identity_provider: 'projects/379228030003/locations/global/workloadIdentityPools/github/providers/github-actions'
-          service_account: 'dtrack-ci@devops-tools-433123.iam.gserviceaccount.com'
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DTRACK_SERVICE_ACCOUNT }}
           token_format: 'id_token'
-          id_token_audience: '379228030003-nug7attglk5fht4gmp6v8s2b88epnmsq.apps.googleusercontent.com'
+          id_token_audience: ${{ env.DTRACK_TOKEN_AUDIENCE }}
           id_token_include_email: true
 
       - name: Upload SBOM to Dependency-Track
@@ -82,7 +88,7 @@ jobs:
                   {name: $ref}
                 ]
               }' | \
-            curl -sf -X PUT "https://dtrack.popgen.rocks/api/v1/bom" \
+            curl -sf -X PUT "$DTRACK_URL/api/v1/bom" \
               -H "Authorization: Bearer $TOKEN" \
               -H "X-Api-Key: $DTRACK_API_KEY" \
               -H "Content-Type: application/json" \
