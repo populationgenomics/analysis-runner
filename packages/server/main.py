@@ -9,6 +9,7 @@ from aiohttp import web
 from ar import add_analysis_runner_routes
 from config import add_config_routes
 from cromwell import add_cromwell_routes
+from seqera import add_seqera_routes
 
 # Patching asyncio *before* importing the Hail Batch module is necessary to avoid a
 # "Cannot enter into task" error.
@@ -97,6 +98,7 @@ async def init_func():
     add_analysis_runner_routes(routes)
     add_cromwell_routes(routes)
     add_config_routes(routes)
+    add_seqera_routes(routes)
     app.add_routes(routes)
 
     return app
