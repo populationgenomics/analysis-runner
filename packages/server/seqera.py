@@ -56,19 +56,27 @@ class SeqeraApiClient:
         response = self.get(f'orgs/{self.org_id}/workspaces/{workspace_id}')
         return response['workspace']['name']
 
+    @property
+    def workspace_param(self) -> dict:
+        return {'workspaceId': self.dataset_config['workspace_id']}
+
+    def compute_environment(self, cenv_id: int) -> dict:
+        response = self.get(f'compute-envs/{cenv_id}', params=self.workspace_param)
+        return response['computeEnv']
+
     def launch_workflow(self, params: dict) -> str:
-        url_params = {'workspaceId': self.dataset_config['workspace_id']}
+        cenv = self.compute_environment(self.dataset_config['compute_env_id'])
 
         launch = {
             'launch': {
-                'computeEnvId': self.dataset_config['compute_env_id'],
+                'computeEnvId': cenv['id'],
                 'pipeline': params['pipeline'],
                 'revision': params['commit'],
-                'workDir': '/tmp',
+                'workDir': cenv['config']['workDir'],
             },
             #'stubRun': True,
         }
-        return self.post('workflow/launch', launch, url_params)['workflowId']
+        return self.post('workflow/launch', launch, self.workspace_param)['workflowId']
 
 
 def add_seqera_routes(routes: web.RouteTableDef):
