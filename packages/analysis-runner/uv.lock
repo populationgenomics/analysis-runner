@@ -187,7 +187,6 @@ source = { editable = "." }
 dependencies = [
     { name = "cloudpathlib", extra = ["all"] },
     { name = "cpg-utils" },
-    { name = "grpcio-status" },
     { name = "hail" },
     { name = "requests" },
     { name = "tabulate" },
@@ -203,7 +202,6 @@ dev = [
 requires-dist = [
     { name = "cloudpathlib", extras = ["all"] },
     { name = "cpg-utils", specifier = ">=5.0.0" },
-    { name = "grpcio-status", specifier = ">=1.83.0" },
     { name = "hail", specifier = ">=0.2.134" },
     { name = "requests" },
     { name = "tabulate" },
