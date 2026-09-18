@@ -33,7 +33,7 @@ requires-dist = [
     { name = "google-cloud-logging", specifier = "==3.7.0" },
     { name = "google-cloud-pubsub", specifier = "==2.18.4" },
     { name = "google-cloud-secret-manager", specifier = "==2.16.4" },
-    { name = "grpcio-status", specifier = "==1.48.2" },
+    { name = "grpcio-status" },
     { name = "gunicorn" },
     { name = "protobuf", specifier = "==3.20.2" },
 ]
