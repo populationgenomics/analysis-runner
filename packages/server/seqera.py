@@ -1,3 +1,5 @@
+import asyncio
+
 import requests
 from aiohttp import web
 from cachetools.func import lru_cache
@@ -64,14 +66,18 @@ class SeqeraApiClient:
                 'revision': params['commit'],
                 'workDir': '/tmp',
             },
+            #'stubRun': True,
         }
         return self.post('workflow/launch', launch, url_params)['workflowId']
 
 
 def add_seqera_routes(routes: web.RouteTableDef):
+    pass  # NUKEME
+
+if True:  # NUKEME
     """Add Seqera route to 'routes' flask API."""
 
-    @routes.post('/seqera')
+    #@routes.post('/seqera')
     async def seqera(request: web.Request) -> web.Response:
         """Main seqera submission entry point."""
 
@@ -88,3 +94,26 @@ def add_seqera_routes(routes: web.RouteTableDef):
             url = '[URL unavailable]'
 
         return web.Response(text=f'Workflow {workflow_id} submitted{where}.\n{url}\n')
+
+
+# For easy testing
+if __name__ == '__main__':
+
+    class BananaRequest(web.Request):
+        def __init__(self):
+            pass
+
+        async def json(self):
+            return {
+                'dataset': 'fewgenomes',
+                'accessLevel': 'test',
+                # parameter names below here TBD
+                #'pipeline': 'https://github.com/jmarshall/test',
+                #'commit': '21cd3b269ef07aab1f44e6e97755c2e52efac9c7',
+                'pipeline': 'https://github.com/nextflow-io/hello',
+                'commit': '3c2cdc9823c2b4636e5e3e73e223878099ff5dc9',
+            }
+
+    br = BananaRequest()
+    resp = asyncio.run(seqera(br))
+    print(resp.text)
