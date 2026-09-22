@@ -64,18 +64,29 @@ class SeqeraApiClient:
         response = self.get(f'compute-envs/{cenv_id}', params=self.workspace_param)
         return response['computeEnv']
 
+    SEQERA_KEYS = {
+        'commit_id': 'commitId',
+        'config_text': 'configText',
+        'main_script': 'mainScript',
+        'params': 'paramsText',
+        'repository': 'pipeline',
+        'revision': 'revision',
+    }
+
     def launch_workflow(self, params: dict) -> str:
-        cenv = self.compute_environment(self.dataset_config['compute_env_id'])
+        compute_env = self.compute_environment(self.dataset_config['compute_env_id'])
 
         launch = {
             'launch': {
-                'computeEnvId': cenv['id'],
-                'pipeline': params['pipeline'],
-                'revision': params['commit'],
-                'workDir': cenv['config']['workDir'],
-            },
-            #'stubRun': True,
+                'computeEnvId': compute_env['id'],
+                'workDir': compute_env['config']['workDir'],
+            }
         }
+
+        for ar_key, seqera_key in self.SEQERA_KEYS.items():
+            if  ar_key in params:
+                launch['launch'][seqera_key] = params[ar_key]
+
         return self.post('workflow/launch', launch, self.workspace_param)['workflowId']
 
 
@@ -91,7 +102,7 @@ if True:  # NUKEME
 
         params = await request.json()
 
-        seqera = SeqeraApiClient(params['dataset'], params['accessLevel'])
+        seqera = SeqeraApiClient(params['dataset'], params['access_level'])
         workflow_id = seqera.launch_workflow(params)
 
         try:
@@ -114,12 +125,12 @@ if __name__ == '__main__':
         async def json(self):
             return {
                 'dataset': 'fewgenomes',
-                'accessLevel': 'test',
+                'access_level': 'test',
                 # parameter names below here TBD
-                #'pipeline': 'https://github.com/jmarshall/test',
-                #'commit': '21cd3b269ef07aab1f44e6e97755c2e52efac9c7',
-                'pipeline': 'https://github.com/nextflow-io/hello',
-                'commit': '3c2cdc9823c2b4636e5e3e73e223878099ff5dc9',
+                #'repository': 'https://github.com/jmarshall/test',
+                #'commit_id': '21cd3b269ef07aab1f44e6e97755c2e52efac9c7',
+                'repository': 'https://github.com/nextflow-io/hello',
+                'commit_id': '3c2cdc9823c2b4636e5e3e73e223878099ff5dc9',
             }
 
     br = BananaRequest()
