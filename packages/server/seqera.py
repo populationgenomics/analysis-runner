@@ -3,6 +3,7 @@ import asyncio
 import requests
 from aiohttp import web
 from cachetools.func import lru_cache
+from cloudpathlib import AnyPath
 from util import get_seqera_config, read_ar_secret
 
 
@@ -101,6 +102,10 @@ if True:  # NUKEME
         """Main seqera submission entry point."""
 
         params = await request.json()
+
+        if 'config_url' in params:
+            # TODO Check repo/branch/etc permissions
+            params['config_text'] = AnyPath(params['config_url']).read_text()
 
         seqera = SeqeraApiClient(params['dataset'], params['access_level'])
         workflow_id = seqera.launch_workflow(params)
