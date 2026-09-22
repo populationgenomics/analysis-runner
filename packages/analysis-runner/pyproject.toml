@@ -15,6 +15,7 @@ dependencies = [
     # a much newer version
     "grpcio-status>=1.48,<1.50",
     "hail>=0.2.134",
+    "pyyaml",
     "requests",
     "tabulate",
     "toml",
