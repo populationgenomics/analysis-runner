@@ -190,6 +190,28 @@ class TestCliSeqera(unittest.TestCase):
 
     @patch(IMPORT_SEQERA_IDENTITY_TOKEN_PATH)
     @patch(REQUEST_POST_PATH)
+    def test_revision_and_commit_id_are_optional(
+        self,
+        mock_post: MagicMock,
+        mock_identity_token: MagicMock,
+    ):
+        apply_mock_behaviour(
+            mock_post=mock_post, mock_identity_token=mock_identity_token
+        )
+
+        # Neither --revision nor --commit-id is required; dropping both must still
+        # submit, with revision defaulting to "main".
+        drop = ('--commit-id', 'abc123', '--revision', 'main')
+        args = [a for a in self.SEQERA_ARGS if a not in drop]
+        main_from_args(args)
+
+        mock_post.assert_called()
+        body = mock_post.call_args.kwargs['json']
+        assert body['revision'] == 'main'
+        assert 'commit_id' not in body
+
+    @patch(IMPORT_SEQERA_IDENTITY_TOKEN_PATH)
+    @patch(REQUEST_POST_PATH)
     def test_config_github_url_sent_as_config_url(
         self,
         mock_post: MagicMock,
