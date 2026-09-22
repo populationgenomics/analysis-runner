@@ -52,13 +52,14 @@ def add_seqera_args(
 
     parser.add_argument(
         '--revision',
-        required=True,
-        help='The git branch or tag to use, for an exact commit use --commit-id.',
+        required=False,
+        help='The git branch or tag to use. Defaults to "main" unless --commit-id '
+        'is given.',
     )
     parser.add_argument(
         '--commit-id',
-        required=True,
-        help='Specific Git commit hash to pin the pipeline execution to.',
+        required=False,
+        help='Optionally pin the pipeline execution to a specific Git commit hash.',
     )
 
     parser.add_argument(
@@ -71,8 +72,7 @@ def add_seqera_args(
     parser.add_argument(
         '--params-file',
         required=False,
-        help='Path to a params file (YAML or JSON) forwarded to Nextflow as a '
-        '-params-file. Use "-" to read params from stdin.',
+        help='Path to a params file (YAML or JSON), forwarded to seqera as `paramsText`',
     )
 
     parser.add_argument(
@@ -127,8 +127,8 @@ def run_seqera(
     dataset: str,
     access_level: str,
     repository: str,
-    commit_id: str,
-    revision: str,
+    revision: str | None = None,
+    commit_id: str | None = None,
     main_script: str = 'main.nf',
     params_file: str | None = None,
     config: str | None = None,
@@ -145,14 +145,21 @@ def run_seqera(
     ):
         raise SystemExit
 
+    # Default to "main" if no revision specified and no exact commit is pinned
+    if not revision and not commit_id:
+        revision = 'main'
+
     server_args: dict[str, Any] = {
         'dataset': dataset,
         'access_level': access_level,
         'main_script': main_script,
         'repository': repository,
-        'commit_id': commit_id,
-        'revision': revision,
     }
+
+    if revision:
+        server_args['revision'] = revision
+    if commit_id:
+        server_args['commit_id'] = commit_id
 
     if params_file:
         server_args['params'] = _read_params(params_file)
@@ -173,7 +180,7 @@ def run_seqera(
             )
 
     logger.info(
-        f'Submitting Nextflow workflow {repository}@{commit_id} on {revision} '
+        f'Submitting Nextflow workflow {repository}@{commit_id or revision} '
         f'for dataset "{dataset}"',
     )
 
