@@ -24,10 +24,10 @@ jobs:
 
     steps:
     - name: "checkout analysis-runner repo"
-      uses: actions/checkout@v4
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: "checkout Hail repo"
-      uses: actions/checkout@v4
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: "populationgenomics/hail"
         ref: ${{ github.event.inputs.hail_ref }}
@@ -44,14 +44,14 @@ jobs:
 
     - id: "google-cloud-auth"
       name: "Authenticate to Google Cloud"
-      uses: google-github-actions/auth@v2
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
         workload_identity_provider: "projects/370374240567/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
         service_account: "server-deploy@analysis-runner.iam.gserviceaccount.com"
 
     - id: "google-cloud-sdk-setup"
       name: "Set up Cloud SDK"
-      uses: google-github-actions/setup-gcloud@v2
+      uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
     - name: "gcloud docker auth"
       run: |
@@ -77,7 +77,7 @@ jobs:
           --build-arg DRIVER_IMAGE=$DRIVER_IMAGE:latest \
           --tag $SERVER_IMAGE:latest \
           --tag $SERVER_IMAGE:$IMAGE_TAG \
-          server
+          packages/server
 
     - name: "push server image"
       run: |
@@ -96,7 +96,7 @@ jobs:
         URL=$(gcloud run services describe server-test --region australia-southeast1 --platform managed --format "value(status.url)")
         TOKEN=$(gcloud auth print-identity-token --impersonate-service-account="server-deploy@analysis-runner.iam.gserviceaccount.com" --audiences="$URL" --include-email)
 
-        req_obj='{"output": "ci-test-batch/v42", "dataset": "fewgenomes", "accessLevel": "test", "repo": "analysis-runner", "commit": "${{ github.sha }}", "cwd": "test", "script": ["./main.py"], "description": "analysis-runner-test", "wait": true}'
+        req_obj='{"output": "ci-test-batch/v42", "dataset": "fewgenomes", "accessLevel": "test", "repo": "analysis-runner", "commit": "${{ github.sha }}", "cwd": "packages/analysis-runner/tests", "script": ["./main.py"], "description": "analysis-runner-test", "wait": true}'
 
         # sometimes the container takes about 3-4 minutes to load the first time
         # this causes a timeout because we're waiting, so we retry a few times

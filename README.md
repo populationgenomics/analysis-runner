@@ -16,6 +16,12 @@ By default, we run your script in a driver image, that contains a number of comm
 
 The analysis-runner is also integrated with our Cromwell server to run WDL based workflows.
 
+## Repository Layout
+
+This repository uses a multi-package structure in the `packages/` directory. Each package (analysis-runner, server, web, metamist-consumer) is an independent `uv` project with its own dependencies—deliberately not a uv workspace, to allow divergent versions and dependencies across packages.
+
+Development workflow uses Makefile targets: `make install-dev` to install repository-wide development tooling (ruff, pre-commit), `make lock` to update dependency locks, `make lint` for code quality checks, and `make test` to run the analysis-runner package test suite.
+
 ## CLI
 
 The analysis-runner CLI is used to start pipelines based on a GitHub repository, commit, and command to run.
@@ -105,19 +111,19 @@ This is installed in the analysis runner driver image, ie: you can access the an
 ```python
 from cpg_utils.hail_batch import get_batch
 from analysis_runner.git import (
-  prepare_git_job,
-  get_repo_name_from_current_directory,
-  get_git_commit_ref_of_current_repository,
+    prepare_git_job,
+    get_repo_name_from_current_directory,
+    get_git_commit_ref_of_current_repository,
 )
 
 b = get_batch(name='do-some-analysis')
 j = b.new_job('checkout_repo')
 prepare_git_job(
-  job=j,
-  # you could specify a name here, like 'analysis-runner'
-  repo_name=get_repo_name_from_current_directory(),
-  # you could specify the specific commit here, eg: '1be7bb44de6182d834d9bbac6036b841f459a11a'
-  commit=get_git_commit_ref_of_current_repository(),
+    job=j,
+    # you could specify a name here, like 'analysis-runner'
+    repo_name=get_repo_name_from_current_directory(),
+    # you could specify the specific commit here, eg: '1be7bb44de6182d834d9bbac6036b841f459a11a'
+    commit=get_git_commit_ref_of_current_repository(),
 )
 
 # Now, the working directory of j is the checkout out repository
@@ -134,7 +140,7 @@ b = get_batch(name='do-some-analysis')
 
 # starts up a cluster, and submits a script to the cluster,
 # see the definition for more information about how you can configure the cluster
-# https://github.com/populationgenomics/analysis-runner/blob/main/analysis_runner/dataproc.py#L80
+# https://github.com/populationgenomics/analysis-runner/blob/main/packages/analysis-runner/src/analysis_runner/dataproc.py#L80
 cluster = dataproc.setup_dataproc(
     b,
     max_age='1h',
@@ -148,16 +154,21 @@ cluster.add_job('examples/dataproc/query.py', job_name='example')
 
 You can ignore this section if you just want to run the tool.
 
-To set up a development environment for the analysis runner using pip, run
-the following:
+To set up a development environment for the analysis runner, run the following:
 
 ```bash
-pip install -r requirements-dev.txt
-pip install --editable .
+make install-dev
+cd packages/analysis-runner && uv sync
+```
+
+Alternatively, for a plain pip editable install:
+
+```bash
+cd packages/analysis-runner && pip install -e .
 ```
 
 ### Deployment
 
 The server can be deployed by manually running the [`deploy_server.yaml`](https://github.com/populationgenomics/analysis-runner/actions/workflows/deploy_server.yaml) GitHub action. This will also deploy the driver image.
 
-The CLI tool is shipped as a pip package, this happens automatically on pushes to `main.py`. To build a new version, you should add a [bump2version](https://pypi.org/project/bump2version/) commit to your branch.
+The CLI tool is shipped as a pip package, this happens automatically on pushes to the `main` branch. To build a new version, run `uv version --bump patch` (or `minor`/`major`) inside `packages/analysis-runner`, which updates the version in its pyproject.toml. (For the first post-restructure release, also bump the legacy version stub at `analysis_runner/_version.py` to nudge old clients onto the new version.)

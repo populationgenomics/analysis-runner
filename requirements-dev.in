@@ -1,9 +1,0 @@
-ruff~=0.11
-bump2version
-cloudpathlib[all]
-cpg-utils>=4.12.1
-metamist
-pre-commit
-pylint
-toml
-setuptools>=69.3.0

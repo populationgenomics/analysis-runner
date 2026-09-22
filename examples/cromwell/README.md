@@ -99,8 +99,8 @@ For example:
 run_cromwell_workflow_from_repo_and_get_outputs(
     # ... other inputs
     outputs_to_collect={
-        'hello.joined_output': None, # single output
-        'hello.outs': 5, # array output of length=5
+        'hello.joined_output': None,  # single output
+        'hello.outs': 5,  # array output of length=5
     }
 )
 ```
