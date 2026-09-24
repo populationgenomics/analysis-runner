@@ -18,10 +18,11 @@ dependencies = [
     "google-cloud-logging==3.7.0",
     "google-cloud-pubsub==2.18.4",
     "google-cloud-secret-manager==2.16.4",
-    "grpcio-status",
-    "protobuf==3.20.2",
     "gunicorn",
 ]
 
 [tool.uv]
 package = false
+constraint-dependencies = [
+    "grpcio>=1.83.0",
+]

@@ -7,6 +7,9 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 
+[manifest]
+constraints = [{ name = "grpcio", specifier = ">=1.83.0" }]
+
 [[package]]
 name = "analysis-runner-server"
 version = "0"
@@ -19,9 +22,7 @@ dependencies = [
     { name = "google-cloud-logging" },
     { name = "google-cloud-pubsub" },
     { name = "google-cloud-secret-manager" },
-    { name = "grpcio-status" },
     { name = "gunicorn" },
-    { name = "protobuf" },
 ]
 
 [package.metadata]
@@ -33,9 +34,7 @@ requires-dist = [
     { name = "google-cloud-logging", specifier = "==3.7.0" },
     { name = "google-cloud-pubsub", specifier = "==2.18.4" },
     { name = "google-cloud-secret-manager", specifier = "==2.16.4" },
-    { name = "grpcio-status" },
     { name = "gunicorn" },
-    { name = "protobuf", specifier = "==3.20.2" },
 ]
 
 [[package]]

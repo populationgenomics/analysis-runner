@@ -9,6 +9,9 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
+[manifest]
+constraints = [{ name = "grpcio", specifier = ">=1.83.0" }]
+
 [[package]]
 name = "aiodns"
 version = "2.0.0"
@@ -202,7 +205,7 @@ dev = [
 requires-dist = [
     { name = "cloudpathlib", extras = ["all"] },
     { name = "cpg-utils", specifier = ">=5.0.0" },
-    { name = "hail", specifier = ">=0.2.134" },
+    { name = "hail", specifier = ">=0.2.135" },
     { name = "requests" },
     { name = "tabulate" },
     { name = "toml" },
