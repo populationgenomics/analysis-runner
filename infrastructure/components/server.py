@@ -31,7 +31,7 @@ class ServerSpec:
     cpu: str
     memory: str
     timeout: str
-    service_max_instances: int | None
+    service_max_instances: int | None = None
 
 
 AR_SERVERS = [ServerSpec(**spec) for spec in config.require_object('server_services')]
