@@ -9,6 +9,7 @@ lock:
 	uv lock --project packages/server
 	uv lock --project packages/web
 	uv lock --project packages/metamist-consumer
+	uv lock --project infrastructure
 	uv export --project packages/metamist-consumer --no-dev --no-hashes --no-emit-project \
 		-o packages/metamist-consumer/requirements.txt
 

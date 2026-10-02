@@ -1,0 +1,7 @@
+name: analysis-runner
+runtime:
+  name: python
+  options:
+    toolchain: uv
+    virtualenv: .venv
+description: Infrastructure for the analysis-runner server, web proxies and metamist consumer
