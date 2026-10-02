@@ -18,7 +18,7 @@ MEMBERS_CACHE_LOCATION = config.require('members_cache_location')
 IAP_ACCESSORS: list[str] = config.require_object('iap_accessors')
 WEB_IMAGE_TAG = config.get('web_image_tag')
 
-if WEB_IMAGE_TAG is None:
+if not WEB_IMAGE_TAG:
     raise ValueError('Missing web_image_tag config')
 
 

@@ -18,7 +18,7 @@ ORG_ID = config.require('org_id')
 
 SERVER_IMAGE_TAG = config.get('server_image_tag')
 
-if SERVER_IMAGE_TAG is None:
+if not SERVER_IMAGE_TAG:
     raise ValueError('Missing server_image_tag config')
 
 # Custom org role: read objects, and create new ones without overwriting.
@@ -155,7 +155,7 @@ def _create_cloud_run_server(
                             name='SERVER_CONFIG',
                             value_source=gcp.cloudrunv2.ServiceTemplateContainerEnvValueSourceArgs(
                                 secret_key_ref=gcp.cloudrunv2.ServiceTemplateContainerEnvValueSourceSecretKeyRefArgs(
-                                    secret='server-config',
+                                    secret='server-config',  # noqa: S106 - secret name, not a value
                                     version='latest',
                                 ),
                             ),
