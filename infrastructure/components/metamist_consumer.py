@@ -6,14 +6,9 @@ Metamist consumer
 import pulumi
 import pulumi_gcp as gcp
 
-from components.common import protected
-
 gcp_config = pulumi.Config('gcp')
 REGION = gcp_config.require('region')
 PROJECT = gcp_config.require('project')
-
-config = pulumi.Config()
-CONSUMER_SA_ID = config.require('consumer_sa_id')
 
 
 def create_metamist_consumer_resources(
@@ -21,9 +16,9 @@ def create_metamist_consumer_resources(
 ) -> dict[str, pulumi.Resource]:
     consumer_sa = gcp.serviceaccount.Account(
         'sample-metadata-sa',
-        account_id=CONSUMER_SA_ID,
+        account_id='sample-metadata',
         project=PROJECT,
-        display_name=CONSUMER_SA_ID,
+        display_name='sample-metadata',
         description='Submits analysis to sample-metadata log',
         opts=pulumi.ResourceOptions(protect=True),
     )
@@ -42,7 +37,8 @@ def create_metamist_consumer_resources(
             resource=submissions_topic.id,
         ),
         # TODO check here
-        opts=protected(
+        opts=pulumi.ResourceOptions(
+            protect=True,
             ignore_changes=[
                 # Source is uploaded by `gcloud functions deploy`
                 'sourceArchiveBucket',

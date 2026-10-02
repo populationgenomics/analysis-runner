@@ -7,18 +7,19 @@ from dataclasses import dataclass
 import pulumi
 import pulumi_gcp as gcp
 
-from components.common import protected
-
 gcp_config = pulumi.Config('gcp')
-PROJECT: str = gcp_config.require('project')
-REGION: str = gcp_config.require('region')
+PROJECT = gcp_config.require('project')
+REGION = gcp_config.require('region')
 
 config = pulumi.Config()
-PROJECT_NUMBER: str = config.require('project_number')
-MEMBERS_CACHE_LOCATION: str = config.require('members_cache_location')
+PROJECT_NUMBER = config.require('project_number')
+MEMBERS_CACHE_LOCATION = config.require('members_cache_location')
 
-WEB_SA_ID: str = config.require('web_sa_id')
 IAP_ACCESSORS: list[str] = config.require_object('iap_accessors')
+WEB_IMAGE_TAG = config.get('web_image_tag')
+
+if WEB_IMAGE_TAG is None:
+    raise ValueError('Missing web_image_tag config')
 
 
 @dataclass(frozen=True)
@@ -35,15 +36,15 @@ class WebProxySpec:
     service_max_instances: int | None = None
 
 
-# main and test web proxies (values per stack, from the `web_proxies` config)
+# main and test web proxies
 WEB_PROXIES = [WebProxySpec(**spec) for spec in config.require_object('web_proxies')]
 
 
 def create_web_resources() -> dict[str, pulumi.Resource]:
     web_sa = gcp.serviceaccount.Account(
         'web-server-sa',
-        account_id=WEB_SA_ID,
-        display_name=WEB_SA_ID,
+        account_id='web-server',
+        display_name='web-server',
         description='Used for running the web server that serves from datasets\' "web" buckets',
         opts=pulumi.ResourceOptions(protect=True),
     )
@@ -99,8 +100,7 @@ def _create_web_proxy(
             containers=[
                 gcp.cloudrunv2.ServiceTemplateContainerArgs(
                     name=spec.container_name,
-                    # TODO check here
-                    image=f'{REGION}-docker.pkg.dev/{PROJECT}/images/web:latest',
+                    image=f'{REGION}-docker.pkg.dev/{PROJECT}/images/web:{WEB_IMAGE_TAG}',
                     envs=[
                         gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                             name='BUCKET_SUFFIX', value=spec_name
@@ -137,14 +137,12 @@ def _create_web_proxy(
                 type='TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST', percent=100
             ),
         ],
-        # TODO check here
-        opts=protected(
+        opts=pulumi.ResourceOptions(
+            protect=True,
             ignore_changes=[
-                'template.containers[0].image',  # owned by the deploy workflow
+                # Written by gcloud on every deploy
                 'client',
                 'clientVersion',
-                'template.labels',
-                'template.annotations',
             ],
         ),
     )
@@ -181,8 +179,8 @@ def _create_web_proxy(
             enable=True,
             optional_mode='EXCLUDE_ALL_OPTIONAL',
         ),
-        # TODO check here
-        opts=protected(
+        opts=pulumi.ResourceOptions(
+            protect=True,
             ignore_changes=[
                 'iap.oauth2ClientId',
                 'iap.oauth2ClientSecret',
@@ -198,7 +196,7 @@ def _create_web_proxy(
             web_backend_service=backend.name,
             role='roles/iap.httpsResourceAccessor',
             member=member,
-            opts=protected(),
+            opts=pulumi.ResourceOptions(protect=True),
         )
 
     https_url_map = gcp.compute.URLMap(

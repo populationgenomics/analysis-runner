@@ -7,22 +7,22 @@ from dataclasses import dataclass
 import pulumi
 import pulumi_gcp as gcp
 
-from components.common import protected
-
 gcp_config = pulumi.Config('gcp')
 PROJECT = gcp_config.require('project')
 REGION = gcp_config.require('region')
 
 config = pulumi.Config()
-SERVER_SA_ID = config.require('server_sa_id')
 CPG_CONFIG_BUCKET = config.require('cpg_config_bucket')
 MEMBERS_CACHE_LOCATION = config.require('members_cache_location')
 ORG_ID = config.require('org_id')
 
+SERVER_IMAGE_TAG = config.get('server_image_tag')
+
+if SERVER_IMAGE_TAG is None:
+    raise ValueError('Missing server_image_tag config')
+
 # Custom org role: read objects, and create new ones without overwriting.
-STORAGE_VIEWER_AND_CREATOR = (
-    f'organizations/{ORG_ID}/roles/StorageViewerAndCreator'  # TODO check
-)
+STORAGE_VIEWER_AND_CREATOR = f'organizations/{ORG_ID}/roles/StorageViewerAndCreator'
 
 
 @dataclass(frozen=True)
@@ -40,9 +40,9 @@ AR_SERVERS = [ServerSpec(**spec) for spec in config.require_object('server_servi
 def create_server_resources() -> dict[str, pulumi.Resource]:
     server_sa = gcp.serviceaccount.Account(
         'analysis-runner-server-sa',
-        account_id=SERVER_SA_ID,
+        account_id='analysis-runner-server',
         project=PROJECT,
-        display_name=SERVER_SA_ID,
+        display_name='analysis-runner-server',
         description='Runs the analysis-runner server',
         opts=pulumi.ResourceOptions(protect=True),
     )
@@ -141,13 +141,11 @@ def _create_cloud_run_server(
             containers=[
                 gcp.cloudrunv2.ServiceTemplateContainerArgs(
                     name='server-1',
-                    # TODO check this
-                    image=f'{REGION}-docker.pkg.dev/{PROJECT}/images/server:latest',
+                    image=f'{REGION}-docker.pkg.dev/{PROJECT}/images/server:{SERVER_IMAGE_TAG}',
                     envs=[
-                        # TODO check this
                         gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                             name='DRIVER_IMAGE',
-                            value=f'{REGION}-docker.pkg.dev/{PROJECT}/images/driver:latest',
+                            value=f'{REGION}-docker.pkg.dev/{PROJECT}/images/driver:{SERVER_IMAGE_TAG}',
                         ),
                         gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                             name='MEMBERS_CACHE_LOCATION',
@@ -187,17 +185,12 @@ def _create_cloud_run_server(
                 type='TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST', percent=100
             ),
         ],
-        # TODO check here
-        opts=protected(
+        opts=pulumi.ResourceOptions(
+            protect=True,
             ignore_changes=[
-                # Owned by the deploy workflow in the analysis-runner repo
-                'template.containers[0].image',
-                'template.containers[0].envs[0].value',  # DRIVER_IMAGE
                 # Written by gcloud on every deploy
                 'client',
                 'clientVersion',
-                'template.labels',
-                'template.annotations',
             ],
         ),
     )
