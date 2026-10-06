@@ -115,6 +115,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
             'script': main_script,
             'description': params.get('description'),
             'environment': cloud_environment,
+            'meta': {'workflow_id': workflow_id},
         }
 
         try:
