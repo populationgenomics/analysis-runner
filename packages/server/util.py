@@ -75,6 +75,30 @@ def get_server_config() -> dict:
     raise web.HTTPInternalServerError(reason='Failed to read server-config secret')
 
 
+# cache the result for 60 seconds, so we can call this function multiple times
+@ttl_cache(maxsize=1, ttl=600)
+def get_seqera_config() -> dict:
+    config = os.getenv('SEQERA_PLATFORM_CONFIG')
+    if config is None:
+        config = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'seqera-platform-config')
+    if config is None:
+        raise web.HTTPInternalServerError(
+            reason='Failed to read seqera-platform-config secret'
+        )
+
+    return json.loads(config)
+
+
+def read_ar_secret(secret_name: str) -> str:
+    """Read a secret stored in the analysis-runner project."""
+    value = read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
+    if value is None:
+        raise web.HTTPInternalServerError(
+            reason='Failed to read analysis-runner secret'
+        )
+    return value
+
+
 async def _get_hail_version(environment: str) -> str:
     """ASYNC get hail version for the hail server in the local deploy_config"""
     if not environment == 'gcp':

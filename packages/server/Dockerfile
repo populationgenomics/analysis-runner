@@ -18,7 +18,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY pyproject.toml ./
 RUN uv pip install --system --no-cache -r pyproject.toml
 
-COPY main.py ar.py config.py cromwell.py util.py ./
+COPY main.py ar.py config.py cromwell.py seqera.py seqera_api.py util.py ./
 
 # Prepare the Hail deploy config to point to the CPG domain.
 COPY deploy-config.json /deploy-config/deploy-config.json
