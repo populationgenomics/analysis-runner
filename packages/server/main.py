@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import traceback
 
 import nest_asyncio
@@ -25,6 +26,32 @@ if USE_GCP_LOGGING:
     client = google.cloud.logging.Client()
     client.get_default_handler()
     client.setup_logging()
+
+ROUTE_ADDERS = {
+    'analysis-runner': add_analysis_runner_routes,
+    'cromwell': add_cromwell_routes,
+    'config': add_config_routes,
+    'seqera': add_seqera_routes,
+}
+
+
+def get_enabled_routes() -> list[str]:
+    """
+    Comma-separated route names from ENABLED_ROUTES
+    Provide flexibility to enable/disable routes in different envs
+    """
+    enabled_routes = os.getenv('ENABLED_ROUTES')
+    if not enabled_routes:
+        return list(ROUTE_ADDERS)
+
+    names = [name.strip() for name in enabled_routes.split(',') if name.strip()]
+    unknown = set(names) - set(ROUTE_ADDERS)
+    if unknown:
+        raise ValueError(
+            f'Unknown ENABLED_ROUTES {sorted(unknown)}, expected some of '
+            f'{list(ROUTE_ADDERS)}'
+        )
+    return names
 
 
 def prepare_exception_json_response(
@@ -95,10 +122,9 @@ async def init_func():
     app = web.Application(middlewares=[error_middleware])
     routes = web.RouteTableDef()
 
-    add_analysis_runner_routes(routes)
-    add_cromwell_routes(routes)
-    add_config_routes(routes)
-    add_seqera_routes(routes)
+    enabled_routes = get_enabled_routes()
+    for name in enabled_routes:
+        ROUTE_ADDERS[name](routes)
     app.add_routes(routes)
 
     return app

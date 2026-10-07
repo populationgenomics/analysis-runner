@@ -13,7 +13,7 @@ REGION = gcp_config.require('region')
 
 config = pulumi.Config()
 PROJECT_NUMBER = config.require('project_number')
-MEMBERS_CACHE_LOCATION = config.require('members_cache_location')
+MEMBERS_CACHE_BUCKET = config.require('members_cache_bucket')
 
 IAP_ACCESSORS: list[str] = config.require_object('iap_accessors')
 WEB_IMAGE_TAG = config.get('web_image_tag')
@@ -40,36 +40,49 @@ class WebProxySpec:
 WEB_PROXIES = [WebProxySpec(**spec) for spec in config.require_object('web_proxies')]
 
 
-def create_web_resources() -> dict[str, pulumi.Resource]:
-    web_sa = gcp.serviceaccount.Account(
-        'web-server-sa',
-        account_id='web-server',
-        display_name='web-server',
-        description='Used for running the web server that serves from datasets\' "web" buckets',
-        opts=pulumi.ResourceOptions(protect=True),
-    )
-    gcp.projects.IAMMember(
-        'web-server-log-writer',
-        project=PROJECT,
-        role='roles/logging.logWriter',
-        member=web_sa.email.apply(lambda e: f'serviceAccount:{e}'),
-        opts=pulumi.ResourceOptions(protect=True),
-    )
+def create_web_resources() -> dict[str, pulumi.Resource] | None:
+    if WEB_PROXIES:
+        web_sa = gcp.serviceaccount.Account(
+            'web-server-sa',
+            account_id='web-server',
+            display_name='web-server',
+            description='Used for running the web server that serves from datasets\' "web" buckets',
+            opts=pulumi.ResourceOptions(protect=True),
+        )
+        gcp.projects.IAMMember(
+            'web-server-log-writer',
+            project=PROJECT,
+            role='roles/logging.logWriter',
+            member=web_sa.email.apply(lambda e: f'serviceAccount:{e}'),
+            opts=pulumi.ResourceOptions(protect=True),
+        )
 
-    # Shared by both HTTPS proxies (main-web, test-web)
-    tls_policy = gcp.compute.SSLPolicy(
-        'restricted-tls-policy',
-        name='restricted-tls-policy',
-        project=PROJECT,
-        profile='RESTRICTED',
-        min_tls_version='TLS_1_2',
-        opts=pulumi.ResourceOptions(protect=True),
-    )
+        # created in the common stack, the web server's read access is granted here.
+        if config.get_bool('grant_members_cache_read'):
+            gcp.storage.BucketIAMMember(
+                'members-cache-web-viewer',
+                bucket=MEMBERS_CACHE_BUCKET,
+                role='roles/storage.objectViewer',
+                member=web_sa.email.apply(lambda e: f'serviceAccount:{e}'),
+                opts=pulumi.ResourceOptions(protect=True),
+            )
 
-    resources: dict[str, pulumi.Resource] = {'web_sa': web_sa, 'tls_policy': tls_policy}
-    for spec in WEB_PROXIES:
-        resources.update(_create_web_proxy(spec, web_sa, tls_policy))
-    return resources
+        # Shared by both HTTPS proxies (main-web, test-web)
+        tls_policy = gcp.compute.SSLPolicy(
+            'restricted-tls-policy',
+            name='restricted-tls-policy',
+            project=PROJECT,
+            profile='RESTRICTED',
+            min_tls_version='TLS_1_2',
+            opts=pulumi.ResourceOptions(protect=True),
+        )
+
+        resources: dict[str, pulumi.Resource] = {'web_sa': web_sa, 'tls_policy': tls_policy}
+
+        for spec in WEB_PROXIES:
+            resources.update(_create_web_proxy(spec, web_sa, tls_policy))
+        return resources
+    return None
 
 
 def _create_web_proxy(
@@ -111,7 +124,7 @@ def _create_web_proxy(
                         ),
                         gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                             name='MEMBERS_CACHE_LOCATION',
-                            value=MEMBERS_CACHE_LOCATION,
+                            value=f'gs://{MEMBERS_CACHE_BUCKET}',
                         ),
                     ],
                     ports=gcp.cloudrunv2.ServiceTemplateContainerPortsArgs(

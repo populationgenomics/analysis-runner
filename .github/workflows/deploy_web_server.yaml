@@ -21,7 +21,56 @@ env:
   DEV_DOCKER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner-dev/images/web
 
 jobs:
+  deploy-common-dev:
+    runs-on: ubuntu-latest
+    environment: development
+    concurrency:
+      group: pulumi-development
+      cancel-in-progress: false
+
+    steps:
+    - name: "checkout analysis-runner repo"
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: "checkout analysis-runner-private (stack config)"
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: populationgenomics/analysis-runner-private
+        ref: main
+        path: analysis-runner-private
+        token: ${{ secrets.ANALYSIS_RUNNER_PRIVATE_TOKEN }}
+        persist-credentials: false
+
+    - name: "copy Pulumi stack config"
+      run: |
+        cp analysis-runner-private/infrastructure/common/Pulumi.common-development.yaml infrastructure/
+
+    - id: "google-cloud-auth"
+      name: "Authenticate to Google Cloud (development)"
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+      with:
+        workload_identity_provider: "projects/PLACEHOLDER_DEV_PROJECT_NUMBER/locations/global/workloadIdentityPools/PLACEHOLDER_POOL/providers/PLACEHOLDER_PROVIDER"
+        service_account: "PLACEHOLDER-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+
+    - name: "Install uv"
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+    # Shared resources
+    - name: "pulumi up (common-development)"
+      uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
+      with:
+        command: up
+        work-dir: ./infrastructure
+        stack-name: common-development
+        cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
+      env:
+        PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+        PULUMI_SKIP_CHECKPOINTS: true
+
   build:
+    needs: deploy-common-dev
     runs-on: ubuntu-latest
     environment: development
 
@@ -79,10 +128,9 @@ jobs:
         persist-credentials: false
 
     - name: "copy Pulumi stack config"
-      env:
-        PULUMI_STACK_NAME: ${{ vars.PULUMI_STACK_NAME }}
       run: |
-        cp "analysis-runner-private/infrastructure/Pulumi.${PULUMI_STACK_NAME}.yaml" infrastructure/
+        cp analysis-runner-private/infrastructure/common/Pulumi.common-production.yaml infrastructure/
+        cp analysis-runner-private/infrastructure/web/Pulumi.web-production.yaml infrastructure/
 
     - id: "google-cloud-auth"
       name: "Authenticate to Google Cloud (production)"
@@ -99,6 +147,20 @@ jobs:
       run: |
         gcloud auth configure-docker australia-southeast1-docker.pkg.dev
 
+    - name: "Install uv"
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+    - name: "pulumi up (common-production)"
+      uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
+      with:
+        command: up
+        work-dir: ./infrastructure
+        stack-name: common-production
+        cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
+      env:
+        PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+        PULUMI_SKIP_CHECKPOINTS: true
+
     # Copies the image built above into the production registry.
     - name: "promote image to production registry"
       run: |
@@ -106,15 +168,12 @@ jobs:
           --tag $DOCKER_IMAGE:$IMAGE_TAG \
           $DEV_DOCKER_IMAGE:$IMAGE_TAG
 
-    - name: "Install uv"
-      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-
-    - name: "pulumi up (production)"
+    - name: "pulumi up (web-production)"
       uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
       with:
         command: up
         work-dir: ./infrastructure
-        stack-name: ${{ vars.PULUMI_STACK_NAME }}
+        stack-name: web-production
         cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
         config-map: "{'analysis-runner:web_image_tag': {value: '${{ github.sha }}', secret: false}}"
       env:

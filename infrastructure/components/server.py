@@ -13,7 +13,6 @@ REGION = gcp_config.require('region')
 
 config = pulumi.Config()
 CPG_CONFIG_BUCKET = config.require('cpg_config_bucket')
-MEMBERS_CACHE_LOCATION = config.require('members_cache_location')
 ORG_ID = config.require('org_id')
 
 SERVER_IMAGE_TAG = config.get('server_image_tag')
@@ -35,6 +34,8 @@ class ServerSpec:
 
 
 AR_SERVERS = [ServerSpec(**spec) for spec in config.require_object('server_services')]
+SERVER_INVOKERS: list[str] = config.get_object('server_invokers') or []
+MEMBERS_CACHE_BUCKET = config.require('members_cache_bucket')
 
 
 def create_server_resources() -> dict[str, pulumi.Resource]:
@@ -72,17 +73,6 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
         opts=pulumi.ResourceOptions(protect=True),
     )
 
-    # Server, driver, web and dataproc images.
-    images_repo = gcp.artifactregistry.Repository(
-        'images-repository',
-        repository_id='images',
-        location=REGION,
-        project=PROJECT,
-        format='DOCKER',
-        cleanup_policy_dry_run=True,
-        opts=pulumi.ResourceOptions(protect=True),
-    )
-
     # Config templates and run configs from submissions reside here.
     cpg_config_bucket = gcp.storage.Bucket(
         'cpg-config-bucket',
@@ -107,10 +97,31 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
         spec.name: _create_cloud_run_server(spec, server_sa) for spec in AR_SERVERS
     }
 
+    # Grant invoker roles for cloud run services
+    for service_name, service in services.items():
+        for member in SERVER_INVOKERS:
+            gcp.cloudrunv2.ServiceIamMember(
+                f'{service_name}-invoker-{member.replace(":", "-").replace("@", "-").replace(".", "-")}',
+                project=PROJECT,
+                location=REGION,
+                name=service.name,
+                role='roles/run.invoker',
+                member=member,
+            )
+
+    # created In the common stack, the server's read access is granted here.
+    if config.get_bool('grant_members_cache_read'):
+        gcp.storage.BucketIAMMember(
+            'members-cache-server-viewer',
+            bucket=MEMBERS_CACHE_BUCKET,
+            role='roles/storage.objectViewer',
+            member=server_member,
+            opts=pulumi.ResourceOptions(protect=True),
+        )
+
     return {
         'server_sa': server_sa,
         'submissions_topic': submissions_topic,
-        'images_repo': images_repo,
         'cpg_config_bucket': cpg_config_bucket,
         **services,
     }
@@ -149,7 +160,7 @@ def _create_cloud_run_server(
                         ),
                         gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                             name='MEMBERS_CACHE_LOCATION',
-                            value=MEMBERS_CACHE_LOCATION,
+                            value=f'gs://{MEMBERS_CACHE_BUCKET}',
                         ),
                         gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                             name='SERVER_CONFIG',
