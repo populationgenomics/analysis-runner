@@ -57,22 +57,6 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
         opts=pulumi.ResourceOptions(protect=True),
     )
 
-    # Submission metadata which the metamist consumer subscribes on to.
-    submissions_topic = gcp.pubsub.Topic(
-        'submissions-topic',
-        name='submissions',
-        project=PROJECT,
-        opts=pulumi.ResourceOptions(protect=True),
-    )
-    gcp.pubsub.TopicIAMMember(
-        'submissions-topic-server-publisher',
-        project=PROJECT,
-        topic=submissions_topic.id,
-        role='roles/pubsub.publisher',
-        member=server_member,
-        opts=pulumi.ResourceOptions(protect=True),
-    )
-
     # Config templates and run configs from submissions reside here.
     cpg_config_bucket = gcp.storage.Bucket(
         'cpg-config-bucket',
@@ -121,7 +105,6 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
 
     return {
         'server_sa': server_sa,
-        'submissions_topic': submissions_topic,
         'cpg_config_bucket': cpg_config_bucket,
         **services,
     }
