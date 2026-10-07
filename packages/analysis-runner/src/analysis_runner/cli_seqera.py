@@ -91,13 +91,13 @@ def add_seqera_args(
     parser.add_argument(
         '--use-test-server',
         action='store_true',
-        help='Use the test analysis-runner server',
+        help='Use the test analysis-runner server, this overrides --server-url',
     )
     parser.add_argument(
         '--server-url',
         required=False,
         default=SERVER_ENDPOINT,
-        help='Supply a server URL to use, this will override the "--use-test-server"',
+        help='Supply a server URL to use"',
     )
 
     return parser
