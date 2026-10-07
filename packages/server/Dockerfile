@@ -12,7 +12,7 @@ EXPOSE $PORT
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Install the server's extra dependencies ON TOP OF the driver base image (which
-# already provides hail, cpg-utils, aiohttp, nest_asyncio and analysis-runner).
+# already provides hail, cpg-utils, metamist, aiohttp, nest_asyncio and analysis-runner).
 # `uv pip install --system` layers onto the base image's Python without creating a
 # venv and without removing the base image's packages.
 COPY pyproject.toml ./
