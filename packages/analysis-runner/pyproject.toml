@@ -1,7 +1,7 @@
 [project]
 name = "analysis-runner"
 # Bumped with `uv version` (e.g. `uv version --bump patch`).
-version = "3.3.2"
+version = "3.4.0"
 description = "Analysis runner to help make analysis results reproducible"
 readme = "src/analysis_runner/README.md"
 requires-python = ">=3.10"
@@ -11,6 +11,7 @@ dependencies = [
     "cloudpathlib[all]",
     "cpg-utils>=5.0.0",
     "hail>=0.2.135",
+    "pyyaml",
     "requests",
     "tabulate",
     "toml",
