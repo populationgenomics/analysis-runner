@@ -4,7 +4,6 @@ Exports 'add_cromwell_routes', to add the following route to a flask API:
 """
 
 import dataclasses
-import json
 import os
 from datetime import datetime
 from shlex import quote
@@ -12,7 +11,6 @@ from shlex import quote
 import requests
 from aiohttp import web
 from util import (
-    PUBSUB_TOPIC,
     check_dataset_and_group,
     generate_ar_guid,
     get_analysis_runner_metadata,
@@ -23,7 +21,7 @@ from util import (
     get_email_from_request,
     get_hail_token,
     get_server_config,
-    publisher,
+    log_submission_to_metamist,
     validate_output_dir,
     write_config,
 )
@@ -232,9 +230,9 @@ def add_cromwell_routes(routes: web.RouteTableDef):
             environment=job_args.cloud_environment,
         )
 
-        # Publish the metadata to Pub/Sub.
+        # Publish the metadata to Metamist.
         metadata['batch_url'] = url
-        publisher.publish(PUBSUB_TOPIC, json.dumps(metadata).encode('utf-8')).result()
+        await log_submission_to_metamist(metadata)
 
         return web.Response(text=f'{url}/jobs/1\n')
 
