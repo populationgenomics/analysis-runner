@@ -5,6 +5,8 @@ Resources shared by the server and web components
 import pulumi
 import pulumi_gcp as gcp
 
+from util.naming_utils import member_resource_name
+
 gcp_config = pulumi.Config('gcp')
 PROJECT = gcp_config.require('project')
 REGION = gcp_config.require('region')
@@ -24,8 +26,22 @@ def create_common_resources() -> dict[str, pulumi.Resource]:
         opts=pulumi.ResourceOptions(protect=True),
     )
 
+    # Specifically for the DEV env
+    # Grant public dataset groups test level access
+    # Production env is managed in cpg-infra
+    for member in config.get_object('images_readers') or []:
+        gcp.artifactregistry.RepositoryIamMember(
+            f'images-reader-{member_resource_name(member)}',
+            project=PROJECT,
+            location=REGION,
+            repository=images_repo.repository_id,
+            role='roles/artifactregistry.reader',
+            member=member,
+        )
+
     resources: dict[str, pulumi.Resource] = {'images_repo': images_repo}
 
+    # Dev bucket is created/managed in the dev analysis runner GCP project space
     if config.get_bool('create_members_cache_bucket'):
         resources['members_cache_bucket'] = gcp.storage.Bucket(
             'members-cache-bucket',
@@ -36,7 +52,6 @@ def create_common_resources() -> dict[str, pulumi.Resource]:
             uniform_bucket_level_access=True,
             public_access_prevention='enforced',
             versioning=gcp.storage.BucketVersioningArgs(enabled=True),
-            opts=pulumi.ResourceOptions(protect=True),
         )
 
     return resources

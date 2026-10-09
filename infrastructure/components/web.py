@@ -77,7 +77,10 @@ def create_web_resources() -> dict[str, pulumi.Resource] | None:
             opts=pulumi.ResourceOptions(protect=True),
         )
 
-        resources: dict[str, pulumi.Resource] = {'web_sa': web_sa, 'tls_policy': tls_policy}
+        resources: dict[str, pulumi.Resource] = {
+            'web_sa': web_sa,
+            'tls_policy': tls_policy,
+        }
 
         for spec in WEB_PROXIES:
             resources.update(_create_web_proxy(spec, web_sa, tls_policy))
