@@ -51,8 +51,8 @@ jobs:
       name: "Authenticate to Google Cloud (development)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/PLACEHOLDER_DEV_PROJECT_NUMBER/locations/global/workloadIdentityPools/PLACEHOLDER_POOL/providers/PLACEHOLDER_PROVIDER"
-        service_account: "PLACEHOLDER-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+        workload_identity_provider: "projects/133236071488/locations/global/workloadIdentityPools/github-wif-pool/providers/github-provider"
+        service_account: "analysis-runner-deploy@analysis-runner-dev.iam.gserviceaccount.com"
 
     - name: "Install uv"
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -70,7 +70,6 @@ jobs:
         PULUMI_SKIP_CHECKPOINTS: true
 
   build:
-    needs: deploy-common-dev
     runs-on: ubuntu-latest
     environment: development
 
@@ -84,8 +83,8 @@ jobs:
       name: "Authenticate to Google Cloud (development)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/PLACEHOLDER_DEV_PROJECT_NUMBER/locations/global/workloadIdentityPools/PLACEHOLDER_POOL/providers/PLACEHOLDER_PROVIDER"
-        service_account: "PLACEHOLDER-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+        workload_identity_provider: "projects/133236071488/locations/global/workloadIdentityPools/github-wif-pool/providers/github-provider"
+        service_account: "analysis-runner-deploy@analysis-runner-dev.iam.gserviceaccount.com"
 
     - id: "google-cloud-sdk-setup"
       name: "Set up Cloud SDK"

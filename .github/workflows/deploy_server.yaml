@@ -28,56 +28,7 @@ env:
   DEV_SERVER_IMAGE: australia-southeast1-docker.pkg.dev/analysis-runner-dev/images/server
 
 jobs:
-  deploy-common-dev:
-    runs-on: ubuntu-latest
-    environment: development
-    concurrency:
-      group: pulumi-development
-      cancel-in-progress: false
-
-    steps:
-    - name: "checkout analysis-runner repo"
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-
-    - name: "checkout analysis-runner-private (stack config)"
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        repository: populationgenomics/analysis-runner-private
-        ref: main
-        path: analysis-runner-private
-        token: ${{ secrets.ANALYSIS_RUNNER_PRIVATE_TOKEN }}
-        persist-credentials: false
-
-    - name: "copy Pulumi stack config"
-      run: |
-        cp analysis-runner-private/infrastructure/common/Pulumi.common-development.yaml infrastructure/
-
-    - id: "google-cloud-auth"
-      name: "Authenticate to Google Cloud (development)"
-      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
-      with:
-        workload_identity_provider: "projects/PLACEHOLDER_DEV_PROJECT_NUMBER/locations/global/workloadIdentityPools/PLACEHOLDER_POOL/providers/PLACEHOLDER_PROVIDER"
-        service_account: "PLACEHOLDER-deploy@analysis-runner-dev.iam.gserviceaccount.com"
-
-    - name: "Install uv"
-      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-
-    # Shared resources.
-    - name: "pulumi up (common-development)"
-      uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
-      with:
-        command: up
-        work-dir: ./infrastructure
-        stack-name: common-development
-        cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
-      env:
-        PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-        PULUMI_SKIP_CHECKPOINTS: true
-
   build:
-    needs: deploy-common-dev
     runs-on: ubuntu-latest
     environment: development
     outputs:
@@ -109,8 +60,8 @@ jobs:
       name: "Authenticate to Google Cloud (development)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/PLACEHOLDER_DEV_PROJECT_NUMBER/locations/global/workloadIdentityPools/PLACEHOLDER_POOL/providers/PLACEHOLDER_PROVIDER"
-        service_account: "PLACEHOLDER-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+        workload_identity_provider: "projects/133236071488/locations/global/workloadIdentityPools/github-wif-pool/providers/github-provider"
+        service_account: "analysis-runner-deploy@analysis-runner-dev.iam.gserviceaccount.com"
 
     - id: "google-cloud-sdk-setup"
       name: "Set up Cloud SDK"
@@ -172,17 +123,30 @@ jobs:
 
     - name: "copy Pulumi stack config"
       run: |
+        cp analysis-runner-private/infrastructure/common/Pulumi.common-development.yaml infrastructure/
         cp analysis-runner-private/infrastructure/server/Pulumi.server-development.yaml infrastructure/
 
     - id: "google-cloud-auth"
       name: "Authenticate to Google Cloud (development)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/PLACEHOLDER_DEV_PROJECT_NUMBER/locations/global/workloadIdentityPools/PLACEHOLDER_POOL/providers/PLACEHOLDER_PROVIDER"
-        service_account: "PLACEHOLDER-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+        workload_identity_provider: "projects/133236071488/locations/global/workloadIdentityPools/github-wif-pool/providers/github-provider"
+        service_account: "analysis-runner-deploy@analysis-runner-dev.iam.gserviceaccount.com"
 
     - name: "Install uv"
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+    - name: "pulumi up (common-development)"
+      uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
+      with:
+        command: up
+        work-dir: ./infrastructure
+        stack-name: common-development
+        cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
+      env:
+        PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+        PULUMI_SKIP_CHECKPOINTS: true
+
     - name: "pulumi up (server-development)"
       uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
       with:
@@ -190,6 +154,7 @@ jobs:
         work-dir: ./infrastructure
         stack-name: server-development
         cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
+        # pass image tag to the pulumi config -> trigger cloud run update
         config-map: "{'analysis-runner:server_image_tag': {value: '${{ needs.build.outputs.image_tag }}', secret: false}}"
       env:
         PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
@@ -197,6 +162,7 @@ jobs:
 
   smoke-test:
     needs: deploy-dev
+    if: ${{ inputs.deploy_to_prod }}
     runs-on: ubuntu-latest
     environment: development
 
@@ -205,8 +171,8 @@ jobs:
       name: "Authenticate to Google Cloud (development)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/PLACEHOLDER_DEV_PROJECT_NUMBER/locations/global/workloadIdentityPools/PLACEHOLDER_POOL/providers/PLACEHOLDER_PROVIDER"
-        service_account: "PLACEHOLDER-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+        workload_identity_provider: "projects/133236071488/locations/global/workloadIdentityPools/github-wif-pool/providers/github-provider"
+        service_account: "analysis-runner-deploy@analysis-runner-dev.iam.gserviceaccount.com"
 
     - id: "google-cloud-sdk-setup"
       name: "Set up Cloud SDK"

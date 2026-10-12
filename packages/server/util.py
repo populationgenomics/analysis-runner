@@ -44,7 +44,6 @@ assert DRIVER_IMAGE and isinstance(DRIVER_IMAGE, str)
 MEMBERS_CACHE_LOCATION = os.getenv('MEMBERS_CACHE_LOCATION')
 assert MEMBERS_CACHE_LOCATION
 
-# Run configs are written here, and config templates are read from <prefix>/templates.
 CONFIG_PATH_PREFIXES = {'gcp': os.getenv('CONFIG_PATH_PREFIX', 'gs://cpg-config')}
 SUPPORTED_CLOUD_ENVIRONMENTS = {'gcp'}
 DEFAULT_STATUS_REPORTER = 'metamist'
