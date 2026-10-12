@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import pulumi
 import pulumi_gcp as gcp
+from util.naming_utils import member_resource_name
 
 gcp_config = pulumi.Config('gcp')
 PROJECT = gcp_config.require('project')
@@ -27,11 +28,11 @@ class WebProxySpec:
     name: str
     domain: str
     ip_name: str
-    ip_address: str
-    backend_service_id: str
-    oauth2_client_id: str
     cpu: str
     memory: str
+    ip_address: str | None = None
+    backend_service_id: str | None = None
+    oauth2_client_id: str | None = None
     container_name: str | None = None
     service_max_instances: int | None = None
 
@@ -67,6 +68,16 @@ def create_web_resources() -> dict[str, pulumi.Resource] | None:
                 opts=pulumi.ResourceOptions(protect=True),
             )
 
+        # Created in the server stack, the web server's read access is granted here.
+        gcp.secretmanager.SecretIamMember(
+            'server-config-web-accessor',
+            project=PROJECT,
+            secret_id='server-config',  # noqa: S106 - secret name
+            role='roles/secretmanager.secretAccessor',
+            member=web_sa.email.apply(lambda e: f'serviceAccount:{e}'),
+            opts=pulumi.ResourceOptions(protect=True),
+        )
+
         # Shared by both HTTPS proxies (main-web, test-web)
         tls_policy = gcp.compute.SSLPolicy(
             'restricted-tls-policy',
@@ -94,6 +105,46 @@ def _create_web_proxy(
     tls_policy: gcp.compute.SSLPolicy,
 ) -> dict[str, pulumi.Resource]:
     spec_name = spec.name
+
+    neg = gcp.compute.RegionNetworkEndpointGroup(
+        f'{spec_name}-neg',
+        name=f'{spec_name}-neg',
+        region=REGION,
+        project=PROJECT,
+        network_endpoint_type='SERVERLESS',
+        cloud_run=gcp.compute.RegionNetworkEndpointGroupCloudRunArgs(service=spec_name),
+        opts=pulumi.ResourceOptions(protect=True),
+    )
+
+    backend = gcp.compute.BackendService(
+        f'{spec_name}-backend',
+        name=f'{spec_name}-backend',
+        protocol='HTTP',
+        port_name='http',
+        load_balancing_scheme='EXTERNAL',
+        timeout_sec=30,
+        session_affinity='NONE',
+        affinity_cookie_ttl_sec=0,
+        connection_draining_timeout_sec=0,
+        backends=[
+            gcp.compute.BackendServiceBackendArgs(group=neg.id, capacity_scaler=0),
+        ],
+        # in the DEV environment, Cloud Run Invoker permission to IAP is granted as per
+        # https://docs.cloud.google.com/iap/docs/enabling-cloud-run
+        iap=gcp.compute.BackendServiceIapArgs(enabled=True),
+        log_config=gcp.compute.BackendServiceLogConfigArgs(
+            enable=True,
+            optional_mode='EXCLUDE_ALL_OPTIONAL',
+        ),
+        opts=pulumi.ResourceOptions(
+            protect=True,
+            ignore_changes=[
+                'iap.oauth2ClientId',
+                'iap.oauth2ClientSecret',
+                'iap.oauth2ClientSecretSha256',
+            ],
+        ),
+    )
 
     service = gcp.cloudrunv2.Service(
         spec_name,
@@ -129,6 +180,10 @@ def _create_web_proxy(
                             name='MEMBERS_CACHE_LOCATION',
                             value=f'gs://{MEMBERS_CACHE_BUCKET}',
                         ),
+                        gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
+                            name='ANALYSIS_RUNNER_PROJECT_ID',
+                            value=PROJECT,
+                        ),
                     ],
                     ports=gcp.cloudrunv2.ServiceTemplateContainerPortsArgs(
                         container_port=8080, name='http1'
@@ -163,51 +218,9 @@ def _create_web_proxy(
         ),
     )
 
-    neg = gcp.compute.RegionNetworkEndpointGroup(
-        f'{spec_name}-neg',
-        name=f'{spec_name}-neg',
-        region=REGION,
-        project=PROJECT,
-        network_endpoint_type='SERVERLESS',
-        cloud_run=gcp.compute.RegionNetworkEndpointGroupCloudRunArgs(
-            service=service.name
-        ),
-        opts=pulumi.ResourceOptions(protect=True),
-    )
-
-    backend = gcp.compute.BackendService(
-        f'{spec_name}-backend',
-        name=f'{spec_name}-backend',
-        protocol='HTTP',
-        port_name='http',
-        load_balancing_scheme='EXTERNAL',
-        timeout_sec=30,
-        session_affinity='NONE',
-        affinity_cookie_ttl_sec=0,
-        connection_draining_timeout_sec=0,
-        backends=[
-            gcp.compute.BackendServiceBackendArgs(group=neg.id, capacity_scaler=0),
-        ],
-        # IAP uses the existing OAuth client `spec.oauth2_client_id`. The provider stores the client ID as
-        # sensitive and the secret can't be read back, so both are left unmanaged.
-        iap=gcp.compute.BackendServiceIapArgs(enabled=True),
-        log_config=gcp.compute.BackendServiceLogConfigArgs(
-            enable=True,
-            optional_mode='EXCLUDE_ALL_OPTIONAL',
-        ),
-        opts=pulumi.ResourceOptions(
-            protect=True,
-            ignore_changes=[
-                'iap.oauth2ClientId',
-                'iap.oauth2ClientSecret',
-                'iap.oauth2ClientSecretSha256',
-            ],
-        ),
-    )
-
     for member in IAP_ACCESSORS:
         gcp.iap.WebBackendServiceIamMember(
-            f'{spec_name}-backend-iap-{member.replace(":", "-").replace(".", "-")}',
+            f'{spec_name}-backend-iap-{member_resource_name(member)}',
             project=PROJECT,
             web_backend_service=backend.name,
             role='roles/iap.httpsResourceAccessor',
