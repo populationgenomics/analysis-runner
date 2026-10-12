@@ -39,7 +39,7 @@ def add_seqera_args(
     parser.add_argument(
         '--access-level',
         choices=(['test', 'standard', 'full']),
-        default='test',
+        default='standard',
         help='Which permissions level to grant when running the job.',
     )
 

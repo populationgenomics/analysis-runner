@@ -41,7 +41,7 @@ def add_config_args(
     parser.add_argument(
         '--access-level',
         choices=(['test', 'standard', 'full']),
-        default='test',
+        default='standard',
         help='Which permissions to grant when running the job.',
     )
 
