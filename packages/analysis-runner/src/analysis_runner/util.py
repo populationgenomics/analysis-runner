@@ -76,7 +76,7 @@ def add_general_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         '--access-level',
         choices=(['test', 'standard', 'full']),
-        default='standard',
+        default='test',
         help='Which permissions to grant when running the job.',
     )
 
