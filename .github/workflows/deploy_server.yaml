@@ -60,8 +60,8 @@ jobs:
       name: "Authenticate to Google Cloud (development)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/133236071488/locations/global/workloadIdentityPools/github-wif-pool/providers/github-provider"
-        service_account: "analysis-runner-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+        workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
 
     - id: "google-cloud-sdk-setup"
       name: "Set up Cloud SDK"
@@ -130,8 +130,8 @@ jobs:
       name: "Authenticate to Google Cloud (development)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/133236071488/locations/global/workloadIdentityPools/github-wif-pool/providers/github-provider"
-        service_account: "analysis-runner-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+        workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
 
     - name: "Install uv"
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -171,8 +171,8 @@ jobs:
       name: "Authenticate to Google Cloud (development)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/133236071488/locations/global/workloadIdentityPools/github-wif-pool/providers/github-provider"
-        service_account: "analysis-runner-deploy@analysis-runner-dev.iam.gserviceaccount.com"
+        workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
 
     - id: "google-cloud-sdk-setup"
       name: "Set up Cloud SDK"
@@ -239,8 +239,8 @@ jobs:
       name: "Authenticate to Google Cloud (production)"
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
       with:
-        workload_identity_provider: "projects/370374240567/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
-        service_account: "server-deploy@analysis-runner.iam.gserviceaccount.com"
+        workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
 
     - id: "google-cloud-sdk-setup"
       name: "Set up Cloud SDK"
