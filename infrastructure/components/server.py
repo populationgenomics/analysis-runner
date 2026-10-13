@@ -46,10 +46,6 @@ SERVER_SECRETS: list[str] = config.require_object('server_secrets')
 SERVER_CONFIG_SECRET = 'server-config'  # noqa: S105 - secret name, not a value
 
 
-# TODO remove this after recreating prod secrets
-PIN_SECRETS_TO_REGION = config.get_bool('pin_secrets_to_region') or False
-
-
 def create_server_resources() -> dict[str, pulumi.Resource]:
 
     server_sa = gcp.serviceaccount.Account(
@@ -110,21 +106,14 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
             f'{secret_name}-secret',
             secret_id=secret_name,
             project=PROJECT,
-            replication=(
-                gcp.secretmanager.SecretReplicationArgs(
-                    user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
-                        replicas=[
-                            gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
-                                location=REGION
-                            ),
-                        ],
-                    ),
-                )
-                # TODO remove this after updating production
-                if PIN_SECRETS_TO_REGION
-                else gcp.secretmanager.SecretReplicationArgs(
-                    auto=gcp.secretmanager.SecretReplicationAutoArgs(),
-                )
+            replication=gcp.secretmanager.SecretReplicationArgs(
+                user_managed=gcp.secretmanager.SecretReplicationUserManagedArgs(
+                    replicas=[
+                        gcp.secretmanager.SecretReplicationUserManagedReplicaArgs(
+                            location=REGION
+                        ),
+                    ],
+                ),
             ),
             opts=pulumi.ResourceOptions(protect=True),
         )
