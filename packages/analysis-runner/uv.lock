@@ -185,12 +185,13 @@ wheels = [
 
 [[package]]
 name = "analysis-runner"
-version = "3.3.2"
+version = "3.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "cloudpathlib", extra = ["all"] },
     { name = "cpg-utils" },
     { name = "hail" },
+    { name = "pyyaml" },
     { name = "requests" },
     { name = "tabulate" },
     { name = "toml" },
@@ -206,6 +207,7 @@ requires-dist = [
     { name = "cloudpathlib", extras = ["all"] },
     { name = "cpg-utils", specifier = ">=5.0.0" },
     { name = "hail", specifier = ">=0.2.135" },
+    { name = "pyyaml" },
     { name = "requests" },
     { name = "tabulate" },
     { name = "toml" },
