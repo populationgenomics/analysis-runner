@@ -1,11 +1,9 @@
-import json
 import urllib.parse
 
 import requests
 from aiohttp import web
 from seqera_api import SeqeraApiClient
 from util import (
-    PUBSUB_TOPIC,
     check_allowed_repos,
     check_branch_contains_commit,
     check_dataset_and_group,
@@ -13,7 +11,7 @@ from util import (
     get_and_check_cloud_environment,
     get_email_from_request,
     get_server_config,
-    publisher,
+    log_submission_to_metamist,
 )
 
 from cpg_utils.config import AR_GUID_NAME
@@ -104,7 +102,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
         seqera = SeqeraApiClient(dataset, access_level)
         workflow_id = seqera.launch_workflow(params)
 
-        pubsub_metadata = {
+        metadata = {
             AR_GUID_NAME: ar_guid,
             'name': params['run_name'],
             'dataset': dataset,
@@ -121,12 +119,13 @@ def add_seqera_routes(routes: web.RouteTableDef):
         try:
             where = f' at [{seqera.org_name} / {seqera.workspace_name}] workspace'
             url = f'{seqera.server_url}/orgs/{seqera.org_name}/workspaces/{seqera.workspace_name}/watch/{workflow_id}'
-            pubsub_metadata['batch_url'] = url
+            metadata['batch_url'] = url
         except (requests.HTTPError, KeyError):
             where = ''
-            url = '[URL unavailable]'
+            placeholder = 'URL unavailable'
+            url = f'[{placeholder}]'
+            metadata['batch_url'] = placeholder.upper()
 
-        pubsub_json_bytes = json.dumps(pubsub_metadata).encode('utf-8')
-        publisher.publish(PUBSUB_TOPIC, pubsub_json_bytes).result()
+        await log_submission_to_metamist(metadata)
 
         return web.Response(text=f'Workflow {workflow_id} submitted{where}.\n{url}\n')
