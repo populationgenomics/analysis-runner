@@ -6,8 +6,7 @@ from dataclasses import dataclass
 
 import pulumi
 import pulumi_gcp as gcp
-
-from util.naming_utils import member_resource_name
+from naming_util import member_resource_name
 
 gcp_config = pulumi.Config('gcp')
 PROJECT = gcp_config.require('project')
