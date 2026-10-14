@@ -37,7 +37,7 @@ ROUTE_ADDERS = {
 
 def get_enabled_routes() -> list[str]:
     """
-    Comma-separated route names from ENABLED_ROUTES
+    Comma-separated route names from ENABLED_ROUTES environment variable
     Provide flexibility to enable/disable routes in different envs
     """
     enabled_routes = os.getenv('ENABLED_ROUTES')

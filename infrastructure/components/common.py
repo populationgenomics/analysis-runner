@@ -4,7 +4,7 @@ Resources shared by the server and web components
 
 import pulumi
 import pulumi_gcp as gcp
-from naming_util import member_resource_name
+from infra_util import member_resource_name
 
 gcp_config = pulumi.Config('gcp')
 PROJECT = gcp_config.require('project')
@@ -14,7 +14,7 @@ config = pulumi.Config()
 
 
 def create_common_resources() -> dict[str, pulumi.Resource]:
-    # Server, driver, web and dataproc images.
+    # Server, driver and web images.
     images_repo = gcp.artifactregistry.Repository(
         'images-repository',
         repository_id='images',

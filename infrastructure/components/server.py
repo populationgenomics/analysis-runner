@@ -6,18 +6,19 @@ from dataclasses import dataclass
 
 import pulumi
 import pulumi_gcp as gcp
-from naming_util import member_resource_name
+from infra_util import member_resource_name
 
 gcp_config = pulumi.Config('gcp')
 PROJECT = gcp_config.require('project')
 REGION = gcp_config.require('region')
 
 config = pulumi.Config()
+
 CPG_CONFIG_BUCKET = config.require('cpg_config_bucket')
 ORG_ID = config.require('org_id')
-
 SERVER_IMAGE_TAG = config.get('server_image_tag')
 
+# server_image_tag is injected in deploy GHA
 if not SERVER_IMAGE_TAG:
     raise ValueError('Missing server_image_tag config')
 
@@ -39,9 +40,8 @@ class ServerSpec:
 AR_SERVERS = [ServerSpec(**spec) for spec in config.require_object('server_services')]
 SERVER_INVOKERS: list[str] = config.get_object('server_invokers') or []
 MEMBERS_CACHE_BUCKET = config.require('members_cache_bucket')
-
-
 SERVER_SECRETS: list[str] = config.require_object('server_secrets')
+
 SERVER_CONFIG_SECRET = 'server-config'  # noqa: S105 - secret name, not a value
 
 
@@ -55,8 +55,8 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
         description='Runs the analysis-runner server',
         opts=pulumi.ResourceOptions(protect=True),
     )
-    server_member = server_sa.email.apply(lambda e: f'serviceAccount:{e}')
 
+    server_member = server_sa.email.apply(lambda e: f'serviceAccount:{e}')
     gcp.projects.IAMMember(
         'analysis-runner-server-log-writer',
         project=PROJECT,
@@ -65,7 +65,7 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
         opts=pulumi.ResourceOptions(protect=True),
     )
 
-    # Config templates and run configs from submissions reside here.
+    # Config templates and run-configs from job submissions reside here.
     cpg_config_bucket = gcp.storage.Bucket(
         'cpg-config-bucket',
         name=CPG_CONFIG_BUCKET,
@@ -76,6 +76,7 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
         versioning=gcp.storage.BucketVersioningArgs(enabled=True),
         opts=pulumi.ResourceOptions(protect=True),
     )
+
     gcp.storage.BucketIAMMember(
         'cpg-config-server-viewer-and-creator',
         bucket=cpg_config_bucket.name,
@@ -84,8 +85,8 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
         opts=pulumi.ResourceOptions(protect=True),
     )
 
-    # Grant dataset test groups, read access to dev run config. In production setup, this is already handled in cpg-infra
-    # Read access for run config jobs
+    # Grant dataset test groups, read access to dev run-configs.
+    # In production setup, this is already handled in cpg-infra
     cpg_config_readers: list[str] = config.get_object('cpg_config_readers') or []
     for member in cpg_config_readers:
         gcp.storage.BucketIAMMember(
@@ -95,9 +96,9 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
             member=member,
         )
 
-    # Create secrets and add their accessors.
-    # Secret values are not managed via IaC.
+    # Create secrets and add their accessors for a subset of secrets
     # Cromwell secrets are managed in cpg-infra
+    # Secret values are not managed via IaC.
     secrets: dict[str, gcp.secretmanager.Secret] = {}
     secret_accessors: list[gcp.secretmanager.SecretIamMember] = []
     for secret_name in SERVER_SECRETS:
@@ -116,6 +117,7 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
             ),
             opts=pulumi.ResourceOptions(protect=True),
         )
+
         secrets[secret_name] = secret
         secret_accessors.append(
             gcp.secretmanager.SecretIamMember(
@@ -128,7 +130,7 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
             )
         )
 
-    # create cloud run services
+    # Create cloud run services
     services = {
         spec.name: _create_cloud_run_server(
             spec,
@@ -140,6 +142,7 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
     }
 
     # Grant invoker roles for cloud run services
+    # Production env invokers managed in cpg-infra
     for service_name, service in services.items():
         for member in SERVER_INVOKERS:
             gcp.cloudrunv2.ServiceIamMember(
@@ -151,7 +154,7 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
                 member=member,
             )
 
-    # created In the common stack, the server's read access is granted here.
+    # Bucket is created in the common stack, the server's read access is granted here.
     if config.get_bool('grant_members_cache_read'):
         gcp.storage.BucketIAMMember(
             'members-cache-server-viewer',
@@ -255,13 +258,5 @@ def _create_cloud_run_server(
                 type='TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST', percent=100
             ),
         ],
-        opts=pulumi.ResourceOptions(
-            protect=True,
-            depends_on=depends_on,
-            ignore_changes=[
-                # Written by gcloud on every deploy #TODO remove these
-                'client',
-                'clientVersion',
-            ],
-        ),
+        opts=pulumi.ResourceOptions(protect=True, depends_on=depends_on),
     )

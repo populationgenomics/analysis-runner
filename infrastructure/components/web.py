@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import pulumi
 import pulumi_gcp as gcp
-from naming_util import member_resource_name
+from infra_util import member_resource_name
 
 gcp_config = pulumi.Config('gcp')
 PROJECT = gcp_config.require('project')
@@ -15,10 +15,10 @@ REGION = gcp_config.require('region')
 config = pulumi.Config()
 PROJECT_NUMBER = config.require('project_number')
 MEMBERS_CACHE_BUCKET = config.require('members_cache_bucket')
-
 IAP_ACCESSORS: list[str] = config.require_object('iap_accessors')
 WEB_IMAGE_TAG = config.get('web_image_tag')
 
+# web_image_tag is injected in deploy GHA
 if not WEB_IMAGE_TAG:
     raise ValueError('Missing web_image_tag config')
 
@@ -37,7 +37,8 @@ class WebProxySpec:
     service_max_instances: int | None = None
 
 
-# main and test web proxies
+# Production environment: main and test web proxies
+# Development environment: test web proxy
 WEB_PROXIES = [WebProxySpec(**spec) for spec in config.require_object('web_proxies')]
 
 
@@ -50,6 +51,7 @@ def create_web_resources() -> dict[str, pulumi.Resource] | None:
             description='Used for running the web server that serves from datasets\' "web" buckets',
             opts=pulumi.ResourceOptions(protect=True),
         )
+
         gcp.projects.IAMMember(
             'web-server-log-writer',
             project=PROJECT,
@@ -58,7 +60,7 @@ def create_web_resources() -> dict[str, pulumi.Resource] | None:
             opts=pulumi.ResourceOptions(protect=True),
         )
 
-        # created in the common stack, the web server's read access is granted here.
+        # Bucket is created in the common stack, the web server's read access is granted here.
         if config.get_bool('grant_members_cache_read'):
             gcp.storage.BucketIAMMember(
                 'members-cache-web-viewer',
@@ -208,14 +210,7 @@ def _create_web_proxy(
                 type='TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST', percent=100
             ),
         ],
-        opts=pulumi.ResourceOptions(
-            protect=True,
-            ignore_changes=[
-                # Written by gcloud on every deploy
-                'client',
-                'clientVersion',
-            ],
-        ),
+        opts=pulumi.ResourceOptions(protect=True),
     )
 
     for member in IAP_ACCESSORS:
@@ -267,6 +262,7 @@ def _create_web_proxy(
         tls_early_data='DISABLED',
         opts=pulumi.ResourceOptions(protect=True),
     )
+
     http_proxy = gcp.compute.TargetHttpProxy(
         f'{spec_name}-http-redirect-target-proxy',
         name=f'{spec_name}-http-redirect-target-proxy',
@@ -295,6 +291,7 @@ def _create_web_proxy(
         target=https_proxy.id,
         opts=pulumi.ResourceOptions(protect=True),
     )
+
     http_rule = gcp.compute.GlobalForwardingRule(
         f'{spec_name}-http-redirect-frontend',
         name=f'{spec_name}-http-redirect-frontend',

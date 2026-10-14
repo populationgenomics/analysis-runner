@@ -4,4 +4,4 @@ runtime:
   options:
     toolchain: uv
     virtualenv: .venv
-description: Infrastructure for the analysis-runner server, web proxies and metamist consumer
+description: Infrastructure for the analysis-runner server, web proxies etc
