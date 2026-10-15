@@ -9,6 +9,7 @@ from util import (
     check_allowed_repos,
     check_branch_contains_commit,
     check_dataset_and_group,
+    find_matching_refs,
     generate_ar_guid,
     get_and_check_cloud_environment,
     get_email_from_request,
@@ -19,20 +20,37 @@ from util import (
 from cpg_utils.config import AR_GUID_NAME
 
 
-def parse_github_url(url_str: str) -> tuple[str, str, str | None, str | None]:
+async def parse_github_url(
+    url_str: str,
+) -> tuple[str, str, str | None, str | None, str | None]:
     url = urllib.parse.urlsplit(url_str)
     if url.netloc not in ('github.com', 'raw.githubusercontent.com'):
         raise ValueError('bad host')
 
     if url.path.count('/') == 2:  # noqa: PLR2004
         owner, repo = url.path.removeprefix('/').split('/')
-        return (owner, repo, None, None)
+        return (owner, repo, None, None, None)
 
     owner, repo, ref_path = url.path.removeprefix('/').split('/', 2)
-    ref_path = ref_path.removeprefix('blob/').removeprefix('refs/heads/')
 
-    # TODO separate ref and path
-    return (owner, repo, ref_path, None)
+    # Remainder of path should be blob/branch/path or refs/{heads,tags}/branch/path
+    # where either "branch" might instead be a tag
+
+    if ref_path.startswith('blob/'):
+        ref_path = ref_path.removeprefix('blob/')
+        ref_kinds = ['heads', 'tags']
+    elif ref_path.startswith('refs/'):
+        _, kind, ref_path = ref_path.split('/', 2)
+        ref_kinds = [kind]
+    else:
+        raise ValueError('Malformatted GitHub URL has neither /blob/ or /refs/')
+
+    prefix = ref_path.split('/', 1)[0]
+    for full_ref, ref in await find_matching_refs(owner, repo, ref_kinds, prefix):
+        if ref_path.startswith(f'{ref}/'):
+            return (owner, repo, full_ref, ref, ref_path.removeprefix(ref))
+
+    raise ValueError(f'No Git reference found matching {ref_path}')
 
 
 def get_and_check_seqera_commit(params: dict) -> str:
@@ -46,6 +64,12 @@ def get_and_check_seqera_commit(params: dict) -> str:
         raise web.HTTPBadRequest(reason='Invalid commit parameter')
 
     return commit
+
+
+async def check_on_main(item: str, owner: str, repo: str, ref: str):
+    on_main = await check_branch_contains_commit(repo, 'main', ref, owner)
+    if not on_main:
+        raise web.HTTPBadRequest(reason=f'{item} is not present on main branch')
 
 
 def sanitise_run_name(name: str) -> str:
@@ -80,7 +104,8 @@ def add_seqera_routes(routes: web.RouteTableDef):
             email=email,
         )
 
-        owner, repo, _, path = parse_github_url(params['repository'])
+        owner, repo, _, _, path = await parse_github_url(params['repository'])
+
         if path is not None:
             raise ValueError('GitHub repository URL without file path required')
 
@@ -88,9 +113,17 @@ def add_seqera_routes(routes: web.RouteTableDef):
 
         commit = get_and_check_seqera_commit(params)
         if not is_test:
-            on_main = await check_branch_contains_commit(repo, 'main', commit, owner)
-            if not on_main:
-                raise web.HTTPBadRequest(reason='Commit is not present on main branch')
+            await check_on_main('Commit', owner, repo, commit)
+
+        if config_url := params.get('config_url'):
+            owner, repo, full_ref, ref, path = await parse_github_url(config_url)
+            if not is_test:
+                await check_on_main('Config URL', owner, repo, ref)
+
+            url = f'https://raw.githubusercontent.com/{owner}/{repo}/{full_ref}{path}'
+            response = requests.get(url, timeout=60)
+            response.raise_for_status()
+            params['config_text'] = response.text
 
         user_name, _ = email.split('@', 1)
         main_script = params.get('main_script')
