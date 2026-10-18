@@ -18,6 +18,7 @@ from util import (
 )
 
 from cpg_utils.config import AR_GUID_NAME
+from cpg_utils.constants import DEFAULT_GITHUB_ORGANISATION
 
 
 async def parse_github_url(
@@ -104,7 +105,13 @@ def add_seqera_routes(routes: web.RouteTableDef):
             email=email,
         )
 
-        owner, repo, _, _, path = await parse_github_url(params['repository'])
+        if '/' in params['repository']:
+            owner, repo, _, _, path = await parse_github_url(params['repository'])
+        else:
+            owner = DEFAULT_GITHUB_ORGANISATION
+            repo = params['repository']
+            path = None
+            params['repository'] = f'https://github.com/{owner}/{repo}.git'
 
         if path is not None:
             raise ValueError('GitHub repository URL without file path required')
@@ -148,7 +155,10 @@ def add_seqera_routes(routes: web.RouteTableDef):
             'script': main_script,
             'description': params.get('description'),
             'environment': cloud_environment,
-            'meta': {'workflow_id': workflow_id},
+            'meta': {
+                'workflow_id': workflow_id,
+                'seqera_status': 'PENDING',
+            },
         }
 
         try:
