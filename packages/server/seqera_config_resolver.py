@@ -1,7 +1,7 @@
 """
 This scheduled job resolves the config_path of Analysis Runner entries in Metamist
 belonging to Seqera workflows. The resolved configurations are uploaded to the config bucket
-and the corresponding AnalysisRunner entry is also updated.
+and the corresponding Analysis Runner entry in Metamist is also updated.
 """
 
 import asyncio

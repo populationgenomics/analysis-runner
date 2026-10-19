@@ -10,12 +10,8 @@ from cpg_utils.cloud import read_secret
 
 ANALYSIS_RUNNER_PROJECT_ID = os.getenv('ANALYSIS_RUNNER_PROJECT_ID', 'analysis-runner')
 
-# configPath of a Seqera run's metamist log until the config resolver saves its resolved config
 SEQERA_PENDING = 'SEQERA-PENDING'
-
-# batch_url of a Seqera run's metamist log if its URL couldn't be built at launch
 BATCH_URL_UNAVAILABLE = 'URL UNAVAILABLE'
-
 SEQERA_KEYS = {
     'commit_id': 'commitId',
     'config_text': 'configText',
