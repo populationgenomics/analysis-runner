@@ -2,7 +2,8 @@ import urllib.parse
 
 import requests
 from aiohttp import web
-from seqera_api import SeqeraApiClient
+from metamist_util import log_submission_to_metamist
+from seqera_api import BATCH_URL_UNAVAILABLE, SEQERA_PENDING, SeqeraApiClient
 from util import (
     check_allowed_repos,
     check_branch_contains_commit,
@@ -11,7 +12,6 @@ from util import (
     get_and_check_cloud_environment,
     get_email_from_request,
     get_server_config,
-    log_submission_to_metamist,
 )
 
 from cpg_utils.config import AR_GUID_NAME
@@ -113,18 +113,19 @@ def add_seqera_routes(routes: web.RouteTableDef):
             'script': main_script,
             'description': params.get('description'),
             'environment': cloud_environment,
+            # The scheduled job will resolve this field and update the Metamist entry later
+            'configPath': SEQERA_PENDING,
             'meta': {'workflow_id': workflow_id},
         }
 
         try:
             where = f' at [{seqera.org_name} / {seqera.workspace_name}] workspace'
-            url = f'{seqera.server_url}/orgs/{seqera.org_name}/workspaces/{seqera.workspace_name}/watch/{workflow_id}'
+            url = seqera.workflow_url(workflow_id)
             metadata['batch_url'] = url
         except (requests.HTTPError, KeyError):
             where = ''
-            placeholder = 'URL unavailable'
-            url = f'[{placeholder}]'
-            metadata['batch_url'] = placeholder.upper()
+            url = '[URL unavailable]' # # The scheduled job will resolve this field and update the Metamist entry later
+            metadata['batch_url'] = BATCH_URL_UNAVAILABLE
 
         await log_submission_to_metamist(metadata)
 
