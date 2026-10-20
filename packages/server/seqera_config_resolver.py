@@ -101,7 +101,10 @@ def write_config(ar_guid: str, config_text: str) -> str:
 
     # TODO the seqera configText is groovy like. Just dumping now.
     config_path = AnyPath(CONFIG_PATH_PREFIX) / f'{ar_guid}.config'
-    config_path.write_text(config_text)
+    # Already written by a previous run whose Metamist update failed. The job can't
+    # overwrite objects in the config bucket.
+    if not config_path.exists():
+        config_path.write_text(config_text)
     return str(config_path)
 
 

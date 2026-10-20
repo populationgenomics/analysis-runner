@@ -19,6 +19,8 @@ COPY pyproject.toml ./
 RUN uv pip install --system --no-cache -r pyproject.toml
 
 COPY main.py ar.py config.py cromwell.py metamist_util.py seqera.py seqera_api.py util.py ./
+# Run by the seqera-config-resolver Cloud Run Job, which overrides the CMD
+COPY seqera_config_resolver.py ./
 
 # Prepare the Hail deploy config to point to the CPG domain.
 COPY deploy-config.json /deploy-config/deploy-config.json
