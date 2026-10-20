@@ -61,7 +61,11 @@ async def log_submission_to_metamist(metadata: dict) -> None:
             script=str(metadata.get('script')),
             description=str(metadata.get('description')),
             driver_image=str(metadata.get('driverImage')),
-            config_path=str(metadata.get('configPath')),
+            config_path=(
+                str(metadata['configPath'])
+                if metadata.get('configPath') is not None
+                else None
+            ),
             environment=str(metadata.get('environment')),
             batch_url=str(metadata.get('batch_url')),
             submitting_user=str(metadata.get('user')),

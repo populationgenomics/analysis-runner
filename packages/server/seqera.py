@@ -3,7 +3,12 @@ import urllib.parse
 import requests
 from aiohttp import web
 from metamist_util import log_submission_to_metamist
-from seqera_api import BATCH_URL_UNAVAILABLE, SEQERA_PENDING, SeqeraApiClient
+from seqera_api import (
+    BATCH_URL_UNAVAILABLE,
+    CONFIG_PENDING,
+    SEQERA_STATUS_KEY,
+    SeqeraApiClient,
+)
 from util import (
     check_allowed_repos,
     check_branch_contains_commit,
@@ -113,9 +118,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
             'script': main_script,
             'description': params.get('description'),
             'environment': cloud_environment,
-            # The scheduled job will resolve this field and update the Metamist entry later
-            'configPath': SEQERA_PENDING,
-            'meta': {'workflow_id': workflow_id},
+            'meta': {'workflow_id': workflow_id, SEQERA_STATUS_KEY: CONFIG_PENDING},
         }
 
         try:
@@ -124,7 +127,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
             metadata['batch_url'] = url
         except (requests.HTTPError, KeyError):
             where = ''
-            url = '[URL unavailable]' # # The scheduled job will resolve this field and update the Metamist entry later
+            url = '[URL unavailable]' # The scheduled job will resolve this field and update the Metamist entry later
             metadata['batch_url'] = BATCH_URL_UNAVAILABLE
 
         await log_submission_to_metamist(metadata)
