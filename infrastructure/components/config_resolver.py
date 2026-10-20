@@ -1,5 +1,7 @@
 """
-Cloud Run Job to resolve Seqera workflow configs in Metamist
+Cloud Run Job to resolve Seqera workflow configs in Metamist.
+Deployed as its own stack, after the server stack, which owns the config bucket and
+the secrets.
 """
 
 import pulumi
@@ -12,33 +14,34 @@ REGION = gcp_config.require('region')
 config = pulumi.Config()
 
 ORG_ID = config.require('org_id')
+CPG_CONFIG_BUCKET = config.require('cpg_config_bucket')
 # server_image_tag is injected in deploy GHA,
 SERVER_IMAGE_TAG = config.require('server_image_tag')
-SEQERA_CONFIG_RESOLVER = 'seqera-config-resolver'
+CONFIG_RESOLVER = 'config-resolver'
 
 SEQERA_CONFIG_RESOLVER_TIMEOUT = '300s'
 SEQERA_CONFIG_RESOLVER_SCHEDULE = '*/5 * * * *'
+SEQERA_CONFIG_RESOLVER_SECRETS: list[str] = config.require_object(
+    'config_resolver_secrets'
+)
 SEQERA_CONFIG_RESOLVER_ENV: dict[str, str] = (
-    config.get_object('seqera_config_resolver_env') or {}
+    config.get_object('config_resolver_env') or {}
 )
 
 
-def create_seqera_config_resolver_resources(
-    cpg_config_bucket: gcp.storage.Bucket,
-    secrets: dict[str, gcp.secretmanager.Secret],
-) -> dict[str, pulumi.Resource]:
+def create_seqera_config_resolver_resources() -> dict[str, pulumi.Resource]:
 
     job_sa = gcp.serviceaccount.Account(
-        f'{SEQERA_CONFIG_RESOLVER}-sa',
-        account_id=SEQERA_CONFIG_RESOLVER,
+        f'{CONFIG_RESOLVER}-sa',
+        account_id=CONFIG_RESOLVER,
         project=PROJECT,
-        display_name=SEQERA_CONFIG_RESOLVER,
-        description='Cloud run job to resolve Seqera workflow configs',
+        display_name=CONFIG_RESOLVER,
+        description='Cloud run job to resolve Analysis Runner configs',
     )
     job_member = job_sa.email.apply(lambda e: f'serviceAccount:{e}')
 
     gcp.projects.IAMMember(
-        f'{SEQERA_CONFIG_RESOLVER}-log-writer',
+        f'{CONFIG_RESOLVER}-log-writer',
         project=PROJECT,
         role='roles/logging.logWriter',
         member=job_member,
@@ -46,29 +49,28 @@ def create_seqera_config_resolver_resources(
 
     # Resolved configs are written to the config bucket
     gcp.storage.BucketIAMMember(
-        f'cpg-config-{SEQERA_CONFIG_RESOLVER}-viewer-and-creator',
-        bucket=cpg_config_bucket.name,
+        f'cpg-config-{CONFIG_RESOLVER}-viewer-and-creator',
+        bucket=CPG_CONFIG_BUCKET,
         role=f'organizations/{ORG_ID}/roles/StorageViewerAndCreator',
         member=job_member,
     )
 
-    # Seqera platform config and launch tokens managed in this stack.
-    # In production, the seqera-platform-config accessor is managed in cpg-infra.
+    # In Development, seqera launch tokens -> created in the server stack.
+    # In production, the seqera-platform-config managed in cpg-infra.
     secret_accessors = [
         gcp.secretmanager.SecretIamMember(
-            f'{secret_name}-{SEQERA_CONFIG_RESOLVER}-accessor',
+            f'{secret_name}-{CONFIG_RESOLVER}-accessor',
             project=PROJECT,
-            secret_id=secret.secret_id,
+            secret_id=secret_name,
             role='roles/secretmanager.secretAccessor',
             member=job_member,
         )
-        for secret_name, secret in secrets.items()
-        if secret_name.startswith('seqera-')
+        for secret_name in SEQERA_CONFIG_RESOLVER_SECRETS
     ]
 
     job = gcp.cloudrunv2.Job(
-        SEQERA_CONFIG_RESOLVER,
-        name=SEQERA_CONFIG_RESOLVER,
+        CONFIG_RESOLVER,
+        name=CONFIG_RESOLVER,
         location=REGION,
         project=PROJECT,
         deletion_protection=False,
@@ -87,9 +89,7 @@ def create_seqera_config_resolver_resources(
                         envs=[
                             gcp.cloudrunv2.JobTemplateTemplateContainerEnvArgs(
                                 name='CONFIG_PATH_PREFIX',
-                                value=cpg_config_bucket.name.apply(
-                                    lambda name: f'gs://{name}'
-                                ),
+                                value=f'gs://{CPG_CONFIG_BUCKET}',
                             ),
                             gcp.cloudrunv2.JobTemplateTemplateContainerEnvArgs(
                                 name='ANALYSIS_RUNNER_PROJECT_ID',
@@ -113,15 +113,15 @@ def create_seqera_config_resolver_resources(
     )
 
     scheduler_sa = gcp.serviceaccount.Account(
-        f'{SEQERA_CONFIG_RESOLVER}-scheduler-sa',
-        account_id=f'{SEQERA_CONFIG_RESOLVER}-scheduler',
+        f'{CONFIG_RESOLVER}-scheduler-sa',
+        account_id=f'{CONFIG_RESOLVER}-scheduler',
         project=PROJECT,
-        display_name=f'{SEQERA_CONFIG_RESOLVER}-scheduler',
-        description='Runs the Seqera config resolver job on schedule',
+        display_name=f'{CONFIG_RESOLVER}-scheduler',
+        description='Runs the Config resolver job on schedule',
     )
 
     gcp.cloudrunv2.JobIamMember(
-        f'{SEQERA_CONFIG_RESOLVER}-scheduler-executor',
+        f'{CONFIG_RESOLVER}-scheduler-executor',
         project=PROJECT,
         location=REGION,
         name=job.name,
@@ -130,11 +130,11 @@ def create_seqera_config_resolver_resources(
     )
 
     scheduler = gcp.cloudscheduler.Job(
-        f'{SEQERA_CONFIG_RESOLVER}-scheduler',
-        name=SEQERA_CONFIG_RESOLVER,
+        f'{CONFIG_RESOLVER}-scheduler',
+        name=CONFIG_RESOLVER,
         project=PROJECT,
         region=REGION,
-        description='Runs the Seqera config resolver job',
+        description='Runs the Config resolver job',
         schedule=SEQERA_CONFIG_RESOLVER_SCHEDULE,
         time_zone='UTC',
         # A missed run is picked up by the next scheduled run
@@ -153,7 +153,7 @@ def create_seqera_config_resolver_resources(
     )
 
     return {
-        f'{SEQERA_CONFIG_RESOLVER}_sa': job_sa,
-        f'{SEQERA_CONFIG_RESOLVER}_job': job,
-        f'{SEQERA_CONFIG_RESOLVER}_scheduler': scheduler,
+        f'{CONFIG_RESOLVER}_sa': job_sa,
+        f'{CONFIG_RESOLVER}_job': job,
+        f'{CONFIG_RESOLVER}_scheduler': scheduler,
     }

@@ -20,5 +20,9 @@ elif component == 'web':
     from components.web import create_web_resources
 
     create_web_resources()
+elif component == 'config-resolver':
+    from components.config_resolver import create_seqera_config_resolver_resources
+
+    create_seqera_config_resolver_resources()
 else:
     raise ValueError(f'Unknown component {component!r}')

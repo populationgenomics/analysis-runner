@@ -125,6 +125,7 @@ jobs:
       run: |
         cp analysis-runner-private/infrastructure/common/Pulumi.common-development.yaml infrastructure/
         cp analysis-runner-private/infrastructure/server/Pulumi.server-development.yaml infrastructure/
+        cp analysis-runner-private/infrastructure/config-resolver/Pulumi.config-resolver-development.yaml infrastructure/
 
     - id: "google-cloud-auth"
       name: "Authenticate to Google Cloud (development)"
@@ -155,6 +156,18 @@ jobs:
         stack-name: server-development
         cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
         # pass image tag to the pulumi config -> trigger cloud run update
+        config-map: "{'analysis-runner:server_image_tag': {value: '${{ needs.build.outputs.image_tag }}', secret: false}}"
+      env:
+        PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+        PULUMI_SKIP_CHECKPOINTS: true
+
+    - name: "pulumi up (config-resolver-development)"
+      uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
+      with:
+        command: up
+        work-dir: ./infrastructure
+        stack-name: config-resolver-development
+        cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
         config-map: "{'analysis-runner:server_image_tag': {value: '${{ needs.build.outputs.image_tag }}', secret: false}}"
       env:
         PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
@@ -234,6 +247,7 @@ jobs:
       run: |
         cp analysis-runner-private/infrastructure/common/Pulumi.common-production.yaml infrastructure/
         cp analysis-runner-private/infrastructure/server/Pulumi.server-production.yaml infrastructure/
+        cp analysis-runner-private/infrastructure/config-resolver/Pulumi.config-resolver-production.yaml infrastructure/
 
     - id: "google-cloud-auth"
       name: "Authenticate to Google Cloud (production)"
@@ -285,6 +299,19 @@ jobs:
         command: up
         work-dir: ./infrastructure
         stack-name: server-production
+        cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
+        config-map: "{'analysis-runner:server_image_tag': {value: '${{ needs.build.outputs.image_tag }}', secret: false}}"
+      env:
+        PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+        PULUMI_SKIP_CHECKPOINTS: true
+
+    # The job runs the server image; the server stack owns its bucket and secrets.
+    - name: "pulumi up (config-resolver-production)"
+      uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
+      with:
+        command: up
+        work-dir: ./infrastructure
+        stack-name: config-resolver-production
         cloud-url: ${{ vars.PULUMI_STATE_BUCKET }}
         config-map: "{'analysis-runner:server_image_tag': {value: '${{ needs.build.outputs.image_tag }}', secret: false}}"
       env:

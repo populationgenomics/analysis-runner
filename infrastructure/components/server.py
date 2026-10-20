@@ -8,8 +8,6 @@ import pulumi
 import pulumi_gcp as gcp
 from infra_util import member_resource_name
 
-from components.config_resolver import create_seqera_config_resolver_resources
-
 gcp_config = pulumi.Config('gcp')
 PROJECT = gcp_config.require('project')
 REGION = gcp_config.require('region')
@@ -23,6 +21,7 @@ SERVER_IMAGE_TAG = config.get('server_image_tag')
 # server_image_tag is injected in deploy GHA
 if not SERVER_IMAGE_TAG:
     raise ValueError('Missing server_image_tag config')
+
 
 @dataclass(frozen=True)
 class ServerSpec:
@@ -162,17 +161,11 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
             opts=pulumi.ResourceOptions(protect=True),
         )
 
-    seqera_config_resolver = create_seqera_config_resolver_resources(
-        cpg_config_bucket=cpg_config_bucket,
-        secrets=secrets,
-    )
-
     return {
         'server_sa': server_sa,
         'cpg_config_bucket': cpg_config_bucket,
         **secrets,
         **services,
-        **seqera_config_resolver,
     }
 
 
