@@ -112,7 +112,7 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
         account_id=f'{CONFIG_RESOLVER}-scheduler',
         project=PROJECT,
         display_name=f'{CONFIG_RESOLVER}-scheduler',
-        description='Runs the Config resolver job on schedule',
+        description='Runs the Analysis Runner Config Resolver job on schedule',
     )
 
     gcp.cloudrunv2.JobIamMember(
@@ -131,7 +131,7 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
         name=CONFIG_RESOLVER,
         project=PROJECT,
         region=REGION,
-        description='Runs the Config resolver job',
+        description='Runs the Analysis Runner Config Resolver job',
         schedule=CONFIG_RESOLVER_SCHEDULE,
         time_zone='UTC',
         paused=is_paused,
