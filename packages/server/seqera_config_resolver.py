@@ -20,13 +20,13 @@ from seqera_api import (
 
 from metamist.graphql import gql, query
 
-CONFIG_PATH_PREFIX = os.getenv('CONFIG_PATH_PREFIX', 'gs://cpg-config')
+CONFIG_PATH_PREFIX = os.environ['CONFIG_PATH_PREFIX']
 
 JOB_DEADLINE_SECONDS = int(os.getenv('JOB_DEADLINE_SECONDS', '240'))
 UNRESOLVED_AFTER = datetime.timedelta(hours=2)
 
 # The Metamist meta key
-CONFIG_UNRESOLVED = 'CONFIG_UNRESOLVED'  # A custom statue
+CONFIG_UNRESOLVED = 'CONFIG_UNRESOLVED'  # A custom status
 # https://docs.seqera.io/platform-cloud/monitoring/overview
 SEQERA_FINISHED_STATUSES = ('SUCCEEDED', 'FAILED', 'CANCELLED')
 
@@ -145,7 +145,10 @@ def update_metamist_entry(
 
     query(UPDATE_ENTRY_MUTATION, {'arGuid': ar_guid, 'update': update})
     if reason is not None:
-        logging.error(f'Seqera entry unresolved {ar_guid}: {reason}')
+        # This error format is used for alerting
+        logging.error(
+            f'Analysis Runner Config Resolver: Seqera submission config not resolved for {ar_guid}: {reason}'
+        )
 
 
 def resolve_entry(entry: dict, clients: dict[tuple, SeqeraApiClient]) -> bool:
@@ -186,6 +189,16 @@ def resolve_entry(entry: dict, clients: dict[tuple, SeqeraApiClient]) -> bool:
             current_status=workflow_status,
             batch_url=batch_url,
             reason=f'Workflow finished with status: {workflow_status} without resolving config',
+        )
+        return False
+
+    if get_entry_age(entry) > UNRESOLVED_AFTER:
+        # The workflow has not resolved its config for UNRESOLVED_AFTER time units.
+        update_metamist_entry(
+            entry['arGuid'],
+            current_status=CONFIG_UNRESOLVED,
+            batch_url=batch_url,
+            reason=f'No config after {UNRESOLVED_AFTER} h, workflow status: {workflow_status}',
         )
         return False
 

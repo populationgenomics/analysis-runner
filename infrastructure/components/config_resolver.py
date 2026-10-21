@@ -19,16 +19,12 @@ CPG_CONFIG_BUCKET = config.require('cpg_config_bucket')
 SERVER_IMAGE_TAG = config.require('server_image_tag')
 CONFIG_RESOLVER = 'config-resolver'
 
-SEQERA_CONFIG_RESOLVER_SCHEDULE = '*/5 * * * *'
-SEQERA_CONFIG_RESOLVER_SECRETS: list[str] = config.require_object(
-    'config_resolver_secrets'
-)
-SEQERA_CONFIG_RESOLVER_ENV: dict[str, str] = (
-    config.get_object('config_resolver_env') or {}
-)
+CONFIG_RESOLVER_SCHEDULE = '*/5 * * * *'
+CONFIG_RESOLVER_SECRETS: list[str] = config.require_object('config_resolver_secrets')
+CONFIG_RESOLVER_ENV: dict[str, str] = config.get_object('config_resolver_env') or {}
 
 
-def create_seqera_config_resolver_resources() -> dict[str, pulumi.Resource]:
+def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
 
     job_sa = gcp.serviceaccount.Account(
         f'{CONFIG_RESOLVER}-sa',
@@ -64,7 +60,7 @@ def create_seqera_config_resolver_resources() -> dict[str, pulumi.Resource]:
             role='roles/secretmanager.secretAccessor',
             member=job_member,
         )
-        for secret_name in SEQERA_CONFIG_RESOLVER_SECRETS
+        for secret_name in CONFIG_RESOLVER_SECRETS
     ]
 
     job = gcp.cloudrunv2.Job(
@@ -98,7 +94,7 @@ def create_seqera_config_resolver_resources() -> dict[str, pulumi.Resource]:
                                 gcp.cloudrunv2.JobTemplateTemplateContainerEnvArgs(
                                     name=name, value=value
                                 )
-                                for name, value in SEQERA_CONFIG_RESOLVER_ENV.items()
+                                for name, value in CONFIG_RESOLVER_ENV.items()
                             ),
                         ],
                         resources=gcp.cloudrunv2.JobTemplateTemplateContainerResourcesArgs(
@@ -124,9 +120,11 @@ def create_seqera_config_resolver_resources() -> dict[str, pulumi.Resource]:
         project=PROJECT,
         location=REGION,
         name=job.name,
-        role='roles/run.jobsExecutor',
+        role='roles/run.invoker',
         member=scheduler_sa.email.apply(lambda e: f'serviceAccount:{e}'),
     )
+
+    is_paused = config.get_bool('config_resolver_paused') or False
 
     scheduler = gcp.cloudscheduler.Job(
         f'{CONFIG_RESOLVER}-scheduler',
@@ -134,8 +132,9 @@ def create_seqera_config_resolver_resources() -> dict[str, pulumi.Resource]:
         project=PROJECT,
         region=REGION,
         description='Runs the Config resolver job',
-        schedule=SEQERA_CONFIG_RESOLVER_SCHEDULE,
+        schedule=CONFIG_RESOLVER_SCHEDULE,
         time_zone='UTC',
+        paused=is_paused,
         # A missed run is picked up by the next scheduled run
         retry_config=gcp.cloudscheduler.JobRetryConfigArgs(retry_count=0),
         http_target=gcp.cloudscheduler.JobHttpTargetArgs(
@@ -147,6 +146,7 @@ def create_seqera_config_resolver_resources() -> dict[str, pulumi.Resource]:
             ),
             oauth_token=gcp.cloudscheduler.JobHttpTargetOauthTokenArgs(
                 service_account_email=scheduler_sa.email,
+                scope='https://www.googleapis.com/auth/cloud-platform',
             ),
         ),
     )
