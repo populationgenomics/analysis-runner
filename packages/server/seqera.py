@@ -127,7 +127,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
             metadata['batch_url'] = url
         except (requests.HTTPError, KeyError):
             where = ''
-            url = '[URL unavailable]' # The scheduled job will resolve this field and update the Metamist entry later
+            url = '[URL unavailable]'  # The scheduled job will resolve this field and update the Metamist entry later
             metadata['batch_url'] = BATCH_URL_UNAVAILABLE
 
         await log_submission_to_metamist(metadata)

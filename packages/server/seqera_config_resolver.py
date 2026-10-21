@@ -26,7 +26,7 @@ JOB_DEADLINE_SECONDS = int(os.getenv('JOB_DEADLINE_SECONDS', '240'))
 UNRESOLVED_AFTER = datetime.timedelta(hours=2)
 
 # The Metamist meta key
-CONFIG_UNRESOLVED = 'CONFIG_UNRESOLVED' # A custom statue
+CONFIG_UNRESOLVED = 'CONFIG_UNRESOLVED'  # A custom statue
 # https://docs.seqera.io/platform-cloud/monitoring/overview
 SEQERA_FINISHED_STATUSES = ('SUCCEEDED', 'FAILED', 'CANCELLED')
 
@@ -148,7 +148,6 @@ def update_metamist_entry(
         logging.error(f'Seqera entry unresolved {ar_guid}: {reason}')
 
 
-
 def resolve_entry(entry: dict, clients: dict[tuple, SeqeraApiClient]) -> bool:
     """
     During a successful execution, the scheduler save the resolved config of a Seqera workflow and update its Metamist entry.
@@ -175,7 +174,7 @@ def resolve_entry(entry: dict, clients: dict[tuple, SeqeraApiClient]) -> bool:
         update_metamist_entry(
             entry['arGuid'],
             config_path,
-            current_status=workflow_status, # The status here does not reflect the final workflow status
+            current_status=workflow_status,  # The status here does not reflect the final workflow status
             batch_url=batch_url,
         )
         return True
@@ -199,7 +198,9 @@ def main() -> None:
 
     project_ids = get_project_ids()
     if not project_ids:
-        raise RuntimeError('No Metamist project accessible for the Analysis Runner Config Resolver')
+        raise RuntimeError(
+            'No Metamist project accessible for the Analysis Runner Config Resolver'
+        )
 
     pending_entries = get_pending_entries(project_ids)
     timeout_timestamp = time.monotonic() + JOB_DEADLINE_SECONDS
@@ -212,7 +213,9 @@ def main() -> None:
         try:
             resolve_entry(entry, seqera_clients)
         except Exception as e:
-            logging.error(f'Failed to resolve entry {entry.get('arGuid')}. Will be retried until timeout. {e!r}')
+            logging.exception(
+                f'Failed to resolve entry {entry["arGuid"]}. Will be retried until timeout.'
+            )
             if get_entry_age(entry) > UNRESOLVED_AFTER:
                 update_metamist_entry(
                     entry['arGuid'],
