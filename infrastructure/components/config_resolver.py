@@ -19,7 +19,6 @@ CPG_CONFIG_BUCKET = config.require('cpg_config_bucket')
 SERVER_IMAGE_TAG = config.require('server_image_tag')
 CONFIG_RESOLVER = 'config-resolver'
 
-SEQERA_CONFIG_RESOLVER_TIMEOUT = '300s'
 SEQERA_CONFIG_RESOLVER_SCHEDULE = '*/5 * * * *'
 SEQERA_CONFIG_RESOLVER_SECRETS: list[str] = config.require_object(
     'config_resolver_secrets'
@@ -78,8 +77,8 @@ def create_seqera_config_resolver_resources() -> dict[str, pulumi.Resource]:
             task_count=1,
             template=gcp.cloudrunv2.JobTemplateTemplateArgs(
                 service_account=job_sa.email,
-                timeout=SEQERA_CONFIG_RESOLVER_TIMEOUT,
                 # Unresolved entries are retried by the next scheduled run
+                # The cloud run job has default timeout of 10 mins
                 max_retries=0,
                 containers=[
                     gcp.cloudrunv2.JobTemplateTemplateContainerArgs(

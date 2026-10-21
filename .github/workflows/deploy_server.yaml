@@ -305,7 +305,6 @@ jobs:
         PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
         PULUMI_SKIP_CHECKPOINTS: true
 
-    # The job runs the server image; the server stack owns its bucket and secrets.
     - name: "pulumi up (config-resolver-production)"
       uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
       with:

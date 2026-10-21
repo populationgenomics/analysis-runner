@@ -4,7 +4,6 @@ belonging to Seqera workflows. The resolved configurations are uploaded to the c
 and the corresponding Analysis Runner entry in Metamist is also updated.
 """
 
-import asyncio
 import datetime
 import logging
 import os
@@ -19,7 +18,7 @@ from seqera_api import (
     SeqeraApiClient,
 )
 
-from metamist.graphql import gql, query_async
+from metamist.graphql import gql, query
 
 CONFIG_PATH_PREFIX = os.getenv('CONFIG_PATH_PREFIX', 'gs://cpg-config')
 
@@ -27,8 +26,7 @@ JOB_DEADLINE_SECONDS = int(os.getenv('JOB_DEADLINE_SECONDS', '240'))
 UNRESOLVED_AFTER = datetime.timedelta(hours=2)
 
 # The Metamist meta key
-SEQERA_UNRESOLVED = 'UNRESOLVED'
-SEQERA_EXPIRED = 'EXPIRED'
+CONFIG_UNRESOLVED = 'CONFIG_UNRESOLVED' # A custom statue
 # https://docs.seqera.io/platform-cloud/monitoring/overview
 SEQERA_FINISHED_STATUSES = ('SUCCEEDED', 'FAILED', 'CANCELLED')
 
@@ -79,15 +77,15 @@ UPDATE_ENTRY_MUTATION = gql(
 )
 
 
-async def get_project_ids() -> list[int]:
+def get_project_ids() -> list[int]:
 
-    response = await query_async(MY_PROJECTS_QUERY)
+    response = query(MY_PROJECTS_QUERY)
     return [project['id'] for project in response['myProjects']]
 
 
-async def get_pending_entries(project_ids: list[int]) -> list[dict]:
+def get_pending_entries(project_ids: list[int]) -> list[dict]:
 
-    response = await query_async(
+    response = query(
         PENDING_ENTRIES_QUERY,
         {
             'projectIds': project_ids,
@@ -99,10 +97,8 @@ async def get_pending_entries(project_ids: list[int]) -> list[dict]:
 
 def write_config(ar_guid: str, config_text: str) -> str:
 
-    # TODO the seqera configText is groovy like. Just dumping now.
     config_path = AnyPath(CONFIG_PATH_PREFIX) / f'{ar_guid}.config'
-    # Already written by a previous run whose Metamist update failed. The job can't
-    # overwrite objects in the config bucket.
+    # The file could be written by a previous run whose Metamist update failed.
     if not config_path.exists():
         config_path.write_text(config_text)
     return str(config_path)
@@ -124,12 +120,12 @@ def get_entry_age(entry: dict) -> datetime.timedelta:
 
     created = datetime.datetime.fromisoformat(entry['timestamp'])
     if created.tzinfo is None:
-        # Metamist stores the timestamp without a timezone, in UTC
+        # MariaDB Metamist stores the timestamp without a timezone, in UTC
         created = created.replace(tzinfo=datetime.timezone.utc)
     return datetime.datetime.now(datetime.timezone.utc) - created
 
 
-async def update_metamist_entry(
+def update_metamist_entry(
     ar_guid: str,
     config_path: str | None = None,
     current_status: str | None = None,
@@ -147,13 +143,13 @@ async def update_metamist_entry(
     if not update:
         return
 
-    await query_async(UPDATE_ENTRY_MUTATION, {'arGuid': ar_guid, 'update': update})
+    query(UPDATE_ENTRY_MUTATION, {'arGuid': ar_guid, 'update': update})
     if reason is not None:
         logging.error(f'Seqera entry unresolved {ar_guid}: {reason}')
 
 
 
-async def resolve_entry(entry: dict, clients: dict[tuple, SeqeraApiClient]) -> bool:
+def resolve_entry(entry: dict, clients: dict[tuple, SeqeraApiClient]) -> bool:
     """
     During a successful execution, the scheduler save the resolved config of a Seqera workflow and update its Metamist entry.
     Returns True on success, False otherwise.
@@ -176,17 +172,17 @@ async def resolve_entry(entry: dict, clients: dict[tuple, SeqeraApiClient]) -> b
     if config_text:
         config_path = write_config(entry['arGuid'], config_text)
 
-        await update_metamist_entry(
+        update_metamist_entry(
             entry['arGuid'],
             config_path,
-            current_status=workflow_status,
+            current_status=workflow_status, # The status here does not reflect the final workflow status
             batch_url=batch_url,
         )
         return True
 
     if workflow_status in SEQERA_FINISHED_STATUSES:
         # Update the Metamist entry, if the config can not be resolved even after the workflow has finished.
-        await update_metamist_entry(
+        update_metamist_entry(
             entry['arGuid'],
             current_status=workflow_status,
             batch_url=batch_url,
@@ -194,18 +190,18 @@ async def resolve_entry(entry: dict, clients: dict[tuple, SeqeraApiClient]) -> b
         )
         return False
 
-    await update_metamist_entry(entry['arGuid'], batch_url=batch_url)
+    update_metamist_entry(entry['arGuid'], batch_url=batch_url)
     return False
 
 
-async def main() -> None:
-    logging.info('Starting Seqera Config Resolver')
+def main() -> None:
+    logging.info('Starting Analysis Runner Config Resolver')
 
-    project_ids = await get_project_ids()
+    project_ids = get_project_ids()
     if not project_ids:
-        raise RuntimeError('No Metamist project accessible for the Scheduler')
+        raise RuntimeError('No Metamist project accessible for the Analysis Runner Config Resolver')
 
-    pending_entries = await get_pending_entries(project_ids)
+    pending_entries = get_pending_entries(project_ids)
     timeout_timestamp = time.monotonic() + JOB_DEADLINE_SECONDS
     seqera_clients: dict[tuple, SeqeraApiClient] = {}
 
@@ -214,16 +210,17 @@ async def main() -> None:
         if time.monotonic() > timeout_timestamp:
             break
         try:
-            await resolve_entry(entry, seqera_clients)
+            resolve_entry(entry, seqera_clients)
         except Exception as e:
+            logging.error(f'Failed to resolve entry {entry.get('arGuid')}. Will be retried until timeout. {e!r}')
             if get_entry_age(entry) > UNRESOLVED_AFTER:
-                await update_metamist_entry(
+                update_metamist_entry(
                     entry['arGuid'],
-                    current_status=SEQERA_UNRESOLVED,
+                    current_status=CONFIG_UNRESOLVED,
                     reason=f'Skipping after timeout: {e!r}',
                 )
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    asyncio.run(main())
+    main()

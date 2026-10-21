@@ -1,7 +1,7 @@
 """
 Analysis-runner infrastructure.
 Each component is maintained using a separate stack.
-The common (shared by server and web), contains resources common to both server and web.
+The common contains resources shared across different stacks
 """
 
 import pulumi
