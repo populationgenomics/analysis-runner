@@ -21,7 +21,6 @@ jobs:
       run: uv run pre-commit run --all-files
 
     - name: Run tests
-      working-directory: packages/analysis-runner
       run: |
         uv sync
         uv run pytest -v

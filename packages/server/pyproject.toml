@@ -21,6 +21,13 @@ dependencies = [
     "gunicorn",
 ]
 
+[dependency-groups]
+dev = ["pytest>=9"]
+
+[tool.pytest]
+testpaths = ["tests"]
+pythonpath = ["."]
+
 [tool.uv]
 package = false
 constraint-dependencies = [

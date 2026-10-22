@@ -13,6 +13,10 @@ dev = [
     "pre-commit",
 ]
 
+[tool.pytest]
+testpaths = ["packages/analysis-runner/tests", "packages/server/tests"]
+pythonpath = ["packages/server"]
+
 [tool.ruff]
 line-length = 88
 
@@ -71,4 +75,9 @@ cpg = ["cpg_flow", "cpg_utils", "cpg_infra", "metamist", "analysis_runner"]
     "PLR1714",
     "UP035",
     "PLC0207",
+]
+
+"packages/server/tests/*" = [
+    "ANN001",  # Fixtures are not type-annotated
+    "ARG001",  # Fixtures are often unused within the body of the test function
 ]
