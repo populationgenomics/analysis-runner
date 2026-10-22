@@ -17,11 +17,16 @@ ORG_ID = config.require('org_id')
 CPG_CONFIG_BUCKET = config.require('cpg_config_bucket')
 # server_image_tag is injected in deploy GHA,
 SERVER_IMAGE_TAG = config.require('server_image_tag')
+
+SECRET_NAMES: list[str] = config.require_object('config_resolver_secrets')
+JOB_ENV_VARIABLES: dict[str, str] = config.get_object('config_resolver_env') or {}
+
 CONFIG_RESOLVER = 'config-resolver'
 
-CONFIG_RESOLVER_SCHEDULE = '*/5 * * * *'
-CONFIG_RESOLVER_SECRETS: list[str] = config.require_object('config_resolver_secrets')
-CONFIG_RESOLVER_ENV: dict[str, str] = config.get_object('config_resolver_env') or {}
+NOTIFICATION_CHANNEL = config.require('notification_channel')
+UNRESOLVED_LOG_TEXT = (
+    'Analysis Runner Config Resolver: Seqera submission config not resolved for'
+)
 
 
 def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
@@ -53,7 +58,7 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
             role='roles/secretmanager.secretAccessor',
             member=job_member,
         )
-        for secret_name in CONFIG_RESOLVER_SECRETS
+        for secret_name in SECRET_NAMES
     ]
 
     job = gcp.cloudrunv2.Job(
@@ -87,7 +92,7 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
                                 gcp.cloudrunv2.JobTemplateTemplateContainerEnvArgs(
                                     name=name, value=value
                                 )
-                                for name, value in CONFIG_RESOLVER_ENV.items()
+                                for name, value in JOB_ENV_VARIABLES.items()
                             ),
                         ],
                         resources=gcp.cloudrunv2.JobTemplateTemplateContainerResourcesArgs(
@@ -125,7 +130,7 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
         project=PROJECT,
         region=REGION,
         description='Runs the Analysis Runner Config Resolver job',
-        schedule=CONFIG_RESOLVER_SCHEDULE,
+        schedule='*/5 * * * *',
         time_zone='UTC',
         paused=is_paused,
         # A missed run is picked up by the next scheduled run
@@ -144,8 +149,135 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
         ),
     )
 
+    unresolved_alert, failed_runs_alert = _create_alerts(job)
+
     return {
         f'{CONFIG_RESOLVER}_sa': job_sa,
         f'{CONFIG_RESOLVER}_job': job,
         f'{CONFIG_RESOLVER}_scheduler': scheduler,
+        f'{CONFIG_RESOLVER}_unresolved_alert': unresolved_alert,
+        f'{CONFIG_RESOLVER}_failed_runs_alert': failed_runs_alert,
     }
+
+
+def _create_alerts(
+    job: gcp.cloudrunv2.Job,
+) -> tuple[gcp.monitoring.AlertPolicy, gcp.monitoring.AlertPolicy]:
+
+    job_logs_filter = job.name.apply(
+        lambda name: (
+            f'resource.type="cloud_run_job" AND resource.labels.job_name="{name}"'
+        )
+    )
+
+    # Counts the unresolved configs the job gave up on
+    unresolved_metric = gcp.logging.Metric(
+        f'{CONFIG_RESOLVER}-unresolved-metric',
+        name=f'{CONFIG_RESOLVER}-unresolved',
+        project=PROJECT,
+        description='Analysis Runner Seqera submissions whose config could not be resolved',
+        filter=job_logs_filter.apply(
+            lambda f: f'{f} AND textPayload:"{UNRESOLVED_LOG_TEXT}"'
+        ),
+        metric_descriptor=gcp.logging.MetricMetricDescriptorArgs(
+            metric_kind='DELTA',
+            value_type='INT64',
+        ),
+    )
+
+    unresolved_alert = gcp.monitoring.AlertPolicy(
+        f'{CONFIG_RESOLVER}-unresolved-alert',
+        project=PROJECT,
+        display_name='Analysis Runner Config Resolver: unresolved configs',
+        combiner='OR',
+        notification_channels=[NOTIFICATION_CHANNEL],
+        conditions=[
+            gcp.monitoring.AlertPolicyConditionArgs(
+                display_name='Submission config not resolved',
+                condition_threshold=gcp.monitoring.AlertPolicyConditionConditionThresholdArgs(
+                    filter=unresolved_metric.name.apply(
+                        lambda name: (
+                            f'metric.type="logging.googleapis.com/user/{name}" '
+                            'AND resource.type="cloud_run_job"'
+                        )
+                    ),
+                    comparison='COMPARISON_GT',
+                    threshold_value=0,
+                    duration='60s',
+                    aggregations=[
+                        # An unresolved alert stays open until no submission fails for this long
+                        gcp.monitoring.AlertPolicyConditionConditionThresholdAggregationArgs(
+                            alignment_period='7200s',
+                            per_series_aligner='ALIGN_SUM',
+                            cross_series_reducer='REDUCE_SUM',
+                        ),
+                    ],
+                    # No failures in the window means no data: close the incident
+                    evaluation_missing_data='EVALUATION_MISSING_DATA_INACTIVE',
+                ),
+            ),
+        ],
+        alert_strategy=gcp.monitoring.AlertPolicyAlertStrategyArgs(
+            notification_prompts=['OPENED', 'CLOSED'],
+        ),
+        documentation=gcp.monitoring.AlertPolicyDocumentationArgs(
+            subject=(
+                'Analysis Runner Config Resolver (${resource.label.project_id}): '
+                'unresolved Seqera submissions'
+            ),
+            mime_type='text/markdown',
+            content=job_logs_filter.apply(
+                lambda f: (
+                    'The Analysis Runner config resolver could not resolve one or more Seqera submissions for 2h.\n\n'
+                    'Check for matching log entries starting incident start time in Logs Explorer:\n\n'
+                    f'```\n{f}\ntextPayload:"{UNRESOLVED_LOG_TEXT}"\n```'
+                )
+            ),
+        ),
+    )
+
+    # Triggers an alert if the Config resolver job keeps on failing
+    # Alert will trigger if failed > 5 times in 30 mins
+    failed_runs_alert = gcp.monitoring.AlertPolicy(
+        f'{CONFIG_RESOLVER}-failed-runs-alert',
+        project=PROJECT,
+        display_name='Analysis Runner Config Resolver: job keeps failing',
+        combiner='OR',
+        notification_channels=[NOTIFICATION_CHANNEL],
+        conditions=[
+            gcp.monitoring.AlertPolicyConditionArgs(
+                display_name='All runs failed for 30 min',
+                condition_threshold=gcp.monitoring.AlertPolicyConditionConditionThresholdArgs(
+                    filter=job.name.apply(
+                        lambda name: (
+                            'metric.type="run.googleapis.com/job/completed_execution_count" '
+                            'AND resource.type="cloud_run_job" '
+                            f'AND resource.labels.job_name="{name}" '
+                            'AND metric.labels.result="failed"'
+                        )
+                    ),
+                    comparison='COMPARISON_GT',
+                    threshold_value=5,
+                    duration='60s',
+                    aggregations=[
+                        gcp.monitoring.AlertPolicyConditionConditionThresholdAggregationArgs(
+                            alignment_period='1800s',
+                            per_series_aligner='ALIGN_SUM',
+                            cross_series_reducer='REDUCE_SUM',
+                        ),
+                    ],
+                    evaluation_missing_data='EVALUATION_MISSING_DATA_INACTIVE',
+                ),
+            ),
+        ],
+        alert_strategy=gcp.monitoring.AlertPolicyAlertStrategyArgs(
+            notification_prompts=['OPENED', 'CLOSED'],
+        ),
+        documentation=gcp.monitoring.AlertPolicyDocumentationArgs(
+            subject=('Analysis Runner Config Resolver: job keeps failing'),
+            mime_type='text/markdown',
+            content='Every config resolver run in the last 30 min failed.',
+        ),
+    )
+
+    return unresolved_alert, failed_runs_alert
