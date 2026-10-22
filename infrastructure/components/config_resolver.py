@@ -205,20 +205,21 @@ def _create_alerts(
                     threshold_value=0,
                     duration='60s',
                     aggregations=[
-                        # An unresolved alert stays open until no submission fails for this long
                         gcp.monitoring.AlertPolicyConditionConditionThresholdAggregationArgs(
+                            # An unresolved alert stays open until no submission fails for this long
                             alignment_period='7200s',
                             per_series_aligner='ALIGN_SUM',
                             cross_series_reducer='REDUCE_SUM',
                         ),
                     ],
-                    # No failures in the window means no data: close the incident
                     evaluation_missing_data='EVALUATION_MISSING_DATA_INACTIVE',
                 ),
             ),
         ],
+        # Notify on open only: the incident closing doesn't mean the unresolved
+        # submissions were investigated, just that no new failures for 2h.
         alert_strategy=gcp.monitoring.AlertPolicyAlertStrategyArgs(
-            notification_prompts=['OPENED', 'CLOSED'],
+            notification_prompts=['OPENED'],
         ),
         documentation=gcp.monitoring.AlertPolicyDocumentationArgs(
             subject=(
@@ -226,6 +227,7 @@ def _create_alerts(
                 'unresolved Seqera submissions'
             ),
             mime_type='text/markdown',
+            # the resolver job retries upto 2h before giving up on an entry
             content=job_logs_filter.apply(
                 lambda f: (
                     'The Analysis Runner config resolver could not resolve one or more Seqera submissions for 2h.\n\n'
@@ -274,7 +276,7 @@ def _create_alerts(
             notification_prompts=['OPENED', 'CLOSED'],
         ),
         documentation=gcp.monitoring.AlertPolicyDocumentationArgs(
-            subject=('Analysis Runner Config Resolver: job keeps failing'),
+            subject='Analysis Runner Config Resolver: job keeps failing',
             mime_type='text/markdown',
             content='Every config resolver run in the last 30 min failed.',
         ),
