@@ -15,13 +15,17 @@ config = pulumi.Config()
 
 def create_common_resources() -> dict[str, pulumi.Resource]:
     # Server, driver and web images.
+    # Development environment image clean up policies applied.
+    # Production environment keeps every image.
+    images_cleanup = config.get_bool('images_cleanup') or False
     images_repo = gcp.artifactregistry.Repository(
         'images-repository',
         repository_id='images',
         location=REGION,
         project=PROJECT,
         format='DOCKER',
-        cleanup_policy_dry_run=True,
+        cleanup_policies=_images_cleanup_policies() if images_cleanup else None,
+        cleanup_policy_dry_run=not images_cleanup,
         opts=pulumi.ResourceOptions(protect=True),
     )
 
@@ -54,3 +58,26 @@ def create_common_resources() -> dict[str, pulumi.Resource]:
         )
 
     return resources
+
+
+def _images_cleanup_policies() -> list[
+    gcp.artifactregistry.RepositoryCleanupPolicyArgs
+]:
+
+    return [
+        gcp.artifactregistry.RepositoryCleanupPolicyArgs(
+            id='delete-older-than-14-days',
+            action='DELETE',
+            condition=gcp.artifactregistry.RepositoryCleanupPolicyConditionArgs(
+                tag_state='ANY',
+                older_than='1209600s',  # 14 days
+            ),
+        ),
+        gcp.artifactregistry.RepositoryCleanupPolicyArgs(
+            id='keep-10-most-recent',
+            action='KEEP',
+            most_recent_versions=gcp.artifactregistry.RepositoryCleanupPolicyMostRecentVersionsArgs(
+                keep_count=10,
+            ),
+        ),
+    ]

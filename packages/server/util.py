@@ -2,9 +2,7 @@
 Utility methods for analysis-runner server
 """
 
-import asyncio
 import json
-import logging
 import os
 import random
 import uuid
@@ -14,12 +12,6 @@ import toml
 from aiohttp import ClientSession, web
 from cachetools.func import ttl_cache
 from cloudpathlib import AnyPath
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential_jitter,
-)
 
 import hailtop.batch as hb
 from hailtop.config import get_deploy_config
@@ -28,8 +20,6 @@ from cpg_utils.cloud import email_from_id_token, read_secret
 from cpg_utils.config import AR_GUID_NAME, get_cpg_namespace, update_dict
 from cpg_utils.constants import DEFAULT_GITHUB_ORGANISATION
 from cpg_utils.membership import is_member_in_cached_group
-from metamist.apis import AnalysisRunnerApi
-from metamist.exceptions import ServiceException
 
 ANALYSIS_RUNNER_PROJECT_ID = os.getenv('ANALYSIS_RUNNER_PROJECT_ID', 'analysis-runner')
 GITHUB_ORG = 'populationgenomics'
@@ -76,30 +66,6 @@ def get_server_config() -> dict:
         return json.loads(server_config_value)
 
     raise web.HTTPInternalServerError(reason='Failed to read server-config secret')
-
-
-# cache the result for 60 seconds, so we can call this function multiple times
-@ttl_cache(maxsize=1, ttl=600)
-def get_seqera_config() -> dict:
-    config = os.getenv('SEQERA_PLATFORM_CONFIG')
-    if config is None:
-        config = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'seqera-platform-config')
-    if config is None:
-        raise web.HTTPInternalServerError(
-            reason='Failed to read seqera-platform-config secret'
-        )
-
-    return json.loads(config)
-
-
-def read_ar_secret(secret_name: str) -> str:
-    """Read a secret stored in the analysis-runner project."""
-    value = read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
-    if value is None:
-        raise web.HTTPInternalServerError(
-            reason='Failed to read analysis-runner secret'
-        )
-    return value
 
 
 async def _get_hail_version(environment: str) -> str:
@@ -429,53 +395,3 @@ def add_environment_variables(
 
     for k, v in environment_variables.items():
         job.env(k, v)
-
-
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential_jitter(
-        initial=1,
-        jitter=1,
-    ),
-    retry=retry_if_exception_type(ServiceException),
-)
-async def _create_metamist_log(**kwargs: Any) -> None:
-    await asyncio.to_thread(AnalysisRunnerApi().create_analysis_runner_log, **kwargs)
-
-
-async def log_submission_to_metamist(metadata: dict) -> None:
-    """
-    Record the submission in Metamist. Retry on errors
-    """
-    project = metadata['dataset']
-    if metadata['accessLevel'] == 'test':
-        project += '-test'
-
-    ar_guid = str(metadata.get(AR_GUID_NAME))
-    try:
-        await _create_metamist_log(
-            project=project,
-            ar_guid=ar_guid,
-            access_level=str(metadata.get('accessLevel')),
-            repository=str(metadata.get('repo')),
-            commit=str(metadata.get('commit')),
-            script=str(metadata.get('script')),
-            description=str(metadata.get('description')),
-            driver_image=str(metadata.get('driverImage')),
-            config_path=str(metadata.get('configPath')),
-            environment=str(metadata.get('environment')),
-            batch_url=str(metadata.get('batch_url')),
-            submitting_user=str(metadata.get('user')),
-            output_path=str(metadata.get('output')),
-            request_body=metadata.get('meta', {}) or {},
-            hail_version=str(metadata.get('hailVersion')),
-            cwd=str(metadata.get('cwd')),
-        )
-    except Exception:
-        logging.exception(
-            f'Failed to create analysis-runner log in metamist for {ar_guid}, '
-            f'AR record: {json.dumps(metadata, default=str)}',
-        )
-        return
-
-    logging.info(f'Created analysis-runner log in metamist for {ar_guid}')

@@ -1,10 +1,19 @@
+# Also used by the Seqera config resolver job, which runs without Hail: don't import util.py.
 import json
+import os
 
 import requests
 from aiohttp import web
-from cachetools.func import lru_cache
-from util import get_seqera_config, read_ar_secret
+from cachetools.func import lru_cache, ttl_cache
 
+from cpg_utils.cloud import read_secret
+
+ANALYSIS_RUNNER_PROJECT_ID = os.getenv('ANALYSIS_RUNNER_PROJECT_ID', 'analysis-runner')
+
+# The Metamist meta key
+SEQERA_STATUS_KEY = 'seqera_status'
+CONFIG_PENDING = 'CONFIG_PENDING'  # A custom status
+BATCH_URL_UNAVAILABLE = 'URL UNAVAILABLE'
 SEQERA_KEYS = {
     'commit_id': 'commitId',
     'config_text': 'configText',
@@ -13,6 +22,30 @@ SEQERA_KEYS = {
     'revision': 'revision',
     'run_name': 'runName',
 }
+
+
+# cache the result for 600 seconds, so we can call this function multiple times
+@ttl_cache(maxsize=1, ttl=600)
+def get_seqera_config() -> dict:
+    config = os.getenv('SEQERA_PLATFORM_CONFIG')
+    if config is None:
+        config = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'seqera-platform-config')
+    if config is None:
+        raise web.HTTPInternalServerError(
+            reason='Failed to read seqera-platform-config secret'
+        )
+
+    return json.loads(config)
+
+
+def read_ar_secret(secret_name: str) -> str:
+    """Read a secret stored in the analysis-runner project."""
+    value = read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
+    if value is None:
+        raise web.HTTPInternalServerError(
+            reason='Failed to read analysis-runner secret'
+        )
+    return value
 
 
 class SeqeraApiClient:
@@ -74,6 +107,12 @@ class SeqeraApiClient:
     def compute_environment(self, cenv_id: int) -> dict:
         response = self.get(f'compute-envs/{cenv_id}', params=self.workspace_param)
         return response['computeEnv']
+
+    def workflow_url(self, workflow_id: str) -> str:
+        return (
+            f'{self.server_url}/orgs/{self.org_name}'
+            f'/workspaces/{self.workspace_name}/watch/{workflow_id}'
+        )
 
     def describe_workflow(self, workflow_id: str) -> dict:
         response = self.get(f'workflow/{workflow_id}', params=self.workspace_param)
