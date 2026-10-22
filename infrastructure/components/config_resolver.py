@@ -35,13 +35,6 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
     )
     job_member = job_sa.email.apply(lambda e: f'serviceAccount:{e}')
 
-    gcp.projects.IAMMember(
-        f'{CONFIG_RESOLVER}-log-writer',
-        project=PROJECT,
-        role='roles/logging.logWriter',
-        member=job_member,
-    )
-
     # Resolved configs are written to the config bucket
     gcp.storage.BucketIAMMember(
         f'cpg-config-{CONFIG_RESOLVER}-viewer-and-creator',

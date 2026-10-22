@@ -219,12 +219,14 @@ def main() -> None:
     timeout_timestamp = time.monotonic() + JOB_DEADLINE_SECONDS
     seqera_clients: dict[tuple, SeqeraApiClient] = {}
 
+    resolved = 0
     for entry in pending_entries:
         # Stops picking new entries once the deadline passes.
         if time.monotonic() > timeout_timestamp:
             break
         try:
-            resolve_entry(entry, seqera_clients)
+            if resolve_entry(entry, seqera_clients):
+                resolved += 1
         except Exception as e:
             logging.exception(
                 f'Failed to resolve entry {entry["arGuid"]}. Will be retried until timeout.'
@@ -235,6 +237,9 @@ def main() -> None:
                     current_status=CONFIG_UNRESOLVED,
                     reason=f'Skipping after timeout: {e!r}',
                 )
+    logging.info(
+        f'Resolved {resolved} analysis runner entries out of {len(pending_entries)}.'
+    )
 
 
 if __name__ == '__main__':
