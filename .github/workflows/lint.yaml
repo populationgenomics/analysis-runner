@@ -20,7 +20,14 @@ jobs:
     - name: pre-commit
       run: uv run pre-commit run --all-files
 
-    - name: Run tests
+    - name: Run analysis-runner tests
+      working-directory: packages/analysis-runner
+      run: |
+        uv sync
+        uv run pytest -v
+
+    - name: Run server tests
+      working-directory: packages/server
       run: |
         uv sync
         uv run pytest -v
