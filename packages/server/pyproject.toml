@@ -22,7 +22,13 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=9"]
+dev = [
+    "aiohttp",
+    "cpg-utils>=5.0.0",
+    "hail>=0.2.135",
+    "pytest>=9",
+    "pytest-asyncio",
+]
 
 [tool.pytest]
 testpaths = ["tests"]
