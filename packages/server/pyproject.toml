@@ -21,6 +21,19 @@ dependencies = [
     "gunicorn",
 ]
 
+[dependency-groups]
+dev = [
+    "aiohttp",
+    "cpg-utils>=5.0.0",
+    "hail>=0.2.135",
+    "pytest>=9",
+    "pytest-asyncio",
+]
+
+[tool.pytest]
+testpaths = ["tests"]
+pythonpath = ["."]
+
 [tool.uv]
 package = false
 constraint-dependencies = [
