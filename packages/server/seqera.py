@@ -13,8 +13,8 @@ from util import (
     generate_ar_guid,
     get_and_check_cloud_environment,
     get_email_from_request,
+    get_publisher,
     get_server_config,
-    publisher,
 )
 
 from cpg_utils.config import AR_GUID_NAME
@@ -170,6 +170,6 @@ def add_seqera_routes(routes: web.RouteTableDef):
             url = '[URL unavailable]'
 
         pubsub_json_bytes = json.dumps(pubsub_metadata).encode('utf-8')
-        publisher.publish(PUBSUB_TOPIC, pubsub_json_bytes).result()
+        get_publisher().publish(PUBSUB_TOPIC, pubsub_json_bytes).result()
 
         return web.Response(text=f'Workflow {workflow_id} submitted{where}.\n{url}\n')

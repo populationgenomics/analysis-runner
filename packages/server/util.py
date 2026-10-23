@@ -10,7 +10,7 @@ from typing import Any
 
 import toml
 from aiohttp import ClientSession, web
-from cachetools.func import ttl_cache
+from cachetools.func import lru_cache, ttl_cache
 from cloudpathlib import AnyPath
 from google.cloud import pubsub_v1
 
@@ -45,7 +45,10 @@ DEFAULT_STATUS_REPORTER = 'metamist'
 
 ALLOWED = 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/datasets/{}/repositories.yaml'
 
-publisher = pubsub_v1.PublisherClient()
+
+@lru_cache
+def get_publisher() -> pubsub_v1.PublisherClient:
+    return pubsub_v1.PublisherClient()
 
 
 def generate_ar_guid() -> str:

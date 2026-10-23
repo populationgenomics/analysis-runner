@@ -22,8 +22,8 @@ from util import (
     get_baseline_run_config,
     get_email_from_request,
     get_hail_token,
+    get_publisher,
     get_server_config,
-    publisher,
     validate_output_dir,
     write_config,
 )
@@ -234,6 +234,7 @@ def add_cromwell_routes(routes: web.RouteTableDef):
 
         # Publish the metadata to Pub/Sub.
         metadata['batch_url'] = url
+        publisher = get_publisher()
         publisher.publish(PUBSUB_TOPIC, json.dumps(metadata).encode('utf-8')).result()
 
         return web.Response(text=f'{url}/jobs/1\n')
