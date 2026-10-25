@@ -10,10 +10,9 @@ from cpg_utils.cloud import read_secret
 
 ANALYSIS_RUNNER_PROJECT_ID = os.getenv('ANALYSIS_RUNNER_PROJECT_ID', 'analysis-runner')
 
-# The Metamist meta key
 SEQERA_STATUS_KEY = 'seqera_status'
 CONFIG_PENDING = 'CONFIG_PENDING'  # A custom status
-BATCH_URL_UNAVAILABLE = 'URL UNAVAILABLE'
+BATCH_URL_UNAVAILABLE = 'URL_UNAVAILABLE'
 SEQERA_KEYS = {
     'commit_id': 'commitId',
     'config_text': 'configText',

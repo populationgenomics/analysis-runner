@@ -48,8 +48,8 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
         member=job_member,
     )
 
-    # In Development, seqera launch tokens -> created in the server stack.
-    # In production, the seqera-platform-config managed in cpg-infra.
+    # seqera launch tokens -> created in the server stack.
+    # Seqera-platform-config managed in cpg-infra.
     secret_accessors = [
         gcp.secretmanager.SecretIamMember(
             f'{secret_name}-{CONFIG_RESOLVER}-accessor',
@@ -130,7 +130,7 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
         project=PROJECT,
         region=REGION,
         description='Runs the Analysis Runner Config Resolver job',
-        schedule='*/5 * * * *',
+        schedule='*/5 * * * *',  # runs every 5 mins
         time_zone='UTC',
         paused=is_paused,
         # A missed run is picked up by the next scheduled run
@@ -206,7 +206,9 @@ def _create_alerts(
                     duration='60s',
                     aggregations=[
                         gcp.monitoring.AlertPolicyConditionConditionThresholdAggregationArgs(
-                            # An unresolved alert stays open until no submission fails for this long
+                            # Sum of unresolved submissions over the last 2h.
+                            # The incident stays open (no new alert) if there are failures in the last 2h.
+                            # The alert automatically closes 2h after the last failure (so later failures trigger a new alert).
                             alignment_period='7200s',
                             per_series_aligner='ALIGN_SUM',
                             cross_series_reducer='REDUCE_SUM',
@@ -216,7 +218,7 @@ def _create_alerts(
                 ),
             ),
         ],
-        # Notify on open only: the incident closing doesn't mean the unresolved
+        # Notify only when the alert open: the incident closing doesn't mean the unresolved
         # submissions were investigated, just that no new failures for 2h.
         alert_strategy=gcp.monitoring.AlertPolicyAlertStrategyArgs(
             notification_prompts=['OPENED'],
@@ -239,7 +241,7 @@ def _create_alerts(
     )
 
     # Triggers an alert if the Config resolver job keeps on failing
-    # Alert will trigger if failed > 5 times in 30 mins
+    # Alert will trigger if it had continuously failed over 30 mins
     failed_runs_alert = gcp.monitoring.AlertPolicy(
         f'{CONFIG_RESOLVER}-failed-runs-alert',
         project=PROJECT,
@@ -263,7 +265,7 @@ def _create_alerts(
                     duration='60s',
                     aggregations=[
                         gcp.monitoring.AlertPolicyConditionConditionThresholdAggregationArgs(
-                            alignment_period='1800s',
+                            alignment_period='1800s',  # 30 mins
                             per_series_aligner='ALIGN_SUM',
                             cross_series_reducer='REDUCE_SUM',
                         ),

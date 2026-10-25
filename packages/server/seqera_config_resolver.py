@@ -25,7 +25,6 @@ CONFIG_PATH_PREFIX = os.environ['CONFIG_PATH_PREFIX']
 JOB_DEADLINE_SECONDS = int(os.getenv('JOB_DEADLINE_SECONDS', '240'))
 UNRESOLVED_AFTER = datetime.timedelta(hours=2)
 
-# The Metamist meta key
 CONFIG_UNRESOLVED = 'CONFIG_UNRESOLVED'  # A custom status
 # https://docs.seqera.io/platform-cloud/monitoring/overview
 SEQERA_FINISHED_STATUSES = ('SUCCEEDED', 'FAILED', 'CANCELLED')
@@ -216,13 +215,13 @@ def main() -> None:
         )
 
     pending_entries = get_pending_entries(project_ids)
-    timeout_timestamp = time.monotonic() + JOB_DEADLINE_SECONDS
+    job_timeout_timestamp = time.monotonic() + JOB_DEADLINE_SECONDS
     seqera_clients: dict[tuple, SeqeraApiClient] = {}
 
     resolved = 0
     for entry in pending_entries:
         # Stops picking new entries once the deadline passes.
-        if time.monotonic() > timeout_timestamp:
+        if time.monotonic() > job_timeout_timestamp:
             break
         try:
             if resolve_entry(entry, seqera_clients):
