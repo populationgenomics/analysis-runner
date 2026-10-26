@@ -124,6 +124,9 @@ def add_seqera_routes(routes: web.RouteTableDef):
 
         if config_url := params.get('config_url'):
             owner, repo, full_ref, ref, path = await parse_github_url(config_url)
+            check_allowed_repos(
+                dataset_config=dataset_config, repo=repo, dataset=dataset
+            )
             if not is_test:
                 await check_on_main('Config URL', owner, repo, ref)
 
