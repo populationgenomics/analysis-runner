@@ -3,13 +3,12 @@ import datetime
 import json
 from shlex import quote
 
-from aiohttp import web
+from aiohttp import ClientSession, web
 from util import (
     PUBSUB_TOPIC,
-    _get_hail_version,
-    add_environment_variables,
     check_branch_contains_commit,
     check_dataset_and_group,
+    check_environment_variables,
     generate_ar_guid,
     get_analysis_runner_metadata,
     get_and_check_cloud_environment,
@@ -27,6 +26,7 @@ from util import (
 )
 
 import hailtop.batch as hb
+from hailtop.config import get_deploy_config
 
 from cpg_utils.config import AR_GUID_NAME, update_dict
 from cpg_utils.git import guess_script_github_url_from
@@ -96,6 +96,20 @@ class AnalysisRunnerJobArgs:
         return comments
 
 
+async def get_hail_version(environment: str) -> str:
+    """ASYNC get hail version for the hail server in the local deploy_config"""
+    if not environment == 'gcp':
+        raise web.HTTPBadRequest(
+            reason=f'Unsupported Hail Batch deploy config environment: {environment}',
+        )
+
+    deploy_config = get_deploy_config()
+    url = deploy_config.url('batch', '/api/v1alpha/version')
+    async with ClientSession() as session, session.get(url) as resp:
+        resp.raise_for_status()
+        return await resp.text()
+
+
 def add_analysis_runner_routes(routes: web.RouteTableDef):
     """Add cromwell route(s) to 'routes' flask API"""
 
@@ -131,7 +145,7 @@ def add_analysis_runner_routes(routes: web.RouteTableDef):
         )
 
         # This metadata dictionary gets stored in the metadata bucket, at the output_dir location.
-        hail_version = await _get_hail_version(environment=job_config.cloud_environment)
+        hail_version = await get_hail_version(environment=job_config.cloud_environment)
         timestamp = datetime.datetime.now().astimezone().isoformat()
 
         # Prepare the job's configuration and write it to a blob.
@@ -300,7 +314,9 @@ def prepare_job_from_config(
     job.spot(job_config.preemptible)
 
     if job_config.environment_variables:
-        add_environment_variables(job, job_config.environment_variables)
+        check_environment_variables(job_config.environment_variables)
+        for k, v in job_config.environment_variables.items():
+            job.env(k, v)
 
     if job_config.repo:
         prepare_job_with_repo(job, job_config)

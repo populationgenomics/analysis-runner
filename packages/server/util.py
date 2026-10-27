@@ -14,9 +14,6 @@ from cachetools.func import lru_cache, ttl_cache
 from cloudpathlib import AnyPath
 from google.cloud import pubsub_v1
 
-import hailtop.batch as hb
-from hailtop.config import get_deploy_config
-
 from cpg_utils.cloud import email_from_id_token, read_secret
 from cpg_utils.config import AR_GUID_NAME, get_cpg_namespace, update_dict
 from cpg_utils.constants import DEFAULT_GITHUB_ORGANISATION
@@ -113,20 +110,6 @@ def read_ar_secret(secret_name: str) -> str:
             reason='Failed to read analysis-runner secret'
         )
     return value
-
-
-async def _get_hail_version(environment: str) -> str:
-    """ASYNC get hail version for the hail server in the local deploy_config"""
-    if not environment == 'gcp':
-        raise web.HTTPBadRequest(
-            reason=f'Unsupported Hail Batch deploy config environment: {environment}',
-        )
-
-    deploy_config = get_deploy_config()
-    url = deploy_config.url('batch', '/api/v1alpha/version')
-    async with ClientSession() as session, session.get(url) as resp:
-        resp.raise_for_status()
-        return await resp.text()
 
 
 def get_email_from_request(request: web.Request) -> str:
@@ -443,10 +426,7 @@ def get_hail_token(dataset: str, environment_config: dict, access_level: str) ->
     return hail_token
 
 
-def add_environment_variables(
-    job: hb.batch.job.BashJob,
-    environment_variables: dict | None,
-):
+def check_environment_variables(environment_variables: dict | None):
     if not environment_variables:
         return
 
@@ -462,6 +442,3 @@ def add_environment_variables(
             'Some environment_variables values were not strings, got '
             + ', '.join(invalid_env_vars),
         )
-
-    for k, v in environment_variables.items():
-        job.env(k, v)
