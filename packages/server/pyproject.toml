@@ -21,6 +21,19 @@ dependencies = [
     "gunicorn",
 ]
 
+[dependency-groups]
+dev = [
+    "aiohttp",
+    "cpg-utils>=5.0.0",
+    "pytest>=9",
+    "pytest-asyncio",
+    "setuptools",  # The distutils shim keeps the pinned GCP package versions happy.
+]
+
+[tool.pytest]
+testpaths = ["tests"]
+pythonpath = ["."]
+
 [tool.uv]
 package = false
 constraint-dependencies = [
