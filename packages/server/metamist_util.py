@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from http import HTTPStatus
 from typing import Any
 
 from tenacity import (
@@ -12,7 +13,7 @@ from tenacity import (
 
 from cpg_utils.config import AR_GUID_NAME
 from metamist.apis import AnalysisRunnerApi
-from metamist.exceptions import ServiceException
+from metamist.exceptions import ApiException, ServiceException
 
 # test access level runs are logged in the dataset's test project in Metamist
 TEST_PROJECT_SUFFIX = '-test'
@@ -74,11 +75,13 @@ async def log_submission_to_metamist(metadata: dict) -> None:
             hail_version=str(metadata.get('hailVersion')),
             cwd=str(metadata.get('cwd')),
         )
-    except Exception:
-        logging.exception(
-            f'Failed to create analysis-runner log in metamist for {ar_guid}, '
-            f'AR record: {json.dumps(metadata, default=str)}',
-        )
-        return
+    except Exception as e:
+        # A 409 indicates that a previous attempt has inserted the entry
+        if not (isinstance(e, ApiException) and e.status == HTTPStatus.CONFLICT):
+            logging.exception(
+                f'Failed to create analysis-runner log in metamist for {ar_guid}, '
+                f'AR record: {json.dumps(metadata, default=str)}',
+            )
+            return
 
     logging.info(f'Created analysis-runner log in metamist for {ar_guid}')
