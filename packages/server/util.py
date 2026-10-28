@@ -8,6 +8,7 @@ import logging
 import os
 import random
 import uuid
+from http import HTTPStatus
 from typing import Any
 
 import toml
@@ -29,7 +30,7 @@ from cpg_utils.config import AR_GUID_NAME, get_cpg_namespace, update_dict
 from cpg_utils.constants import DEFAULT_GITHUB_ORGANISATION
 from cpg_utils.membership import is_member_in_cached_group
 from metamist.apis import AnalysisRunnerApi
-from metamist.exceptions import ServiceException
+from metamist.exceptions import ApiException, ServiceException
 
 ANALYSIS_RUNNER_PROJECT_ID = os.getenv('ANALYSIS_RUNNER_PROJECT_ID', 'analysis-runner')
 GITHUB_ORG = 'populationgenomics'
@@ -471,11 +472,13 @@ async def log_submission_to_metamist(metadata: dict) -> None:
             hail_version=str(metadata.get('hailVersion')),
             cwd=str(metadata.get('cwd')),
         )
-    except Exception:
-        logging.exception(
-            f'Failed to create analysis-runner log in metamist for {ar_guid}, '
-            f'AR record: {json.dumps(metadata, default=str)}',
-        )
-        return
+    except Exception as e:
+        # A 409 indicates that a previous attempt has inserted the entry
+        if not (isinstance(e, ApiException) and e.status == HTTPStatus.CONFLICT):
+            logging.exception(
+                f'Failed to create analysis-runner log in metamist for {ar_guid}, '
+                f'AR record: {json.dumps(metadata, default=str)}',
+            )
+            return
 
     logging.info(f'Created analysis-runner log in metamist for {ar_guid}')
