@@ -265,6 +265,53 @@ class TestCliSeqera(unittest.TestCase):
         with pytest.raises(SystemExit):
             main_from_args([*args, '--config', '/some/local/file.config'])
 
+    @patch(IMPORT_SEQERA_IDENTITY_TOKEN_PATH)
+    @patch(REQUEST_POST_PATH)
+    def test_syntax_parser_and_nextflow_version_forwarded(
+        self,
+        mock_post: MagicMock,
+        mock_identity_token: MagicMock,
+    ):
+        apply_mock_behaviour(
+            mock_post=mock_post, mock_identity_token=mock_identity_token
+        )
+
+        main_from_args(
+            [
+                *self.SEQERA_ARGS,
+                '--syntax-parser',
+                'v2',
+                '--nextflow-version',
+                '26.04.7',
+            ],
+        )
+
+        body = mock_post.call_args.kwargs['json']
+        assert body['syntax_parser'] == 'v2'
+        assert body['nextflow_version'] == '26.04.7'
+
+    @patch(IMPORT_SEQERA_IDENTITY_TOKEN_PATH)
+    @patch(REQUEST_POST_PATH)
+    def test_syntax_parser_and_nextflow_version_omitted_by_default(
+        self,
+        mock_post: MagicMock,
+        mock_identity_token: MagicMock,
+    ):
+        apply_mock_behaviour(
+            mock_post=mock_post, mock_identity_token=mock_identity_token
+        )
+
+        main_from_args(list(self.SEQERA_ARGS))
+
+        # Absent rather than null: Platform reads a null syntaxParser as v1.
+        body = mock_post.call_args.kwargs['json']
+        assert 'syntax_parser' not in body
+        assert 'nextflow_version' not in body
+
+    def test_unknown_syntax_parser_rejected(self):
+        with pytest.raises(SystemExit):
+            main_from_args([*self.SEQERA_ARGS, '--syntax-parser', 'v3'])
+
 
 if __name__ == '__main__':
     unittest.main()
