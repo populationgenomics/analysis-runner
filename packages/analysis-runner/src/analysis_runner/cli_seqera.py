@@ -93,8 +93,8 @@ def add_seqera_args(
         choices=['v1', 'v2'],
         required=False,
         help=(
-            'The Nextflow syntax parser to run the pipeline with. Seqera Platform '
-            'uses v1 when this is not given, whatever the Nextflow version.'
+            'The Nextflow syntax parser to run the pipeline with. Defaults to v2; '
+            'use v1 for pipelines that still rely on the legacy syntax.'
         ),
     )
     parser.add_argument(
@@ -102,7 +102,8 @@ def add_seqera_args(
         required=False,
         help=(
             'The Nextflow version to run the pipeline with, e.g. 26.04.7. It must '
-            "be in the Platform's version catalog. Defaults to the Platform's."
+            "be in Seqera Platform's version catalog. Defaults to the version the "
+            'analysis-runner server pins.'
         ),
     )
 

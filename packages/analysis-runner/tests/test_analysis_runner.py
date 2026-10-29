@@ -303,7 +303,7 @@ class TestCliSeqera(unittest.TestCase):
 
         main_from_args(list(self.SEQERA_ARGS))
 
-        # Absent rather than null: Platform reads a null syntaxParser as v1.
+        # Left out, so the server applies its defaults.
         body = mock_post.call_args.kwargs['json']
         assert 'syntax_parser' not in body
         assert 'nextflow_version' not in body

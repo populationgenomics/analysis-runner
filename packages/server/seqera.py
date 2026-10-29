@@ -50,16 +50,21 @@ def get_and_check_seqera_commit(params: dict) -> str:
 
 
 SYNTAX_PARSERS = ('v1', 'v2')
+DEFAULT_SYNTAX_PARSER = 'v2'
+DEFAULT_NEXTFLOW_VERSION = '26.04.7'
 NEXTFLOW_VERSION_PATTERN = re.compile(r'\d+\.\d+\.\d+(-edge)?')
 
 
-def check_seqera_launch_options(params: dict) -> None:
-    # Platform reads an explicit null syntaxParser as v1, so a key that is present
-    # must hold a valid value; an absent key leaves the Platform default.
-    if 'syntax_parser' in params and params['syntax_parser'] not in SYNTAX_PARSERS:
+def apply_seqera_launch_options(params: dict) -> None:
+    """Default the syntax parser and Nextflow version, then validate both."""
+    # Platform would otherwise run the v1 parser, whatever the Nextflow version.
+    params.setdefault('syntax_parser', DEFAULT_SYNTAX_PARSER)
+    params.setdefault('nextflow_version', DEFAULT_NEXTFLOW_VERSION)
+
+    if params['syntax_parser'] not in SYNTAX_PARSERS:
         raise web.HTTPBadRequest(reason='syntax_parser must be one of v1, v2')
 
-    if 'nextflow_version' in params and not (
+    if not (
         isinstance(params['nextflow_version'], str)
         and NEXTFLOW_VERSION_PATTERN.fullmatch(params['nextflow_version'])
     ):
@@ -105,7 +110,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
         check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
 
         commit = get_and_check_seqera_commit(params)
-        check_seqera_launch_options(params)
+        apply_seqera_launch_options(params)
         if not is_test:
             on_main = await check_branch_contains_commit(repo, 'main', commit, owner)
             if not on_main:
