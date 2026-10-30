@@ -89,6 +89,16 @@ def add_seqera_args(
     )
 
     parser.add_argument(
+        '--syntax-parser',
+        choices=['v1', 'v2'],
+        required=False,
+        help=(
+            'The Nextflow syntax parser to run the pipeline with. Defaults to v2; '
+            'use v1 for pipelines that still rely on the legacy syntax.'
+        ),
+    )
+
+    parser.add_argument(
         '--use-test-server',
         action='store_true',
         help='Use the test analysis-runner server, this overrides --server-url',
@@ -132,6 +142,7 @@ def run_seqera(
     main_script: str = 'main.nf',
     params_file: str | None = None,
     config: str | None = None,
+    syntax_parser: str | None = None,
     use_test_server: bool = False,
     server_url: str | None = None,
 ) -> None:
@@ -156,10 +167,13 @@ def run_seqera(
         'repository': repository,
     }
 
-    if revision:
-        server_args['revision'] = revision
-    if commit_id:
-        server_args['commit_id'] = commit_id
+    # Only options that were given: the server leaves absent ones to Seqera's defaults.
+    optional_args = {
+        'revision': revision,
+        'commit_id': commit_id,
+        'syntax_parser': syntax_parser,
+    }
+    server_args.update({key: value for key, value in optional_args.items() if value})
 
     if params_file:
         server_args['params'] = _read_params(params_file)
