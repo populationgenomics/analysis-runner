@@ -1,5 +1,4 @@
 import json
-import re
 import urllib.parse
 
 import requests
@@ -51,24 +50,15 @@ def get_and_check_seqera_commit(params: dict) -> str:
 
 SYNTAX_PARSERS = ('v1', 'v2')
 DEFAULT_SYNTAX_PARSER = 'v2'
-DEFAULT_NEXTFLOW_VERSION = '26.04.7'
-NEXTFLOW_VERSION_PATTERN = re.compile(r'\d+\.\d+\.\d+(-edge)?')
 
 
 def apply_seqera_launch_options(params: dict) -> None:
-    """Default the syntax parser and Nextflow version, then validate both."""
+    """Default the syntax parser to v2, then validate it."""
     # Platform would otherwise run the v1 parser, whatever the Nextflow version.
     params.setdefault('syntax_parser', DEFAULT_SYNTAX_PARSER)
-    params.setdefault('nextflow_version', DEFAULT_NEXTFLOW_VERSION)
 
     if params['syntax_parser'] not in SYNTAX_PARSERS:
         raise web.HTTPBadRequest(reason='syntax_parser must be one of v1, v2')
-
-    if not (
-        isinstance(params['nextflow_version'], str)
-        and NEXTFLOW_VERSION_PATTERN.fullmatch(params['nextflow_version'])
-    ):
-        raise web.HTTPBadRequest(reason='Invalid nextflow_version')
 
 
 def sanitise_run_name(name: str) -> str:

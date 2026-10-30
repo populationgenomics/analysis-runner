@@ -9,7 +9,6 @@ SEQERA_KEYS = {
     'commit_id': 'commitId',
     'config_text': 'configText',
     'main_script': 'mainScript',
-    'nextflow_version': 'nextflowVersion',
     'repository': 'pipeline',
     'revision': 'revision',
     'run_name': 'runName',

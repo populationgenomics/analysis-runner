@@ -97,15 +97,6 @@ def add_seqera_args(
             'use v1 for pipelines that still rely on the legacy syntax.'
         ),
     )
-    parser.add_argument(
-        '--nextflow-version',
-        required=False,
-        help=(
-            'The Nextflow version to run the pipeline with, e.g. 26.04.7. It must '
-            "be in Seqera Platform's version catalog. Defaults to the version the "
-            'analysis-runner server pins.'
-        ),
-    )
 
     parser.add_argument(
         '--use-test-server',
@@ -152,7 +143,6 @@ def run_seqera(
     params_file: str | None = None,
     config: str | None = None,
     syntax_parser: str | None = None,
-    nextflow_version: str | None = None,
     use_test_server: bool = False,
     server_url: str | None = None,
 ) -> None:
@@ -182,7 +172,6 @@ def run_seqera(
         'revision': revision,
         'commit_id': commit_id,
         'syntax_parser': syntax_parser,
-        'nextflow_version': nextflow_version,
     }
     server_args.update({key: value for key, value in optional_args.items() if value})
 
