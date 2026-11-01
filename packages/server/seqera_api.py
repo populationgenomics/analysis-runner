@@ -12,6 +12,7 @@ SEQERA_KEYS = {
     'repository': 'pipeline',
     'revision': 'revision',
     'run_name': 'runName',
+    'syntax_parser': 'syntaxParser',
 }
 
 
