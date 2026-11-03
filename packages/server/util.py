@@ -5,8 +5,9 @@ Utility methods for analysis-runner server
 import json
 import os
 import random
+import urllib.parse
 import uuid
-from typing import Any
+from typing import Any, Self
 
 import toml
 from aiohttp import ClientSession, web
@@ -335,9 +336,63 @@ def get_and_check_repository(
     return repo
 
 
-def github_get(session: ClientSession, url: str):
-    headers = {'Authorization': f'Bearer {get_github_token()}'}
-    return session.get(f'https://api.github.com/{url}', headers=headers)
+class GithubUrl:
+    owner: str
+    repo: str
+    full_ref: str
+    ref: str
+    path: str
+
+    def __init__(self, owner: str, repo: str, full_ref: str, ref: str, path: str):
+        self.owner = owner
+        self.repo = repo
+        self.full_ref = full_ref
+        self.ref = ref
+        self.path = path
+
+    @classmethod
+    async def parse(cls, url_str: str) -> Self:
+        url = urllib.parse.urlsplit(url_str)
+        if url.netloc not in ('github.com', 'raw.githubusercontent.com'):
+            raise ValueError('bad host')
+
+        if url.path.count('/') == 2:  # noqa: PLR2004
+            owner, repo = url.path.removeprefix('/').split('/')
+            return cls(owner, repo, '', '', '')
+
+        owner, repo, ref_path = url.path.removeprefix('/').split('/', 2)
+
+        # Remainder of path should be blob/branch/path or refs/{heads,tags}/branch/path
+        # where either "branch" might instead be a tag
+
+        if ref_path.startswith('blob/'):
+            ref_path = ref_path.removeprefix('blob/')
+            ref_kinds = ['heads', 'tags']
+        elif ref_path.startswith('refs/'):
+            _, kind, ref_path = ref_path.split('/', 2)
+            ref_kinds = [kind]
+        else:
+            raise ValueError('Malformatted GitHub URL has neither /blob/ or /refs/')
+
+        prefix = ref_path.split('/', 1)[0]
+        for full_ref, ref in await find_matching_refs(owner, repo, ref_kinds, prefix):
+            if ref_path.startswith(f'{ref}/'):
+                return cls(owner, repo, full_ref, ref, ref_path.removeprefix(ref))
+
+        raise ValueError(f'No Git reference found matching {ref_path}')
+
+
+def github_get(
+    session: ClientSession,
+    url: str,
+    *,
+    params: dict[str, str] | None = None,
+    headers: dict[str, str] | None = None,
+):
+    if headers is None:
+        headers = {}
+    headers['Authorization'] = f'Bearer {get_github_token()}'
+    return session.get(f'https://api.github.com/{url}', params=params, headers=headers)
 
 
 async def check_branch_contains_commit(
@@ -381,6 +436,20 @@ async def find_matching_refs(
                     matching_refs.append((full_ref, ref))
 
     return matching_refs
+
+
+async def get_file_at_commit(url: GithubUrl) -> str:
+    async with (
+        ClientSession() as session,
+        github_get(
+            session,
+            f'repos/{url.owner}/{url.repo}/contents{url.path}',
+            params={'ref': url.full_ref},
+            headers={'Accept': 'application/vnd.github.raw+json'},
+        ) as response,
+    ):
+        response.raise_for_status()
+        return await response.text()
 
 
 def get_and_check_commit(params: dict, repo: str | None) -> str | None:

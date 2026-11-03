@@ -1,57 +1,24 @@
 import json
-import urllib.parse
 
 import requests
 from aiohttp import web
 from seqera_api import SeqeraApiClient
 from util import (
     PUBSUB_TOPIC,
+    GithubUrl,
     check_allowed_repos,
     check_branch_contains_commit,
     check_dataset_and_group,
-    find_matching_refs,
     generate_ar_guid,
     get_and_check_cloud_environment,
     get_email_from_request,
+    get_file_at_commit,
     get_publisher,
     get_server_config,
 )
 
 from cpg_utils.config import AR_GUID_NAME
 from cpg_utils.constants import DEFAULT_GITHUB_ORGANISATION
-
-
-async def parse_github_url(
-    url_str: str,
-) -> tuple[str, str, str | None, str | None, str | None]:
-    url = urllib.parse.urlsplit(url_str)
-    if url.netloc not in ('github.com', 'raw.githubusercontent.com'):
-        raise ValueError('bad host')
-
-    if url.path.count('/') == 2:  # noqa: PLR2004
-        owner, repo = url.path.removeprefix('/').split('/')
-        return (owner, repo, None, None, None)
-
-    owner, repo, ref_path = url.path.removeprefix('/').split('/', 2)
-
-    # Remainder of path should be blob/branch/path or refs/{heads,tags}/branch/path
-    # where either "branch" might instead be a tag
-
-    if ref_path.startswith('blob/'):
-        ref_path = ref_path.removeprefix('blob/')
-        ref_kinds = ['heads', 'tags']
-    elif ref_path.startswith('refs/'):
-        _, kind, ref_path = ref_path.split('/', 2)
-        ref_kinds = [kind]
-    else:
-        raise ValueError('Malformatted GitHub URL has neither /blob/ or /refs/')
-
-    prefix = ref_path.split('/', 1)[0]
-    for full_ref, ref in await find_matching_refs(owner, repo, ref_kinds, prefix):
-        if ref_path.startswith(f'{ref}/'):
-            return (owner, repo, full_ref, ref, ref_path.removeprefix(ref))
-
-    raise ValueError(f'No Git reference found matching {ref_path}')
 
 
 def get_and_check_seqera_commit(params: dict) -> str:
@@ -105,16 +72,18 @@ def add_seqera_routes(routes: web.RouteTableDef):
             email=email,
         )
 
-        if '/' in params['repository']:
-            owner, repo, _, _, path = await parse_github_url(params['repository'])
+        if params['repository'].count('/') < 2:  # noqa: PLR2004
+            # Repository may be specified as 'repo' or 'popgen/repo'
+            owner, _, repo = params['repository'].rpartition('/')
+            if not owner:
+                owner = DEFAULT_GITHUB_ORGANISATION
         else:
-            owner = DEFAULT_GITHUB_ORGANISATION
-            repo = params['repository']
-            path = None
-            params['repository'] = f'https://github.com/{owner}/{repo}.git'
-
-        if path is not None:
-            raise ValueError('GitHub repository URL without file path required')
+            # ...or as a complete (but path-less) GitHub URL
+            url = await GithubUrl.parse(params['repository'])
+            if url.ref or url.path:
+                raise ValueError('GitHub repository URL without file path required')
+            owner = url.owner
+            repo = url.repo
 
         check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
 
@@ -123,17 +92,15 @@ def add_seqera_routes(routes: web.RouteTableDef):
             await check_on_main('Commit', owner, repo, commit)
 
         if config_url := params.get('config_url'):
-            owner, repo, full_ref, ref, path = await parse_github_url(config_url)
+            url = await GithubUrl.parse(config_url)
+
             check_allowed_repos(
-                dataset_config=dataset_config, repo=repo, dataset=dataset
+                dataset_config=dataset_config, repo=url.repo, dataset=dataset
             )
             if not is_test:
-                await check_on_main('Config URL', owner, repo, ref)
+                await check_on_main('Config URL', url.owner, url.repo, url.ref)
 
-            url = f'https://raw.githubusercontent.com/{owner}/{repo}/{full_ref}{path}'
-            response = requests.get(url, timeout=60)
-            response.raise_for_status()
-            params['config_text'] = response.text
+            params['config_text'] = await get_file_at_commit(url)
 
         user_name, _ = email.split('@', 1)
         main_script = params.get('main_script')
