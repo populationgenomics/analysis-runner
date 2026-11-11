@@ -34,6 +34,15 @@ def get_and_check_seqera_commit(params: dict) -> str:
     return commit
 
 
+def check_allowed_owner_repo(owner: str, repo: str, dataset_config: dict, dataset: str):
+    if owner != DEFAULT_GITHUB_ORGANISATION:
+        raise web.HTTPForbidden(
+            reason=f'Repository "{owner}/{repo}" is not in an allowed organisation'
+        )
+
+    check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
+
+
 async def check_on_main(item: str, owner: str, repo: str, ref: str):
     on_main = await check_branch_contains_commit(repo, 'main', ref, owner)
     if not on_main:
@@ -85,8 +94,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
             owner = url.owner
             repo = url.repo
 
-        check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
-
+        check_allowed_owner_repo(owner, repo, dataset_config, dataset)
         commit = get_and_check_seqera_commit(params)
         if not is_test:
             await check_on_main('Commit', owner, repo, commit)
@@ -94,9 +102,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
         if config_url := params.get('config_url'):
             url = await GithubUrl.parse(config_url)
 
-            check_allowed_repos(
-                dataset_config=dataset_config, repo=url.repo, dataset=dataset
-            )
+            check_allowed_owner_repo(url.owner, url.repo, dataset_config, dataset)
             if not is_test:
                 await check_on_main('Config URL', url.owner, url.repo, url.ref)
 
@@ -105,6 +111,8 @@ def add_seqera_routes(routes: web.RouteTableDef):
         user_name, _ = email.split('@', 1)
         main_script = params.get('main_script')
         params['run_name'] = sanitise_run_name(f'{user_name}-{commit}-{main_script}')
+
+        params['repository'] = f'https://github.com/{owner}/{repo}'
 
         if 'params' in params:
             params['params'][AR_GUID_NAME] = ar_guid
