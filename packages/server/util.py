@@ -350,17 +350,25 @@ class GithubUrl:
         self.ref = ref
         self.path = path
 
+    def __repr__(self) -> str:
+        return f'{type(self).__name__}({self.owner!r}, {self.repo!r}, {self.full_ref!r}, {self.ref!r}, {self.path!r})'
+
     @classmethod
     async def parse(cls, url_str: str) -> Self:
         url = urllib.parse.urlsplit(url_str)
         if url.netloc not in ('github.com', 'raw.githubusercontent.com'):
             raise ValueError('bad host')
 
-        if url.path.count('/') == 2:  # noqa: PLR2004
-            owner, repo = url.path.removeprefix('/').split('/')
+        urlpath = urllib.parse.unquote(url.path).removeprefix('/')
+
+        if '/../' in f'/{urlpath}/':
+            raise web.HTTPBadRequest(reason='Misleading GitHub URL')
+
+        if urlpath.count('/') == 1:
+            owner, repo = urlpath.split('/')
             return cls(owner, repo, '', '', '')
 
-        owner, repo, ref_path = url.path.removeprefix('/').split('/', 2)
+        owner, repo, ref_path = urlpath.split('/', 2)
 
         # Remainder of path should be blob/branch/path or refs/{heads,tags}/branch/path
         # where either "branch" might instead be a tag
@@ -377,7 +385,8 @@ class GithubUrl:
         prefix = ref_path.split('/', 1)[0]
         for full_ref, ref in await find_matching_refs(owner, repo, ref_kinds, prefix):
             if ref_path.startswith(f'{ref}/'):
-                return cls(owner, repo, full_ref, ref, ref_path.removeprefix(ref))
+                path = urllib.parse.quote(ref_path.removeprefix(ref))
+                return cls(owner, repo, full_ref, ref, path)
 
         raise ValueError(f'No Git reference found matching {ref_path}')
 
