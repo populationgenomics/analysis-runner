@@ -1,5 +1,6 @@
 import pytest
 import util
+from aiohttp import web
 
 
 async def mock_find_matching_refs(
@@ -30,6 +31,7 @@ def mock_gh_api(monkeypatch):
 async def test_blob_url(mock_gh_api):
     url = 'https://github.com/populationgenomics/talos/blob/main/nextflow.config'
     gh_url = await util.GithubUrl.parse(url)
+    await gh_url.parse_path()
     assert gh_url.owner == 'populationgenomics'
     assert gh_url.repo == 'talos'
     assert gh_url.full_ref == 'refs/heads/main'
@@ -41,6 +43,7 @@ async def test_blob_url(mock_gh_api):
 async def test_refs_url(mock_gh_api):
     url = 'https://github.com/populationgenomics/talos/refs/heads/main/nextflow.config'
     gh_url = await util.GithubUrl.parse(url)
+    await gh_url.parse_path()
     assert gh_url.owner == 'populationgenomics'
     assert gh_url.repo == 'talos'
     assert gh_url.full_ref == 'refs/heads/main'
@@ -52,6 +55,7 @@ async def test_refs_url(mock_gh_api):
 async def test_nested_url(mock_gh_api):
     url = 'https://github.com/populationgenomics/analysis-runner/refs/heads/infra/testing/foo/bar.txt'
     gh_url = await util.GithubUrl.parse(url)
+    await gh_url.parse_path()
     assert gh_url.owner == 'populationgenomics'
     assert gh_url.repo == 'analysis-runner'
     assert gh_url.full_ref == 'refs/heads/infra/testing'
@@ -60,7 +64,14 @@ async def test_nested_url(mock_gh_api):
 
 
 @pytest.mark.asyncio
+async def test_malicious_url(mock_gh_api):
+    url = 'https://github.com/populationgenomics/talos/blob/main/../../../../evil/repo/contents/evil.config'
+    with pytest.raises(web.HTTPBadRequest):
+        await util.GithubUrl.parse(url)
+
+
+@pytest.mark.asyncio
 async def test_bad_url(mock_gh_api):
     url = 'https://github.com/populationgenomics/analysis-runner/refs/heads/nonexistent/foo.txt'
     with pytest.raises(ValueError, match='No Git reference found'):
-        await util.GithubUrl.parse(url)
+        await (await util.GithubUrl.parse(url)).parse_path()

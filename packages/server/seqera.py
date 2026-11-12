@@ -89,7 +89,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
         else:
             # ...or as a complete (but path-less) GitHub URL
             url = await GithubUrl.parse(params['repository'])
-            if url.ref or url.path:
+            if url.has_path():
                 raise ValueError('GitHub repository URL without file path required')
             owner = url.owner
             repo = url.repo
@@ -103,6 +103,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
             url = await GithubUrl.parse(config_url)
 
             check_allowed_owner_repo(url.owner, url.repo, dataset_config, dataset)
+            await url.parse_path()
             if not is_test:
                 await check_on_main('Config URL', url.owner, url.repo, url.ref)
 

@@ -343,12 +343,15 @@ class GithubUrl:
     ref: str
     path: str
 
-    def __init__(self, owner: str, repo: str, full_ref: str, ref: str, path: str):
+    def __init__(self, owner: str, repo: str, path: str):
         self.owner = owner
         self.repo = repo
-        self.full_ref = full_ref
-        self.ref = ref
+        self.full_ref = ''
+        self.ref = ''
         self.path = path
+
+    def has_path(self) -> bool:
+        return self.path != ''
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}({self.owner!r}, {self.repo!r}, {self.full_ref!r}, {self.ref!r}, {self.path!r})'
@@ -366,9 +369,13 @@ class GithubUrl:
 
         if urlpath.count('/') == 1:
             owner, repo = urlpath.split('/')
-            return cls(owner, repo, '', '', '')
+            return cls(owner, repo, '')
 
         owner, repo, ref_path = urlpath.split('/', 2)
+        return cls(owner, repo, ref_path)
+
+    async def parse_path(self) -> Self:
+        ref_path = self.path
 
         # Remainder of path should be blob/branch/path or refs/{heads,tags}/branch/path
         # where either "branch" might instead be a tag
@@ -383,10 +390,14 @@ class GithubUrl:
             raise ValueError('Malformatted GitHub URL has neither /blob/ or /refs/')
 
         prefix = ref_path.split('/', 1)[0]
-        for full_ref, ref in await find_matching_refs(owner, repo, ref_kinds, prefix):
+        for full_ref, ref in await find_matching_refs(
+            self.owner, self.repo, ref_kinds, prefix
+        ):
             if ref_path.startswith(f'{ref}/'):
-                path = urllib.parse.quote(ref_path.removeprefix(ref))
-                return cls(owner, repo, full_ref, ref, path)
+                self.full_ref = full_ref
+                self.ref = ref
+                self.path = urllib.parse.quote(ref_path.removeprefix(ref))
+                return self
 
         raise ValueError(f'No Git reference found matching {ref_path}')
 
