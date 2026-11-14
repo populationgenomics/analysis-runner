@@ -154,7 +154,7 @@ multidict==6.7.1
     #   yarl
 oauthlib==3.3.1
     # via requests-oauthlib
-opentelemetry-api==1.44.0
+opentelemetry-api==1.45.2
     # via google-cloud-logging
 propcache==0.5.2
     # via
