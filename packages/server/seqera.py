@@ -49,6 +49,19 @@ async def check_on_main(item: str, owner: str, repo: str, ref: str):
         raise web.HTTPBadRequest(reason=f'{item} is not present on main branch')
 
 
+SYNTAX_PARSERS = ('v1', 'v2')
+DEFAULT_SYNTAX_PARSER = 'v2'
+
+
+def apply_seqera_launch_options(params: dict) -> None:
+    """Default the syntax parser to v2, then validate it."""
+    # Platform would otherwise run the v1 parser, whatever the Nextflow version.
+    params.setdefault('syntax_parser', DEFAULT_SYNTAX_PARSER)
+
+    if params['syntax_parser'] not in SYNTAX_PARSERS:
+        raise web.HTTPBadRequest(reason='syntax_parser must be one of v1, v2')
+
+
 def sanitise_run_name(name: str) -> str:
     """Ensure the run name conforms to Seqera's rules."""
     if not name[0].isalpha():
@@ -96,6 +109,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
 
         check_allowed_owner_repo(owner, repo, dataset_config, dataset)
         commit = get_and_check_seqera_commit(params)
+        apply_seqera_launch_options(params)
         if not is_test:
             await check_on_main('Commit', owner, repo, commit)
 
