@@ -1,4 +1,5 @@
 import pytest
+import seqera
 import util
 from aiohttp import web
 
@@ -61,6 +62,14 @@ async def test_nested_url(mock_gh_api):
     assert gh_url.full_ref == 'refs/heads/infra/testing'
     assert gh_url.ref == 'infra/testing'
     assert gh_url.path == '/foo/bar.txt'
+
+
+@pytest.mark.asyncio
+async def test_wrong_owner_url(mock_gh_api):
+    url = 'https://github.com/evilcorp/talos/refs/heads/main/nextflow.config'
+    gh_url = await util.GithubUrl.parse(url)
+    with pytest.raises(web.HTTPForbidden, match='allowed organisation'):
+        seqera.check_allowed_owner_repo(gh_url.owner, gh_url.repo, {}, 'test')
 
 
 @pytest.mark.asyncio
