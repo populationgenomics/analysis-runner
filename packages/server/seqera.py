@@ -1,38 +1,24 @@
 import json
-import urllib.parse
 
 import requests
 from aiohttp import web
 from seqera_api import SeqeraApiClient
 from util import (
     PUBSUB_TOPIC,
+    GithubUrl,
     check_allowed_repos,
     check_branch_contains_commit,
     check_dataset_and_group,
     generate_ar_guid,
     get_and_check_cloud_environment,
     get_email_from_request,
+    get_file_at_commit,
+    get_publisher,
     get_server_config,
-    publisher,
 )
 
 from cpg_utils.config import AR_GUID_NAME
-
-
-def parse_github_url(url_str: str) -> tuple[str, str, str | None, str | None]:
-    url = urllib.parse.urlsplit(url_str)
-    if url.netloc not in ('github.com', 'raw.githubusercontent.com'):
-        raise ValueError('bad host')
-
-    if url.path.count('/') == 2:  # noqa: PLR2004
-        owner, repo = url.path.removeprefix('/').split('/')
-        return (owner, repo, None, None)
-
-    owner, repo, ref_path = url.path.removeprefix('/').split('/', 2)
-    ref_path = ref_path.removeprefix('blob/').removeprefix('refs/heads/')
-
-    # TODO separate ref and path
-    return (owner, repo, ref_path, None)
+from cpg_utils.constants import DEFAULT_GITHUB_ORGANISATION
 
 
 def get_and_check_seqera_commit(params: dict) -> str:
@@ -46,6 +32,21 @@ def get_and_check_seqera_commit(params: dict) -> str:
         raise web.HTTPBadRequest(reason='Invalid commit parameter')
 
     return commit
+
+
+def check_allowed_owner_repo(owner: str, repo: str, dataset_config: dict, dataset: str):
+    if owner != DEFAULT_GITHUB_ORGANISATION:
+        raise web.HTTPForbidden(
+            reason=f'Repository "{owner}/{repo}" is not in an allowed organisation'
+        )
+
+    check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
+
+
+async def check_on_main(item: str, owner: str, repo: str, ref: str):
+    on_main = await check_branch_contains_commit(repo, 'main', ref, owner)
+    if not on_main:
+        raise web.HTTPBadRequest(reason=f'{item} is not present on main branch')
 
 
 SYNTAX_PARSERS = ('v1', 'v2')
@@ -93,22 +94,40 @@ def add_seqera_routes(routes: web.RouteTableDef):
             email=email,
         )
 
-        owner, repo, _, path = parse_github_url(params['repository'])
-        if path is not None:
-            raise ValueError('GitHub repository URL without file path required')
+        if params['repository'].count('/') < 2:  # noqa: PLR2004
+            # Repository may be specified as 'repo' or 'popgen/repo'
+            owner, _, repo = params['repository'].rpartition('/')
+            if not owner:
+                owner = DEFAULT_GITHUB_ORGANISATION
+        else:
+            # ...or as a complete (but path-less) GitHub URL
+            url = await GithubUrl.parse(params['repository'])
+            if url.has_path():
+                raise ValueError('GitHub repository URL without file path required')
+            owner = url.owner
+            repo = url.repo
 
-        check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
-
+        check_allowed_owner_repo(owner, repo, dataset_config, dataset)
         commit = get_and_check_seqera_commit(params)
         apply_seqera_launch_options(params)
         if not is_test:
-            on_main = await check_branch_contains_commit(repo, 'main', commit, owner)
-            if not on_main:
-                raise web.HTTPBadRequest(reason='Commit is not present on main branch')
+            await check_on_main('Commit', owner, repo, commit)
+
+        if config_url := params.get('config_url'):
+            url = await GithubUrl.parse(config_url)
+
+            check_allowed_owner_repo(url.owner, url.repo, dataset_config, dataset)
+            await url.parse_path()
+            if not is_test:
+                await check_on_main('Config URL', url.owner, url.repo, url.ref)
+
+            params['config_text'] = await get_file_at_commit(url)
 
         user_name, _ = email.split('@', 1)
         main_script = params.get('main_script')
         params['run_name'] = sanitise_run_name(f'{user_name}-{commit}-{main_script}')
+
+        params['repository'] = f'https://github.com/{owner}/{repo}'
 
         if 'params' in params:
             params['params'][AR_GUID_NAME] = ar_guid
@@ -129,7 +148,10 @@ def add_seqera_routes(routes: web.RouteTableDef):
             'script': main_script,
             'description': params.get('description'),
             'environment': cloud_environment,
-            'meta': {'workflow_id': workflow_id},
+            'meta': {
+                'workflow_id': workflow_id,
+                'seqera_status': 'PENDING',
+            },
         }
 
         try:
@@ -141,6 +163,6 @@ def add_seqera_routes(routes: web.RouteTableDef):
             url = '[URL unavailable]'
 
         pubsub_json_bytes = json.dumps(pubsub_metadata).encode('utf-8')
-        publisher.publish(PUBSUB_TOPIC, pubsub_json_bytes).result()
+        get_publisher().publish(PUBSUB_TOPIC, pubsub_json_bytes).result()
 
         return web.Response(text=f'Workflow {workflow_id} submitted{where}.\n{url}\n')
