@@ -1,7 +1,7 @@
 """
 Analysis-runner infrastructure.
 Each component is maintained using a separate stack.
-The common (shared by server and web), contains resources common to both server and web.
+The common contains resources shared across different stacks
 """
 
 import pulumi
@@ -20,5 +20,9 @@ elif component == 'web':
     from components.web import create_web_resources
 
     create_web_resources()
+elif component == 'config-resolver':
+    from components.config_resolver import create_config_resolver_resources
+
+    create_config_resolver_resources()
 else:
     raise ValueError(f'Unknown component {component!r}')

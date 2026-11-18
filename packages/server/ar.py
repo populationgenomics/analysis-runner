@@ -3,6 +3,7 @@ import datetime
 from shlex import quote
 
 from aiohttp import web
+from metamist_util import log_submission_to_metamist
 from util import (
     _get_hail_version,
     add_environment_variables,
@@ -19,7 +20,6 @@ from util import (
     get_email_from_request,
     get_hail_token,
     get_server_config,
-    log_submission_to_metamist,
     validate_output_dir,
     write_config,
 )

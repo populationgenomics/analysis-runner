@@ -22,9 +22,6 @@ SERVER_IMAGE_TAG = config.get('server_image_tag')
 if not SERVER_IMAGE_TAG:
     raise ValueError('Missing server_image_tag config')
 
-# Custom org role: read objects, and create new ones without overwriting.
-STORAGE_VIEWER_AND_CREATOR = f'organizations/{ORG_ID}/roles/StorageViewerAndCreator'
-
 
 @dataclass(frozen=True)
 class ServerSpec:
@@ -46,7 +43,6 @@ SERVER_CONFIG_SECRET = 'server-config'  # noqa: S105 - secret name, not a value
 
 
 def create_server_resources() -> dict[str, pulumi.Resource]:
-
     server_sa = gcp.serviceaccount.Account(
         'analysis-runner-server-sa',
         account_id='analysis-runner-server',
@@ -80,7 +76,7 @@ def create_server_resources() -> dict[str, pulumi.Resource]:
     gcp.storage.BucketIAMMember(
         'cpg-config-server-viewer-and-creator',
         bucket=cpg_config_bucket.name,
-        role=STORAGE_VIEWER_AND_CREATOR,
+        role=f'organizations/{ORG_ID}/roles/StorageViewerAndCreator',
         member=server_member,
         opts=pulumi.ResourceOptions(protect=True),
     )
