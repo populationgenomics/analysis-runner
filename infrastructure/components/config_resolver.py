@@ -30,7 +30,6 @@ UNRESOLVED_LOG_TEXT = (
 
 
 def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
-
     job_sa = gcp.serviceaccount.Account(
         f'{CONFIG_RESOLVER}-sa',
         account_id=CONFIG_RESOLVER,
@@ -163,7 +162,6 @@ def create_config_resolver_resources() -> dict[str, pulumi.Resource]:
 def _create_alerts(
     job: gcp.cloudrunv2.Job,
 ) -> tuple[gcp.monitoring.AlertPolicy, gcp.monitoring.AlertPolicy]:
-
     job_logs_filter = job.name.apply(
         lambda name: (
             f'resource.type="cloud_run_job" AND resource.labels.job_name="{name}"'

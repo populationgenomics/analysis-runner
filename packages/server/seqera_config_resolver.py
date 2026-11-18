@@ -77,13 +77,11 @@ UPDATE_ENTRY_MUTATION = gql(
 
 
 def get_project_ids() -> list[int]:
-
     response = query(MY_PROJECTS_QUERY)
     return [project['id'] for project in response['myProjects']]
 
 
 def get_pending_entries(project_ids: list[int]) -> list[dict]:
-
     response = query(
         PENDING_ENTRIES_QUERY,
         {
@@ -95,7 +93,6 @@ def get_pending_entries(project_ids: list[int]) -> list[dict]:
 
 
 def write_config(ar_guid: str, config_text: str) -> str:
-
     config_path = AnyPath(CONFIG_PATH_PREFIX) / f'{ar_guid}.config'
     # The file could be written by a previous run whose Metamist update failed.
     if not config_path.exists():
@@ -104,7 +101,6 @@ def write_config(ar_guid: str, config_text: str) -> str:
 
 
 def get_missing_batch_url(seqera: SeqeraApiClient, entry: dict) -> str | None:
-
     if entry['batchUrl'] != BATCH_URL_UNAVAILABLE:
         return None
     return seqera.workflow_url(entry['meta']['workflow_id'])
@@ -116,7 +112,6 @@ def fetch_workflow(entry: dict, seqera: SeqeraApiClient) -> dict:
 
 
 def get_entry_age(entry: dict) -> datetime.timedelta:
-
     created = datetime.datetime.fromisoformat(entry['timestamp'])
     if created.tzinfo is None:
         # MariaDB Metamist stores the timestamp without a timezone, in UTC
@@ -131,7 +126,6 @@ def update_metamist_entry(
     batch_url: str | None = None,
     reason: str | None = None,
 ) -> None:
-
     update: dict = {}
     if config_path is not None:
         update['configPath'] = config_path

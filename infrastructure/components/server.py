@@ -43,7 +43,6 @@ SERVER_CONFIG_SECRET = 'server-config'  # noqa: S105 - secret name, not a value
 
 
 def create_server_resources() -> dict[str, pulumi.Resource]:
-
     server_sa = gcp.serviceaccount.Account(
         'analysis-runner-server-sa',
         account_id='analysis-runner-server',

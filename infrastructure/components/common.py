@@ -63,7 +63,6 @@ def create_common_resources() -> dict[str, pulumi.Resource]:
 def _images_cleanup_policies() -> list[
     gcp.artifactregistry.RepositoryCleanupPolicyArgs
 ]:
-
     return [
         gcp.artifactregistry.RepositoryCleanupPolicyArgs(
             id='delete-older-than-14-days',
