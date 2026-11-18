@@ -1,11 +1,9 @@
 import dataclasses
 import datetime
-import json
 from shlex import quote
 
 from aiohttp import web
 from util import (
-    PUBSUB_TOPIC,
     _get_hail_version,
     add_environment_variables,
     check_branch_contains_commit,
@@ -21,7 +19,7 @@ from util import (
     get_email_from_request,
     get_hail_token,
     get_server_config,
-    publisher,
+    log_submission_to_metamist,
     validate_output_dir,
     write_config,
 )
@@ -209,9 +207,9 @@ def add_analysis_runner_routes(routes: web.RouteTableDef):
             environment=job_config.cloud_environment,
         )
 
-        # Publish the metadata to Pub/Sub.
+        # Publish the metadata to Metamist.
         metadata['batch_url'] = url
-        publisher.publish(PUBSUB_TOPIC, json.dumps(metadata).encode('utf-8')).result()
+        await log_submission_to_metamist(metadata)
 
         return web.Response(text=f'{url}/jobs/1\n')
 

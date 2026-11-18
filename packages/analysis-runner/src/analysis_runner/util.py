@@ -11,7 +11,7 @@ from analysis_runner._version import __version__
 
 BRANCH = 'main'
 SERVER_ENDPOINT = 'https://server-a2pko7ameq-ts.a.run.app'
-SERVER_TEST_ENDPOINT = 'https://server-test-a2pko7ameq-ts.a.run.app'
+SERVER_TEST_ENDPOINT = 'https://server-dev-gkezb7rx3q-ts.a.run.app'
 ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
 
 logger = logging.getLogger('analysis_runner')

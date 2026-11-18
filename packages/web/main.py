@@ -16,7 +16,8 @@ from flask import Flask, abort, request
 from cpg_utils.cloud import read_secret
 from cpg_utils.membership import is_member_in_cached_group
 
-ANALYSIS_RUNNER_PROJECT_ID = 'analysis-runner'
+ANALYSIS_RUNNER_PROJECT_ID = os.getenv('ANALYSIS_RUNNER_PROJECT_ID')
+assert ANALYSIS_RUNNER_PROJECT_ID
 
 BUCKET_SUFFIX = os.getenv('BUCKET_SUFFIX')
 assert BUCKET_SUFFIX
