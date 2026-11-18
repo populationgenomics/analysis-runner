@@ -440,8 +440,8 @@ def add_environment_variables(
     ),
     retry=retry_if_exception_type(ServiceException),
 )
-async def _create_metamist_log(**kwargs: Any) -> None:
-    await asyncio.to_thread(AnalysisRunnerApi().create_analysis_runner_log, **kwargs)
+async def _create_metamist_log(m_log: dict[str, Any]) -> None:
+    await asyncio.to_thread(AnalysisRunnerApi().create_analysis_runner_log, **m_log)
 
 
 async def log_submission_to_metamist(metadata: dict) -> None:
@@ -453,31 +453,32 @@ async def log_submission_to_metamist(metadata: dict) -> None:
         project += '-test'
 
     ar_guid = str(metadata.get(AR_GUID_NAME))
+    metamist_log = {
+        'project': project,
+        'ar_guid': ar_guid,
+        'access_level': str(metadata.get('accessLevel')),
+        'repository': str(metadata.get('repo')),
+        'commit': str(metadata.get('commit')),
+        'script': str(metadata.get('script')),
+        'description': str(metadata.get('description')),
+        'driver_image': str(metadata.get('driverImage')),
+        'config_path': str(metadata.get('configPath')),
+        'environment': str(metadata.get('environment')),
+        'batch_url': str(metadata.get('batch_url')),
+        'submitting_user': str(metadata.get('user')),
+        'output_path': str(metadata.get('output')),
+        'request_body': metadata.get('meta', {}) or {},
+        'hail_version': str(metadata.get('hailVersion')),
+        'cwd': str(metadata.get('cwd')),
+    }
     try:
-        await _create_metamist_log(
-            project=project,
-            ar_guid=ar_guid,
-            access_level=str(metadata.get('accessLevel')),
-            repository=str(metadata.get('repo')),
-            commit=str(metadata.get('commit')),
-            script=str(metadata.get('script')),
-            description=str(metadata.get('description')),
-            driver_image=str(metadata.get('driverImage')),
-            config_path=str(metadata.get('configPath')),
-            environment=str(metadata.get('environment')),
-            batch_url=str(metadata.get('batch_url')),
-            submitting_user=str(metadata.get('user')),
-            output_path=str(metadata.get('output')),
-            request_body=metadata.get('meta', {}) or {},
-            hail_version=str(metadata.get('hailVersion')),
-            cwd=str(metadata.get('cwd')),
-        )
+        await _create_metamist_log(metamist_log)
     except Exception as e:
         # A 409 indicates that a previous attempt has inserted the entry
         if not (isinstance(e, ApiException) and e.status == HTTPStatus.CONFLICT):
             logging.exception(
                 f'Failed to create analysis-runner log in metamist for {ar_guid}, '
-                f'AR record: {json.dumps(metadata, default=str)}',
+                f'AR record: {json.dumps(metamist_log, default=str)}',
             )
             return
 
