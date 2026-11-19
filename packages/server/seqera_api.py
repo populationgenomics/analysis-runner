@@ -5,6 +5,11 @@ from aiohttp import web
 from cachetools.func import lru_cache
 from util import get_seqera_config, read_ar_secret
 
+# Metamist meta key and custom status for runs whose config the resolver job
+# still has to save (as on the SET-1321 branch).
+SEQERA_STATUS_KEY = 'seqera_status'
+CONFIG_PENDING = 'CONFIG_PENDING'
+
 SEQERA_KEYS = {
     'commit_id': 'commitId',
     'config_text': 'configText',
@@ -98,3 +103,40 @@ class SeqeraApiClient:
             launch['launch']['paramsText'] = json.dumps(params['params'])
 
         return self.post('workflow/launch', launch, self.workspace_param)['workflowId']
+
+    def describe_workflow_launch(self, workflow_id: str) -> dict:
+        """The launch configuration of a run."""
+        response = self.get(
+            f'workflow/{workflow_id}/launch', params=self.workspace_param
+        )
+        return response['launch']
+
+    def list_workflows(self, search: str | None = None) -> list[dict]:
+        """The workflows in the workspace. search query filters workflows
+        without search query all the workflows in the workspace are retrieved.
+        API documentation: https://docs.seqera.io/platform-api/list-workflows
+        """
+        params = dict(self.workspace_param)
+        if search:
+            params['search'] = search
+
+        response = self.get('workflow', params=params)
+        return [item['workflow'] for item in response['workflows']]
+
+    def workflow_url(self, workflow_id: str) -> str:
+        return (
+            f'{self.server_url}/orgs/{self.org_name}'
+            f'/workspaces/{self.workspace_name}/watch/{workflow_id}'
+        )
+
+    def run_work_dir(self, ar_guid: str) -> str:
+        """A folder per run in the compute env's work dir."""
+        compute_env = self.compute_environment(self.dataset_config['compute_env_id'])
+        return f'{compute_env["config"]["workDir"].rstrip("/")}/{ar_guid}'
+
+    def submit_launch(self, launch: dict) -> str:
+        """POST a WorkflowLaunchRequest and return the new workflow id."""
+        response = self.post(
+            'workflow/launch', {'launch': launch}, self.workspace_param
+        )
+        return response['workflowId']
