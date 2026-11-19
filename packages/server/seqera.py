@@ -160,122 +160,178 @@ def get_source_ar_guid(source_launch: dict) -> str:
     return ar_guid
 
 
-async def launch_from_source_run(
-    params: dict,
-    seqera: SeqeraApiClient,
-    dataset_config: dict,
-    email: str,
-    resume: bool,
-) -> dict[str, Any]:
+def get_source_launch(
+    seqera: SeqeraApiClient, params: dict, dataset_config: dict
+) -> tuple[dict, str]:
+    """
+    The original run's launch and ar_guid, after checking the run belongs to this
+    dataset and access level and was launched by the analysis-runner.
+    """
     source_id = params['workflow_id']
-    dataset = params['dataset']
+    source_launch = seqera.describe_workflow_launch(source_id)
 
-    source_workflow_launch = seqera.describe_workflow_launch(source_id)
-
-    workflows_of_session_id: list[dict] = []
-    if resume:
-        session_id = source_workflow_launch['sessionId']
-        workflows_of_session_id = seqera.list_workflows(f'sessionId:{session_id}')
-        source_workflow = next(
-            (w for w in workflows_of_session_id if w['id'] == source_id), None
-        ) or seqera.describe_workflow(source_id)
-
-        if source_workflow.get('status') not in SOURCE_RUN_STATUSES:
-            raise web.HTTPBadRequest(
-                reason=f'Only runs with status {", ".join(SOURCE_RUN_STATUSES)} '
-                f'can be resumed; {source_id} is {source_workflow.get("status")}',
-            )
-
-    # Make sure the original run and the new run have the same dataset and access level
-    # paramText may contain dataset and access_level fields but this is not guaranteed.
-    # Therefore, computeEnv is compared
-    compute_env_id = dataset_config['compute_env_id']
-    source_compute_env = source_workflow_launch.get('computeEnv') or {}
-    if str(source_compute_env.get('id')) != str(compute_env_id):
+    # paramsText may contain dataset and access_level fields but this is not
+    # guaranteed. Therefore, computeEnv is compared.
+    source_compute_env = source_launch.get('computeEnv') or {}
+    if str(source_compute_env.get('id')) != str(dataset_config['compute_env_id']):
         raise web.HTTPBadRequest(
-            reason=f'Run {source_id} does not belong to dataset {dataset} at '
-            f'{params["access_level"]} access level'
+            reason=f'Run {source_id} does not belong to dataset {params["dataset"]} '
+            f'at {params["access_level"]} access level'
         )
 
-    source_ar_guid = get_source_ar_guid(source_workflow_launch)
+    return source_launch, get_source_ar_guid(source_launch)
 
-    if resume:
-        # resumeCommitId ensure that the new run use the same commit as the original run (mandatory for resume).
-        # if resumeCommitId is empty -> The previous run has possibly failed before registering to Nextflow
-        commit = source_workflow_launch.get('resumeCommitId')
-        if not commit:
-            raise web.HTTPBadRequest(
-                reason=f'Run {source_id} has nothing to resume, relaunch it instead'
-            )
-        ar_guid = source_ar_guid
-        work_dir = source_workflow_launch['resumeDir']
 
-        workflow_name = source_workflow['runName']
-        if source_workflow.get('resume'):
-            # The original run was itself a resume: drop its version.
-            workflow_name = re.sub(r'-\d+$', '', workflow_name)
-        workflow_name = f'{workflow_name}-{len(workflows_of_session_id) + 1}'
-    else:
-        # Relaunch original commit or revision (can be a branch, tag, or commit) otherwise
-        commit = (
-            source_workflow_launch.get('resumeCommitId')
-            or source_workflow_launch['revision']
-        )
-
-        ar_guid = generate_ar_guid()
-        work_dir = seqera.run_work_dir(ar_guid)
-
-        # A relaunch is an independent run, so it is named like a new launch.
-        user_name, _ = email.split('@', 1)
-        main_script = source_workflow_launch.get('mainScript') or 'main.nf'
-        workflow_name = sanitise_run_name(f'{user_name}-{commit}-{main_script}')
-
-    # This is a revalidation (already done during the original run) before submission
-    owner, repo, _, _ = parse_github_url(source_workflow_launch['pipeline'])
-    check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
+async def check_source_pipeline(
+    pipeline: str, commit: str, params: dict, dataset_config: dict
+) -> str:
+    """
+    Revalidate the original run's pipeline (already done for the original run):
+    """
+    owner, repo, _, _ = parse_github_url(pipeline)
+    check_allowed_repos(
+        dataset_config=dataset_config, repo=repo, dataset=params['dataset']
+    )
     await check_commit_on_main(owner, repo, commit, params['access_level'] == 'test')
+    return repo
 
+
+def submit_from_source_launch(
+    seqera: SeqeraApiClient,
+    source_launch: dict,
+    params: dict,
+    *,
+    resume: bool,
+    ar_guid: str,
+    commit: str,
+    work_dir: str,
+    run_name: str,
+) -> str:
+    """Submit the original launch with this run's settings. Returns the workflow id."""
     # A new params file replaces the source params as a whole.
     if 'params' in params:
         run_params = params['params']
     else:
-        run_params = json.loads(source_workflow_launch.get('paramsText') or '{}')
+        run_params = json.loads(source_launch.get('paramsText') or '{}')
     run_params[AR_GUID_NAME] = ar_guid
 
     launch = {
-        **source_workflow_launch,
+        **source_launch,
         'workDir': work_dir,
         'revision': commit,
         'resume': resume,
-        'runName': workflow_name,
+        'runName': run_name,
         'paramsText': json.dumps(run_params),
-        'configText': params.get(
-            'config_text', source_workflow_launch.get('configText')
-        ),
+        'configText': params.get('config_text', source_launch.get('configText')),
     }
     if not resume:
         # A relaunch starts a new session.
         launch.pop('sessionId', None)
 
-    workflow_id = seqera.submit_launch(
+    return seqera.submit_launch(
         {key: value for key, value in launch.items() if value is not None}
     )
 
+
+async def resume_run(
+    params: dict, seqera: SeqeraApiClient, dataset_config: dict
+) -> dict[str, Any]:
+    """
+    Resume the original run in its own session, under the same ar_guid and work
+    dir, so cached tasks are reused.
+    """
+    source_id = params['workflow_id']
+    source_launch, ar_guid = get_source_launch(seqera, params, dataset_config)
+
+    # The original run is one of its session's runs, so it is taken from that list
+    session_id = source_launch['sessionId']
+    workflows_of_session_id = seqera.list_workflows(f'sessionId:{session_id}')
+    source_workflow = next(
+        (w for w in workflows_of_session_id if w['id'] == source_id), None
+    ) or seqera.describe_workflow(source_id)
+
+    if source_workflow.get('status') not in SOURCE_RUN_STATUSES:
+        raise web.HTTPBadRequest(
+            reason=f'Only runs with status {", ".join(SOURCE_RUN_STATUSES)} '
+            f'can be resumed; {source_id} is {source_workflow.get("status")}',
+        )
+
+    # resumeCommitId makes the new run use the same commit as the original run.
+    # If it is empty, the original run possibly failed before Nextflow started.
+    commit = source_launch.get('resumeCommitId')
+    if not commit:
+        raise web.HTTPBadRequest(
+            reason=f'Run {source_id} has nothing to resume, relaunch or resubmit it instead.'
+        )
+
+    await check_source_pipeline(source_launch['pipeline'], commit, params, dataset_config)
+
+    run_name = source_workflow['runName']
+    if source_workflow.get('resume'):
+        # The original run was itself a resume: drop its version.
+        run_name = re.sub(r'-\d+$', '', run_name)
+    run_name = f'{run_name}-{len(workflows_of_session_id) + 1}'
+
+    workflow_id = submit_from_source_launch(
+        seqera,
+        source_launch,
+        params,
+        resume=True,
+        ar_guid=ar_guid,
+        commit=commit,
+        work_dir=source_launch['resumeDir'],
+        run_name=run_name,
+    )
+
     return {
-        'run_name': launch['runName'],
-        'repo': repo,
-        'commit': commit,
         'workflow_id': workflow_id,
         AR_GUID_NAME: ar_guid,
-        'main_script': source_workflow_launch.get('mainScript'),
-        'source': {'workflow_id': source_id, AR_GUID_NAME: source_ar_guid},
-        # The runs sharing this run's session, this one last (resume only).
+        # The runs sharing this run's session, this one last.
         'session_workflow_ids': [
             *(workflow['id'] for workflow in workflows_of_session_id),
             workflow_id,
-        ]
-        if resume
-        else [],
+        ],
+    }
+
+
+async def relaunch_run(
+    params: dict, seqera: SeqeraApiClient, dataset_config: dict, email: str
+) -> dict[str, Any]:
+    """
+    Relaunch the original run from scratch as an independent run, under a new
+    ar_guid, work dir and session.
+    """
+    source_launch, _ = get_source_launch(seqera, params, dataset_config)
+
+    # The original commit, or its revision (a branch, tag, or commit).
+    commit = source_launch.get('resumeCommitId') or source_launch['revision']
+    repo = await check_source_pipeline(source_launch, commit, params, dataset_config)
+
+    ar_guid = generate_ar_guid()
+
+    # Named like a new launch.
+    user_name, _ = email.split('@', 1)
+    main_script = source_launch.get('mainScript') or 'main.nf'
+    run_name = sanitise_run_name(f'{user_name}-{commit}-{main_script}')
+
+    workflow_id = submit_from_source_launch(
+        seqera,
+        source_launch,
+        params,
+        resume=False,
+        ar_guid=ar_guid,
+        commit=commit,
+        work_dir=seqera.run_work_dir(ar_guid),
+        run_name=run_name,
+    )
+
+    return {
+        'workflow_id': workflow_id,
+        AR_GUID_NAME: ar_guid,
+        'run_name': run_name,
+        'repo': repo,
+        'commit': commit,
+        'main_script': main_script,
     }
 
 
@@ -302,9 +358,9 @@ async def log_resume_to_metamist(
     url: str | None,
 ) -> None:
     update: dict[str, Any] = {
-        'configPath': None,
+        'configPath': None, #TODO fix metamist
         'batchUrl': url or URL_UNAVAILABLE.upper(),
-        'submittingUser': email,
+        'submittingUser': email, #TODO check metamist field
         'meta': {
             'workflow_id': workflow_id,
             SEQERA_STATUS_KEY: CONFIG_PENDING,
@@ -399,13 +455,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
 
         seqera = SeqeraApiClient(params['dataset'], params['access_level'])
 
-        submission_info = await launch_from_source_run(
-            params=params,
-            seqera=seqera,
-            dataset_config=dataset_config,
-            email=email,
-            resume=True,
-        )
+        submission_info = await resume_run(params, seqera, dataset_config)
         workflow_id = submission_info['workflow_id']
         where, url = workflow_location(seqera, workflow_id)
 
@@ -432,13 +482,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
         )
 
         seqera = SeqeraApiClient(params['dataset'], params['access_level'])
-        submission_info = await launch_from_source_run(
-            params=params,
-            seqera=seqera,
-            dataset_config=dataset_config,
-            email=email,
-            resume=False,
-        )
+        submission_info = await relaunch_run(params, seqera, dataset_config, email)
         workflow_id = submission_info['workflow_id']
 
         metadata = {
