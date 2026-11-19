@@ -98,29 +98,25 @@ def add_seqera_args(
         ),
     )
 
-    source_run = parser.add_mutually_exclusive_group()
-    source_run.add_argument(
+    resume_relaunch_group = parser.add_mutually_exclusive_group()
+    resume_relaunch_group.add_argument(
         '--resume',
         metavar='WORKFLOW_ID',
         required=False,
         help=(
             'Resume an earlier run, given its Seqera workflow id. The run keeps its '
             'AR GUID and work directory. Cached tasks whose inputs did not change will be reused. '
-            '--repository, --revision, --commit-id, '
-            '--main-script and --syntax-parser come from the original run; only --params-file and '
-            '--config can be changed.'
+            'Only --params-file and --config can be changed.'
         ),
     )
-    source_run.add_argument(
+    resume_relaunch_group.add_argument(
         '--relaunch',
         metavar='WORKFLOW_ID',
         required=False,
         help=(
             'Relaunch an earlier run from scratch, given its Seqera workflow id. It '
             'gets a new AR GUID and work directory and reuses no cached tasks. '
-            '--repository, --revision, --commit-id, --main-script and --syntax-parser '
-            'come from the original run; only --params-file and --config can be '
-            'changed.'
+            'Only --params-file and --config can be changed.'
         ),
     )
 

@@ -5,8 +5,7 @@ from aiohttp import web
 from cachetools.func import lru_cache
 from util import get_seqera_config, read_ar_secret
 
-# Metamist meta key and custom status for runs whose config the resolver job
-# still has to save (as on the SET-1321 branch).
+
 SEQERA_STATUS_KEY = 'seqera_status'
 CONFIG_PENDING = 'CONFIG_PENDING'
 
