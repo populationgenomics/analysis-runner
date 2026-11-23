@@ -15,6 +15,7 @@ from seqera_api import (
     BATCH_URL_UNAVAILABLE,
     CONFIG_PENDING,
     SEQERA_STATUS_KEY,
+    UPDATED_TIMESTAMP_KEY,
     SeqeraApiClient,
 )
 
@@ -94,9 +95,7 @@ def get_pending_entries(project_ids: list[int]) -> list[dict]:
 
 def write_config(ar_guid: str, config_text: str) -> str:
     config_path = AnyPath(CONFIG_PATH_PREFIX) / f'{ar_guid}.config'
-    # The file could be written by a previous run whose Metamist update failed.
-    if not config_path.exists():
-        config_path.write_text(config_text)
+    config_path.write_text(config_text)
     return str(config_path)
 
 
@@ -112,11 +111,13 @@ def fetch_workflow(entry: dict, seqera: SeqeraApiClient) -> dict:
 
 
 def get_entry_age(entry: dict) -> datetime.timedelta:
-    created = datetime.datetime.fromisoformat(entry['timestamp'])
-    if created.tzinfo is None:
+    # A resumed run reuses the entry, so its age starts from the resume.
+    timestamp = entry['meta'].get(UPDATED_TIMESTAMP_KEY) or entry['timestamp']
+    last_modified = datetime.datetime.fromisoformat(timestamp)
+    if last_modified.tzinfo is None:
         # MariaDB Metamist stores the timestamp without a timezone, in UTC
-        created = created.replace(tzinfo=datetime.timezone.utc)
-    return datetime.datetime.now(datetime.timezone.utc) - created
+        last_modified = last_modified.replace(tzinfo=datetime.timezone.utc)
+    return datetime.datetime.now(datetime.timezone.utc) - last_modified
 
 
 def update_metamist_entry(
