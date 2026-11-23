@@ -106,7 +106,8 @@ def add_seqera_args(
         help=(
             'Resume an earlier run, given its Seqera workflow id. The run keeps its '
             'AR GUID and work directory. Cached tasks whose inputs did not change will be reused. '
-            'Only --params-file and --config can be changed.'
+            'Only --params-file and --config can be changed. '
+            'The associated Metamist metadata will be overwritten.'
         ),
     )
     resume_relaunch_group.add_argument(
@@ -114,7 +115,7 @@ def add_seqera_args(
         metavar='WORKFLOW_ID',
         required=False,
         help=(
-            'Relaunch an earlier run from scratch, given its Seqera workflow id. It '
+            'Relaunch an earlier run from scratch, given its Seqera workflow id. The new run '
             'gets a new AR GUID and work directory and reuses no cached tasks. '
             'Only --params-file and --config can be changed.'
         ),
@@ -227,7 +228,7 @@ def run_seqera(
     if resume or relaunch:
         if any([repository, revision, commit_id, main_script, syntax_parser]):
             raise SystemExit(
-                'With --resume or --relaunch, only --params-file and --config can be provided.',
+                'With --resume and --relaunch, only --params-file and --config can be provided.',
             )
         run_from_source_run(
             resume=bool(resume),
@@ -281,7 +282,9 @@ def run_seqera(
 
 RESUME_WARNING = (
     'Resuming keeps the AR GUID and work directory of the original run. During a '
-    'resumed workflow, cached tasks whose inputs did not change will be reused. Continue?'
+    'resumed workflow, cached tasks whose inputs did not change will be reused. '
+    'This will also overwrite Metamist metadata. '
+    'Continue?'
 )
 RELAUNCH_WARNING = (
     'Relaunching runs the pipeline from scratch under a new AR GUID and work '
