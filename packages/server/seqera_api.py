@@ -84,13 +84,11 @@ class SeqeraApiClient:
         response = self.get(f'workflow/{workflow_id}', params=self.workspace_param)
         return response['workflow']
 
-    def launch_workflow(self, params: dict) -> str:
-        compute_env = self.compute_environment(self.dataset_config['compute_env_id'])
-
+    def launch_workflow(self, params: dict, ar_guid: str) -> str:
         launch = {
             'launch': {
-                'computeEnvId': compute_env['id'],
-                'workDir': compute_env['config']['workDir'],
+                'computeEnvId': self.dataset_config['compute_env_id'],
+                'workDir': self.run_work_dir(ar_guid),
             }
         }
 
@@ -111,7 +109,7 @@ class SeqeraApiClient:
         return response['launch']
 
     def list_workflows(self, search: str | None = None) -> list[dict]:
-        """The workflows in the workspace. search query filters workflows
+        """The workflows in the workspace. search query filters workflows,
         without search query all the workflows in the workspace are retrieved.
         API documentation: https://docs.seqera.io/platform-api/list-workflows
         """
@@ -129,12 +127,12 @@ class SeqeraApiClient:
         )
 
     def run_work_dir(self, ar_guid: str) -> str:
-        """A folder per run in the compute env's work dir."""
+
         compute_env = self.compute_environment(self.dataset_config['compute_env_id'])
         return f'{compute_env["config"]["workDir"].rstrip("/")}/{ar_guid}'
 
     def submit_launch(self, launch: dict) -> str:
-        """POST a WorkflowLaunchRequest and return the new workflow id."""
+
         response = self.post(
             'workflow/launch', {'launch': launch}, self.workspace_param
         )

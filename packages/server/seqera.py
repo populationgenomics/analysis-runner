@@ -163,10 +163,7 @@ def get_source_ar_guid(source_launch: dict) -> str:
 def get_source_launch(
     seqera: SeqeraApiClient, params: dict, dataset_config: dict
 ) -> tuple[dict, str]:
-    """
-    The original run's launch and ar_guid, after checking the run belongs to this
-    dataset and access level and was launched by the analysis-runner.
-    """
+
     source_id = params['workflow_id']
     source_launch = seqera.describe_workflow_launch(source_id)
 
@@ -186,7 +183,7 @@ async def check_source_pipeline(
     pipeline: str, commit: str, params: dict, dataset_config: dict
 ) -> str:
     """
-    Revalidate the original run's pipeline (already done for the original run):
+    Revalidate the original run's pipeline
     """
     owner, repo, _, _ = parse_github_url(pipeline)
     check_allowed_repos(
@@ -200,14 +197,12 @@ def submit_from_source_launch(
     seqera: SeqeraApiClient,
     source_launch: dict,
     params: dict,
-    *,
     resume: bool,
     ar_guid: str,
     commit: str,
     work_dir: str,
     run_name: str,
 ) -> str:
-    """Submit the original launch with this run's settings. Returns the workflow id."""
     # A new params file replaces the source params as a whole.
     if 'params' in params:
         run_params = params['params']
@@ -253,11 +248,12 @@ async def resume_run(
     if source_workflow.get('status') not in SOURCE_RUN_STATUSES:
         raise web.HTTPBadRequest(
             reason=f'Only runs with status {", ".join(SOURCE_RUN_STATUSES)} '
-            f'can be resumed; {source_id} is {source_workflow.get("status")}',
+            f'can be resumed.',
         )
 
     # resumeCommitId makes the new run use the same commit as the original run.
-    # If it is empty, the original run possibly failed before Nextflow started.
+    # If it is empty, the original run possibly failed before the
+    # previous workflow started.
     commit = source_launch.get('resumeCommitId')
     if not commit:
         raise web.HTTPBadRequest(
@@ -269,6 +265,7 @@ async def resume_run(
     run_name = source_workflow['runName']
     if source_workflow.get('resume'):
         # The original run was itself a resume: drop its version.
+        # Based on {user_name}-{commit}-{main_script} format
         run_name = re.sub(r'-\d+$', '', run_name)
     run_name = f'{run_name}-{len(workflows_of_session_id) + 1}'
 
@@ -283,14 +280,14 @@ async def resume_run(
         run_name=run_name,
     )
 
+    # The runs sharing this run's session, this one last.
+    session_workflow_ids = [workflow['id'] for workflow in workflows_of_session_id]
+    session_workflow_ids.append(workflow_id)
+
     return {
         'workflow_id': workflow_id,
         AR_GUID_NAME: ar_guid,
-        # The runs sharing this run's session, this one last.
-        'session_workflow_ids': [
-            *(workflow['id'] for workflow in workflows_of_session_id),
-            workflow_id,
-        ],
+        'session_workflow_ids': session_workflow_ids,
     }
 
 
@@ -303,7 +300,7 @@ async def relaunch_run(
     """
     source_launch, _ = get_source_launch(seqera, params, dataset_config)
 
-    # The original commit, or its revision (a branch, tag, or commit).
+    # The original commit, or fallback to revision (a branch, tag, or commit).
     commit = source_launch.get('resumeCommitId') or source_launch['revision']
     repo = await check_source_pipeline(source_launch, commit, params, dataset_config)
 
@@ -420,7 +417,7 @@ def add_seqera_routes(routes: web.RouteTableDef):
             params['params'] = {AR_GUID_NAME: ar_guid}
 
         seqera = SeqeraApiClient(dataset, access_level)
-        workflow_id = seqera.launch_workflow(params)
+        workflow_id = seqera.launch_workflow(params, ar_guid)
 
         metadata = {
             AR_GUID_NAME: ar_guid,
