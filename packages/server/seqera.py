@@ -355,9 +355,10 @@ async def log_resume_to_metamist(
     url: str | None,
 ) -> None:
     update: dict[str, Any] = {
-        'configPath': None, #TODO fix metamist
+        # The scheduled job will set the config path
+        'clearConfigPath': True,
         'batchUrl': url or URL_UNAVAILABLE.upper(),
-        'submittingUser': email, #TODO check metamist field
+        'submittingUser': email,
         'meta': {
             'workflow_id': workflow_id,
             SEQERA_STATUS_KEY: CONFIG_PENDING,
