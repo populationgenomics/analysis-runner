@@ -13,6 +13,8 @@ ANALYSIS_RUNNER_PROJECT_ID = os.getenv('ANALYSIS_RUNNER_PROJECT_ID', 'analysis-r
 SEQERA_STATUS_KEY = 'seqera_status'
 CONFIG_PENDING = 'CONFIG_PENDING'  # A custom status
 BATCH_URL_UNAVAILABLE = 'URL_UNAVAILABLE'
+# Metamist meta key, set when the entry is reused for a resumed run
+UPDATED_TIMESTAMP_KEY = 'updated_timestamp'
 SEQERA_KEYS = {
     'commit_id': 'commitId',
     'config_text': 'configText',
