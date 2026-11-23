@@ -8,6 +8,8 @@ from util import get_seqera_config, read_ar_secret
 
 SEQERA_STATUS_KEY = 'seqera_status'
 CONFIG_PENDING = 'CONFIG_PENDING'
+# Metamist meta key, set when the entry is reused for a resumed run
+UPDATED_TIMESTAMP_KEY = 'updated_timestamp'
 
 SEQERA_KEYS = {
     'commit_id': 'commitId',

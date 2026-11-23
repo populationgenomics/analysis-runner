@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import re
@@ -6,7 +7,12 @@ from typing import Any
 
 import requests
 from aiohttp import web
-from seqera_api import CONFIG_PENDING, SEQERA_STATUS_KEY, SeqeraApiClient
+from seqera_api import (
+    CONFIG_PENDING,
+    SEQERA_STATUS_KEY,
+    UPDATED_TIMESTAMP_KEY,
+    SeqeraApiClient,
+)
 from util import (
     check_allowed_repos,
     check_branch_contains_commit,
@@ -365,6 +371,10 @@ async def log_resume_to_metamist(
             # Other the workflows sharing the same session-id (in other words resumed under
             # same arguid)
             'session_workflow_ids': session_workflow_ids,
+            # Last updated timestamp
+            UPDATED_TIMESTAMP_KEY: datetime.datetime.now(
+                datetime.timezone.utc
+            ).isoformat(),
         },
     }
 
