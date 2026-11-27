@@ -74,7 +74,7 @@ def has_permission(email: str, dataset: str, access_file: str | None, bucket_nam
 
 
 @app.route('/<dataset>/<path:filename>')
-def handler(  # noqa: C901
+def handler(
     dataset: str | None = None,
     filename: str | None = None,
 ):

@@ -43,12 +43,6 @@ def check_allowed_owner_repo(owner: str, repo: str, dataset_config: dict, datase
     check_allowed_repos(dataset_config=dataset_config, repo=repo, dataset=dataset)
 
 
-async def check_on_main(item: str, owner: str, repo: str, ref: str):
-    on_main = await check_branch_contains_commit(repo, 'main', ref, owner)
-    if not on_main:
-        raise web.HTTPBadRequest(reason=f'{item} is not present on main branch')
-
-
 SYNTAX_PARSERS = ('v1', 'v2')
 DEFAULT_SYNTAX_PARSER = 'v2'
 
@@ -111,7 +105,9 @@ def add_seqera_routes(routes: web.RouteTableDef):
         commit = get_and_check_seqera_commit(params)
         apply_seqera_launch_options(params)
         if not is_test:
-            await check_on_main('Commit', owner, repo, commit)
+            on_main = await check_branch_contains_commit(repo, 'main', commit, owner)
+            if not on_main:
+                raise web.HTTPBadRequest(reason='Commit is not present on main branch')
 
         if config_url := params.get('config_url'):
             url = await GithubUrl.parse(config_url)
@@ -119,7 +115,12 @@ def add_seqera_routes(routes: web.RouteTableDef):
             check_allowed_owner_repo(url.owner, url.repo, dataset_config, dataset)
             await url.parse_path()
             if not is_test:
-                await check_on_main('Config URL', url.owner, url.repo, url.ref)
+                on_main = await check_branch_contains_commit(
+                    url.repo, 'main', url.ref, url.owner
+                )
+                if not on_main:
+                    reason = 'Config URL is not present on main branch'
+                    raise web.HTTPBadRequest(reason=reason)
 
             params['config_text'] = await get_file_at_commit(url)
 

@@ -160,7 +160,7 @@ def _add_cromwell_submit_args_to(
     return parser
 
 
-def _run_cromwell(  # noqa: C901
+def _run_cromwell(
     dataset: str,
     output_dir: str,
     description: str,
@@ -369,7 +369,7 @@ def parse_keyword(keyword: str):
     return keyword[2:].replace('-', '_')
 
 
-def parse_additional_args(args: list[str]) -> dict[str, Any]:  # noqa: C901
+def parse_additional_args(args: list[str]) -> dict[str, Any]:
     """
     Parse a list of strings to an inputs json
 
