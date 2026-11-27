@@ -13,6 +13,10 @@ dev = [
     "pre-commit",
 ]
 
+[tool.pytest]
+testpaths = ["packages/analysis-runner/tests", "packages/server/tests"]
+pythonpath = ["packages/server"]
+
 [tool.ruff]
 line-length = 88
 
@@ -31,7 +35,7 @@ ignore = [
     "ISC001",  # Implicit string concatenation (formatter conflict)
     "Q000",    # Handled by format.quote-style = "single"
     "Q003",    # Handled by format.quote-style = "single"
-    "ANN101", "ANN201", "ANN401", "E501", "E731", "E741", "G004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLW0603", "PT018", "S101",
+    "ANN201", "ANN401", "E501", "E731", "E741", "G004", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLW0603", "PT018", "S101",
 ]
 
 [tool.ruff.lint.pylint]
@@ -62,6 +66,9 @@ cpg = ["cpg_flow", "cpg_utils", "cpg_infra", "metamist", "analysis_runner"]
 #     "metamist",
 # ]
 
+[tool.ruff.lint.mccabe]
+max-complexity = 20
+
 [tool.ruff.lint.per-file-ignores]
 # Long-standing patterns in the published package that aren't worth code churn
 # to satisfy (e.g. the CLI deliberately defers heavy imports, PLC0415).
@@ -71,4 +78,9 @@ cpg = ["cpg_flow", "cpg_utils", "cpg_infra", "metamist", "analysis_runner"]
     "PLR1714",
     "UP035",
     "PLC0207",
+]
+
+"packages/server/tests/*" = [
+    "ANN001",  # Fixtures are not type-annotated
+    "ARG001",  # Fixtures are often unused within the body of the test function
 ]

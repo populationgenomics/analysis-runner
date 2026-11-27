@@ -5,17 +5,15 @@ Utility methods for analysis-runner server
 import json
 import os
 import random
+import urllib.parse
 import uuid
-from typing import Any
+from typing import Any, Self
 
 import toml
 from aiohttp import ClientSession, web
-from cachetools.func import ttl_cache
+from cachetools.func import lru_cache, ttl_cache
 from cloudpathlib import AnyPath
 from google.cloud import pubsub_v1
-
-import hailtop.batch as hb
-from hailtop.config import get_deploy_config
 
 from cpg_utils.cloud import email_from_id_token, read_secret
 from cpg_utils.config import AR_GUID_NAME, get_cpg_namespace, update_dict
@@ -45,7 +43,10 @@ DEFAULT_STATUS_REPORTER = 'metamist'
 
 ALLOWED = 'https://github.com/populationgenomics/cpg-infrastructure-private/blob/main/datasets/{}/repositories.yaml'
 
-publisher = pubsub_v1.PublisherClient()
+
+@lru_cache
+def get_publisher() -> pubsub_v1.PublisherClient:
+    return pubsub_v1.PublisherClient()
 
 
 def generate_ar_guid() -> str:
@@ -89,6 +90,19 @@ def get_seqera_config() -> dict:
     return json.loads(config)
 
 
+@ttl_cache(maxsize=1, ttl=60)
+def get_github_token() -> str:
+    """Get the GitHub token from the secret manager. In theory we could allow this
+    to be missing and make unauthenticated API calls, but for logistical simplicity
+    we require it.
+    """
+    github_token = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'github-token')
+    if not github_token:
+        raise web.HTTPInternalServerError(reason='Failed to read github-token secret')
+
+    return github_token
+
+
 def read_ar_secret(secret_name: str) -> str:
     """Read a secret stored in the analysis-runner project."""
     value = read_secret(ANALYSIS_RUNNER_PROJECT_ID, secret_name)
@@ -97,20 +111,6 @@ def read_ar_secret(secret_name: str) -> str:
             reason='Failed to read analysis-runner secret'
         )
     return value
-
-
-async def _get_hail_version(environment: str) -> str:
-    """ASYNC get hail version for the hail server in the local deploy_config"""
-    if not environment == 'gcp':
-        raise web.HTTPBadRequest(
-            reason=f'Unsupported Hail Batch deploy config environment: {environment}',
-        )
-
-    deploy_config = get_deploy_config()
-    url = deploy_config.url('batch', '/api/v1alpha/version')
-    async with ClientSession() as session, session.get(url) as resp:
-        resp.raise_for_status()
-        return await resp.text()
 
 
 def get_email_from_request(request: web.Request) -> str:
@@ -336,6 +336,85 @@ def get_and_check_repository(
     return repo
 
 
+class GithubUrl:
+    owner: str
+    repo: str
+    full_ref: str
+    ref: str
+    path: str
+
+    def __init__(self, owner: str, repo: str, path: str):
+        self.owner = owner
+        self.repo = repo
+        self.full_ref = ''
+        self.ref = ''
+        self.path = path
+
+    def has_path(self) -> bool:
+        return self.path != ''
+
+    def __repr__(self) -> str:
+        return f'{type(self).__name__}({self.owner!r}, {self.repo!r}, {self.full_ref!r}, {self.ref!r}, {self.path!r})'
+
+    @classmethod
+    async def parse(cls, url_str: str) -> Self:
+        url = urllib.parse.urlsplit(url_str)
+        if url.netloc not in ('github.com', 'raw.githubusercontent.com'):
+            raise ValueError('bad host')
+
+        urlpath = urllib.parse.unquote(url.path).removeprefix('/')
+
+        if '/../' in f'/{urlpath}/':
+            raise web.HTTPBadRequest(reason='Misleading GitHub URL')
+
+        if urlpath.count('/') == 1:
+            owner, repo = urlpath.split('/')
+            return cls(owner, repo, '')
+
+        owner, repo, ref_path = urlpath.split('/', 2)
+        return cls(owner, repo, ref_path)
+
+    async def parse_path(self) -> Self:
+        ref_path = self.path
+
+        # Remainder of path should be blob/branch/path or refs/{heads,tags}/branch/path
+        # where either "branch" might instead be a tag
+
+        if ref_path.startswith('blob/'):
+            ref_path = ref_path.removeprefix('blob/')
+            ref_kinds = ['heads', 'tags']
+        elif ref_path.startswith('refs/'):
+            _, kind, ref_path = ref_path.split('/', 2)
+            ref_kinds = [kind]
+        else:
+            raise ValueError('Malformatted GitHub URL has neither /blob/ or /refs/')
+
+        prefix = ref_path.split('/', 1)[0]
+        for full_ref, ref in await find_matching_refs(
+            self.owner, self.repo, ref_kinds, prefix
+        ):
+            if ref_path.startswith(f'{ref}/'):
+                self.full_ref = full_ref
+                self.ref = ref
+                self.path = urllib.parse.quote(ref_path.removeprefix(ref))
+                return self
+
+        raise ValueError(f'No Git reference found matching {ref_path}')
+
+
+def github_get(
+    session: ClientSession,
+    url: str,
+    *,
+    params: dict[str, str] | None = None,
+    headers: dict[str, str] | None = None,
+):
+    if headers is None:
+        headers = {}
+    headers['Authorization'] = f'Bearer {get_github_token()}'
+    return session.get(f'https://api.github.com/{url}', params=params, headers=headers)
+
+
 async def check_branch_contains_commit(
     repo: str,
     branch: str,
@@ -347,11 +426,8 @@ async def check_branch_contains_commit(
     specifed branch. An exception will be raised if the GitHub API is unavailable.
     """
     # Selecting page 2 reduces the response size by omitting the list of changed files.
-    url = f'https://api.github.com/repos/{owner}/{repo}/compare/{commit}...{branch}?page=2&per_page=1'
-    github_token = read_secret(ANALYSIS_RUNNER_PROJECT_ID, 'github-token')
-    headers = {'Authorization': f'Bearer {github_token}'} if github_token else None
-
-    async with ClientSession(headers=headers) as session, session.get(url) as resp:
+    url = f'repos/{owner}/{repo}/compare/{commit}...{branch}?page=2&per_page=1'
+    async with ClientSession() as session, github_get(session, url) as resp:
         if resp.status == web.HTTPNotFound.status_code:  # i.e., 404
             # A non-existent (possibly unpushed) commit is certainly not present on main.
             return False
@@ -359,6 +435,41 @@ async def check_branch_contains_commit(
         compare = json.loads(await resp.text())
 
     return compare.get('status', 'missing') in ('identical', 'ahead')
+
+
+async def find_matching_refs(
+    owner: str,
+    repo: str,
+    ref_kinds: list[str],
+    prefix: str,
+) -> list[tuple[str, str]]:
+    matching_refs = []
+
+    async with ClientSession() as session:
+        for kind in ref_kinds:
+            url = f'repos/{owner}/{repo}/git/matching-refs/{kind}/{prefix}'
+            async with github_get(session, url) as response:
+                response.raise_for_status()
+                for ref_obj in await response.json():
+                    full_ref = ref_obj['ref']
+                    ref = full_ref.removeprefix(f'refs/{kind}/')
+                    matching_refs.append((full_ref, ref))
+
+    return matching_refs
+
+
+async def get_file_at_commit(url: GithubUrl) -> str:
+    async with (
+        ClientSession() as session,
+        github_get(
+            session,
+            f'repos/{url.owner}/{url.repo}/contents{url.path}',
+            params={'ref': url.full_ref},
+            headers={'Accept': 'application/vnd.github.raw+json'},
+        ) as response,
+    ):
+        response.raise_for_status()
+        return await response.text()
 
 
 def get_and_check_commit(params: dict, repo: str | None) -> str | None:
@@ -404,10 +515,7 @@ def get_hail_token(dataset: str, environment_config: dict, access_level: str) ->
     return hail_token
 
 
-def add_environment_variables(
-    job: hb.batch.job.BashJob,
-    environment_variables: dict | None,
-):
+def check_environment_variables(environment_variables: dict | None):
     if not environment_variables:
         return
 
@@ -423,6 +531,3 @@ def add_environment_variables(
             'Some environment_variables values were not strings, got '
             + ', '.join(invalid_env_vars),
         )
-
-    for k, v in environment_variables.items():
-        job.env(k, v)

@@ -254,7 +254,7 @@ def _perform_shebang_check(script: str) -> None:
         raise AssertionError(message)
 
 
-def get_repository_specific_information(  # noqa: C901
+def get_repository_specific_information(
     repository: str | None,
     commit: str | None,
     branch: str | None,
