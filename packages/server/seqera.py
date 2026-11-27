@@ -105,6 +105,10 @@ def add_seqera_routes(routes: web.RouteTableDef):
         commit = get_and_check_seqera_commit(params)
         apply_seqera_launch_options(params)
         if not is_test:
+            if 'config_text' in params:
+                reason = f'--config LOCALFILE may not be used in {access_level}'
+                raise web.HTTPBadRequest(reason=reason)
+
             on_main = await check_branch_contains_commit(repo, 'main', commit, owner)
             if not on_main:
                 raise web.HTTPBadRequest(reason='Commit is not present on main branch')
